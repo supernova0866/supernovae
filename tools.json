@@ -1,0 +1,149 @@
+{
+  "main": "https://supernova0866.github.io/supernovae",
+  "lore": "https://supernova0866.github.io/Lore",
+  "tags": [
+    "existential",
+    "interactive",
+    "utility",
+    "toy",
+    "clock",
+    "visual",
+    "generator",
+    "productivity",
+    "game",
+    "simulation",
+    "creative",
+    "dark",
+    "absurd",
+    "tool",
+    "art"
+  ],
+  "tools": [
+    {
+      "id": 1,
+      "title": "Hack.exe",
+      "desc": "Type anything. Look like a hacker.",
+      "src": "hackertype.html",
+      "tag": "interactive",
+      "theme": "dark",
+      "emoji": "💻"
+    },
+    {
+      "id": 2,
+      "title": "Password Entropy",
+      "desc": "How strong is your password, really.",
+      "src": "password-entropy.html",
+      "tag": "utility",
+      "theme": "dark",
+      "emoji": "🔐"
+    },
+    {
+      "id": 3,
+      "title": "Useless Machine",
+      "desc": "A machine with one job. It refuses.",
+      "src": "useless-machine.html",
+      "tag": "toy",
+      "theme": "light",
+      "emoji": "🤖"
+    },
+    {
+      "id": 4,
+      "title": "How Long Alive?",
+      "desc": "Your life in seconds, heartbeats, moons.",
+      "src": "alive.html",
+      "tag": "existential",
+      "theme": "dark",
+      "emoji": "⏳"
+    },
+    {
+      "id": 5,
+      "title": "Epoch Clock",
+      "desc": "The Unix timestamp. Ticking.",
+      "src": "epoch.html",
+      "tag": "clock",
+      "theme": "dark",
+      "emoji": "🕰️"
+    },
+    {
+      "id": 6,
+      "title": "Julia's Clock",
+      "desc": "A fractal that morphs forever.",
+      "src": "julias-clock.html",
+      "tag": "visual",
+      "theme": "dark",
+      "emoji": "🌀"
+    },
+    {
+      "id": 7,
+      "title": "Nonsense Generator",
+      "desc": "Official-looking documents. All nonsense.",
+      "src": "nonsense.html",
+      "tag": "generator",
+      "theme": "light",
+      "emoji": "📄"
+    },
+    {
+      "id": 8,
+      "title": "Pomodoro but Mean",
+      "desc": "A timer that judges you.",
+      "src": "pomodoro-mean.html",
+      "tag": "productivity",
+      "theme": "dark",
+      "emoji": "🍅"
+    },
+    {
+      "id": 9,
+      "title": "Lorem Ipsum but Worse",
+      "desc": "Placeholder text. Many flavours of unhinged.",
+      "src": "lorem-worse.html",
+      "tag": "generator",
+      "theme": "dark",
+      "emoji": "📝"
+    },
+    {
+      "id": 10,
+      "title": "Excuse Generator",
+      "desc": "From plausible to cosmically broken.",
+      "src": "excuse-generator.html",
+      "tag": "generator",
+      "theme": "light",
+      "emoji": "🤷"
+    },
+    {
+      "id": 11,
+      "title": "Complaint Letter",
+      "desc": "Formal grievances. Escalating outrage.",
+      "src": "complaint-letter.html",
+      "tag": "generator",
+      "theme": "light",
+      "emoji": "✉️"
+    },
+    {
+      "id": 12,
+      "title": "Death Clock",
+      "desc": "Your estimated seconds remaining.",
+      "src": "death-clock.html",
+      "tag": "existential",
+      "theme": "dark",
+      "emoji": "💀"
+    },
+    {
+      "id": 13,
+      "title": "Memento Mori",
+      "desc": "Spend your days. Then lose them.",
+      "src": "memento-mori.html",
+      "tag": "game",
+      "theme": "dark",
+      "emoji": "🕯️"
+    },
+    {
+      "id": 14,
+      "title": "Scale of the Universe",
+      "desc": "From quarks to the observable universe.",
+      "src": "scale-universe.html",
+      "tag": "visual",
+      "theme": "dark",
+      "emoji": "🔭"
+    }
+  ]
+}
