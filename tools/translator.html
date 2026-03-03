@@ -1,0 +1,1726 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Translator +++</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700&family=Exo+2:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #020b14;
+        --bg2: #040f1a;
+        --bg3: #071623;
+        --panel: #050d18;
+        --blue: #00aaff;
+        --blue-dim: #0066aa;
+        --blue-faint: #003355;
+        --blue-glow2: rgba(0, 170, 255, 0.06);
+        --cyan: #00ffee;
+        --cyan-dim: #00998a;
+        --text: #cce8ff;
+        --text-dim: #5588aa;
+        --text-faint: #2a4a66;
+        --border: #0a2a44;
+        --border-bright: #1a4a6e;
+        --success: #00ffaa;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Exo 2", sans-serif;
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(0, 170, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 170, 255, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: 0;
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(
+          to bottom,
+          transparent 0%,
+          rgba(0, 170, 255, 0.015) 50%,
+          transparent 100%
+        );
+        background-size: 100% 4px;
+        animation: scanlines 8s linear infinite;
+        pointer-events: none;
+        z-index: 0;
+      }
+      @keyframes scanlines {
+        0% {
+          background-position: 0 0;
+        }
+        100% {
+          background-position: 0 100vh;
+        }
+      }
+      .wrap {
+        position: relative;
+        z-index: 1;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 40px 24px 72px;
+      }
+      header {
+        margin-bottom: 40px;
+        opacity: 0;
+        animation: bootIn 0.6s 0.1s forwards;
+      }
+      .sys-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .sys-id {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 11px;
+        color: var(--text-faint);
+        letter-spacing: 2px;
+      }
+      .sys-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: "Share Tech Mono", monospace;
+        font-size: 10px;
+        color: var(--cyan-dim);
+        letter-spacing: 1px;
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--cyan);
+        box-shadow: 0 0 6px var(--cyan);
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      .title-block {
+        text-align: center;
+      }
+      .title-label {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 5px;
+        color: var(--blue-dim);
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(24px, 5.5vw, 48px);
+        font-weight: 700;
+        letter-spacing: 6px;
+        color: var(--blue);
+        text-shadow:
+          0 0 20px rgba(0, 170, 255, 0.5),
+          0 0 60px rgba(0, 170, 255, 0.2);
+        margin-bottom: 6px;
+        line-height: 1;
+      }
+      h1 .plus {
+        color: var(--cyan);
+        text-shadow: 0 0 20px rgba(0, 255, 238, 0.6);
+      }
+      .subtitle {
+        font-size: 12px;
+        color: var(--text-dim);
+        letter-spacing: 3px;
+        font-weight: 300;
+        font-family: "Share Tech Mono", monospace;
+      }
+
+      /* lang strip — 2 rows of 7 */
+      .lang-strip {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        margin-bottom: 28px;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+        opacity: 0;
+        animation: bootIn 0.6s 0.25s forwards;
+      }
+      .lang-chip {
+        padding: 8px 4px;
+        text-align: center;
+        font-family: "Share Tech Mono", monospace;
+        font-size: 9px;
+        letter-spacing: 1px;
+        color: var(--text-faint);
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        cursor: default;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .lang-chip:nth-child(7n) {
+        border-right: none;
+      }
+      .lang-chip:nth-child(n + 8) {
+        border-bottom: none;
+      }
+      .lang-chip.active {
+        color: var(--blue);
+        background: var(--blue-glow2);
+        text-shadow: 0 0 8px rgba(0, 170, 255, 0.4);
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border-bright);
+        border-radius: 4px;
+        padding: 28px;
+        position: relative;
+        opacity: 0;
+        animation: bootIn 0.6s 0.35s forwards;
+        box-shadow:
+          0 0 0 1px var(--border),
+          0 4px 40px rgba(0, 0, 0, 0.6),
+          inset 0 1px 0 rgba(0, 170, 255, 0.05);
+      }
+      .panel::before,
+      .panel::after {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-color: var(--blue-dim);
+        border-style: solid;
+      }
+      .panel::before {
+        top: -1px;
+        left: -1px;
+        border-width: 2px 0 0 2px;
+      }
+      .panel::after {
+        bottom: -1px;
+        right: -1px;
+        border-width: 0 2px 2px 0;
+      }
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 22px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .panel-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: 10px;
+        letter-spacing: 3px;
+        color: var(--blue-dim);
+      }
+      .panel-meta {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 10px;
+        color: var(--text-faint);
+        letter-spacing: 1px;
+      }
+      .lang-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .lang-label {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 3px;
+        color: var(--text-dim);
+        white-space: nowrap;
+      }
+      .lang-select {
+        flex: 1;
+        min-width: 160px;
+        appearance: none;
+        background: var(--bg3);
+        border: 1px solid var(--border-bright);
+        border-radius: 3px;
+        padding: 10px 32px 10px 14px;
+        font-family: "Share Tech Mono", monospace;
+        font-size: 12px;
+        color: var(--blue);
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2300aaff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        letter-spacing: 1px;
+      }
+      .lang-select:focus {
+        outline: none;
+        border-color: var(--blue);
+        box-shadow:
+          0 0 0 2px rgba(0, 170, 255, 0.12),
+          0 0 12px rgba(0, 170, 255, 0.1);
+      }
+      .lang-select option {
+        background: #040f1a;
+        color: var(--text);
+      }
+      .swap-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 3px;
+        border: 1px solid var(--border-bright);
+        background: var(--bg3);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--blue-dim);
+        font-size: 16px;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      .swap-btn:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+        box-shadow: 0 0 12px rgba(0, 170, 255, 0.2);
+        background: var(--blue-glow2);
+      }
+      .areas {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      @media (max-width: 620px) {
+        .areas {
+          grid-template-columns: 1fr;
+        }
+      }
+      .area-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .area-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2px;
+      }
+      .area-lang {
+        font-family: "Orbitron", sans-serif;
+        font-size: 9px;
+        letter-spacing: 3px;
+        color: var(--cyan);
+        text-shadow: 0 0 8px rgba(0, 255, 238, 0.3);
+      }
+      .char-count {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 10px;
+        color: var(--text-faint);
+      }
+      textarea,
+      .output-box {
+        width: 100%;
+        min-height: 200px;
+        padding: 14px 16px;
+        border: 1px solid var(--border-bright);
+        border-radius: 3px;
+        font-family: "Share Tech Mono", monospace;
+        font-size: 13px;
+        line-height: 1.8;
+        color: var(--text);
+        resize: vertical;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        background: var(--bg2);
+      }
+      textarea:focus {
+        outline: none;
+        border-color: var(--blue);
+        box-shadow:
+          0 0 0 2px rgba(0, 170, 255, 0.08),
+          0 0 20px rgba(0, 170, 255, 0.06);
+      }
+      textarea::placeholder {
+        color: var(--text-faint);
+      }
+      textarea {
+        caret-color: var(--cyan);
+      }
+      .output-box {
+        background: rgba(0, 20, 40, 0.6);
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow: auto;
+        color: var(--blue);
+        text-shadow: 0 0 8px rgba(0, 170, 255, 0.3);
+      }
+      .output-box.morse {
+        letter-spacing: 2px;
+        line-height: 2.2;
+        color: var(--cyan);
+        text-shadow: 0 0 8px rgba(0, 255, 238, 0.3);
+      }
+      .output-box.hieroglyph,
+      .output-box.runic {
+        font-size: 20px;
+        letter-spacing: 5px;
+        line-height: 2.2;
+        color: var(--cyan);
+        text-shadow: 0 0 10px rgba(0, 255, 238, 0.4);
+      }
+      .output-box.binary {
+        font-size: 11px;
+        letter-spacing: 1px;
+        line-height: 2;
+        color: var(--blue-dim);
+        text-shadow: none;
+        word-break: break-all;
+      }
+      .output-placeholder {
+        color: var(--text-faint);
+      }
+      .copy-btn {
+        align-self: flex-end;
+        padding: 7px 16px;
+        border: 1px solid var(--border-bright);
+        border-radius: 3px;
+        background: transparent;
+        font-family: "Share Tech Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 2px;
+        color: var(--text-dim);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .copy-btn:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+        box-shadow: 0 0 10px rgba(0, 170, 255, 0.15);
+      }
+      .copy-btn.copied {
+        border-color: var(--success);
+        color: var(--success);
+        box-shadow: 0 0 10px rgba(0, 255, 170, 0.2);
+      }
+      .info-strip {
+        margin-top: 24px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "Share Tech Mono", monospace;
+        font-size: 11px;
+        color: var(--text-faint);
+        letter-spacing: 1px;
+      }
+      .info-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--blue-dim);
+        flex-shrink: 0;
+      }
+      @keyframes bootIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--blue-faint);
+        border-radius: 99px;
+      }
+
+      /* ── info button ── */
+      #btn-info {
+        position: fixed;
+        top: 18px;
+        right: 20px;
+        z-index: 1000;
+        background: transparent;
+        border: 1px solid var(--border-bright);
+        color: var(--blue-dim);
+        font-family: "Share Tech Mono", monospace;
+        font-size: 14px;
+        width: 32px;
+        height: 32px;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      #btn-info:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+        box-shadow: 0 0 10px rgba(0, 170, 255, 0.2);
+      }
+
+      /* ── info overlay ── */
+      .info-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.22s ease;
+      }
+      .info-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .info-box {
+        background: var(--bg2);
+        border: 1px solid var(--border-bright);
+        padding: 28px 32px 24px;
+        min-width: 300px;
+        position: relative;
+        box-shadow:
+          0 0 40px rgba(0, 170, 255, 0.1),
+          inset 0 1px 0 rgba(0, 170, 255, 0.05);
+        transform: translateY(8px) scale(0.97);
+        transition: transform 0.22s ease;
+      }
+      .info-box::before,
+      .info-box::after {
+        content: "";
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-color: var(--blue-dim);
+        border-style: solid;
+      }
+      .info-box::before {
+        top: -1px;
+        left: -1px;
+        border-width: 2px 0 0 2px;
+      }
+      .info-box::after {
+        bottom: -1px;
+        right: -1px;
+        border-width: 0 2px 2px 0;
+      }
+      .info-overlay.open .info-box {
+        transform: translateY(0) scale(1);
+      }
+      .info-brand {
+        display: block;
+        font-family: "Orbitron", sans-serif;
+        font-size: 14px;
+        letter-spacing: 5px;
+        color: var(--blue);
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        text-decoration: none;
+        transition: all 0.15s;
+        text-shadow: 0 0 12px rgba(0, 170, 255, 0.4);
+      }
+      .info-brand:hover {
+        color: var(--cyan);
+        text-shadow: 0 0 12px rgba(0, 255, 238, 0.4);
+      }
+      .info-close {
+        position: absolute;
+        top: 12px;
+        right: 14px;
+        background: transparent;
+        border: 1px solid var(--border-bright);
+        color: var(--text-dim);
+        font-family: "Share Tech Mono", monospace;
+        font-size: 11px;
+        padding: 3px 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .info-close:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+      }
+      .info-line {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 2px;
+        color: var(--text-faint);
+        line-height: 2.4;
+      }
+      .info-line span {
+        color: var(--text-dim);
+      }
+      .info-nova {
+        color: var(--blue);
+        text-decoration: none;
+      }
+      .info-nova:hover {
+        color: var(--cyan);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="sys-bar">
+          <span class="sys-id">SYS // TRANSLATOR+++ // v3.1.4</span>
+          <div class="sys-status">
+            <div class="status-dot"></div>
+            <span>ALL MODULES ONLINE</span>
+          </div>
+        </div>
+        <div class="title-block">
+          <div class="title-label">UNIVERSAL LANGUAGE TERMINAL</div>
+          <h1>TRANSLATOR<span class="plus">+++</span></h1>
+          <div class="subtitle">14 LANGUAGES // PAST · PRESENT · FUTURE</div>
+        </div>
+      </header>
+
+      <div class="lang-strip" id="lang-strip">
+        <div class="lang-chip" data-lang="english">ENGLISH</div>
+        <div class="lang-chip" data-lang="archaic">ARCHAIC</div>
+        <div class="lang-chip" data-lang="pirate">PIRATE</div>
+        <div class="lang-chip" data-lang="victorian">VICTORIAN</div>
+        <div class="lang-chip" data-lang="southern">SOUTHERN</div>
+        <div class="lang-chip" data-lang="valleygirl">VALLEY</div>
+        <div class="lang-chip" data-lang="shakespeare">SHAKESPEARE</div>
+        <div class="lang-chip" data-lang="piglatin">PIG LATIN</div>
+        <div class="lang-chip" data-lang="uwu">UWU</div>
+        <div class="lang-chip" data-lang="waifu">WAIFU</div>
+        <div class="lang-chip" data-lang="hieroglyph">HIEROGLYPH</div>
+        <div class="lang-chip" data-lang="runic">RUNIC</div>
+        <div class="lang-chip" data-lang="morse">MORSE</div>
+        <div class="lang-chip" data-lang="binary">BINARY</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">TRANSLATION MATRIX</span>
+          <span class="panel-meta" id="panel-meta">READY</span>
+        </div>
+        <div class="lang-row">
+          <span class="lang-label">INPUT</span>
+          <select class="lang-select" id="src-lang">
+            <option value="english">ENGLISH</option>
+            <option value="archaic">ARCHAIC ENGLISH</option>
+            <option value="pirate">PIRATE</option>
+            <option value="victorian">VICTORIAN</option>
+            <option value="southern">SOUTHERN US</option>
+            <option value="valleygirl">VALLEY GIRL</option>
+            <option value="shakespeare">SHAKESPEAREAN</option>
+            <option value="piglatin">PIG LATIN</option>
+            <option value="uwu">UWU-SPEAK</option>
+            <option value="waifu">ANIME WAIFU</option>
+            <option value="hieroglyph">HIEROGLYPHS</option>
+            <option value="runic">RUNIC</option>
+            <option value="morse">MORSE CODE</option>
+            <option value="binary">BINARY</option>
+          </select>
+          <button class="swap-btn" id="swap-btn">⇄</button>
+          <span class="lang-label">OUTPUT</span>
+          <select class="lang-select" id="tgt-lang">
+            <option value="english">ENGLISH</option>
+            <option value="archaic">ARCHAIC ENGLISH</option>
+            <option value="pirate">PIRATE</option>
+            <option value="victorian">VICTORIAN</option>
+            <option value="southern">SOUTHERN US</option>
+            <option value="valleygirl">VALLEY GIRL</option>
+            <option value="shakespeare">SHAKESPEAREAN</option>
+            <option value="piglatin">PIG LATIN</option>
+            <option value="uwu" selected>UWU-SPEAK</option>
+            <option value="waifu">ANIME WAIFU</option>
+            <option value="hieroglyph">HIEROGLYPHS</option>
+            <option value="runic">RUNIC</option>
+            <option value="morse">MORSE CODE</option>
+            <option value="binary">BINARY</option>
+          </select>
+        </div>
+        <div class="areas">
+          <div class="area-wrap">
+            <div class="area-head">
+              <span class="area-lang" id="src-label">ENGLISH</span>
+              <span class="char-count" id="char-count">0 CHARS</span>
+            </div>
+            <textarea
+              id="input"
+              placeholder="Enter text to translate…"
+              spellcheck="false"
+            ></textarea>
+          </div>
+          <div class="area-wrap">
+            <div class="area-head">
+              <span class="area-lang" id="tgt-label">UWU-SPEAK</span>
+            </div>
+            <div class="output-box" id="output">
+              <span class="output-placeholder">// awaiting input...</span>
+            </div>
+            <button class="copy-btn" id="copy-btn">[ COPY ]</button>
+          </div>
+        </div>
+        <div class="info-strip">
+          <div class="info-dot"></div>
+          <span id="info-text"
+            >SELECT SOURCE AND TARGET LANGUAGE, THEN BEGIN TYPING</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- info button -->
+    <button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+
+    <!-- info overlay -->
+    <div
+      class="info-overlay"
+      id="info-overlay"
+      onclick="handleOverlayClick(event)"
+    >
+      <div class="info-box">
+        <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+        <button class="info-close" onclick="closeInfo()">✕</button>
+        <div class="info-line">// <span id="info-title">—</span></div>
+        <div class="info-line">// Tool <span id="info-id">—</span></div>
+        <div class="info-line">
+          // Made by
+          <a href="#" id="info-nova" class="info-nova" target="_blank">Nova</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const MORSE_ENC = {
+        a: ".-",
+        b: "-...",
+        c: "-.-.",
+        d: "-..",
+        e: ".",
+        f: "..-.",
+        g: "--.",
+        h: "....",
+        i: "..",
+        j: ".---",
+        k: "-.-",
+        l: ".-..",
+        m: "--",
+        n: "-.",
+        o: "---",
+        p: ".--.",
+        q: "--.-",
+        r: ".-.",
+        s: "...",
+        t: "-",
+        u: "..-",
+        v: "...-",
+        w: ".--",
+        x: "-..-",
+        y: "-.--",
+        z: "--..",
+        0: "-----",
+        1: ".----",
+        2: "..---",
+        3: "...--",
+        4: "....-",
+        5: ".....",
+        6: "-....",
+        7: "--...",
+        8: "---..",
+        9: "----.",
+        ".": ".-.-.-",
+        ",": "--..--",
+        "?": "..--..",
+        "!": "-.-.--",
+        " ": "/",
+      };
+      const MORSE_DEC = Object.fromEntries(
+        Object.entries(MORSE_ENC).map(([k, v]) => [v, k]),
+      );
+      const toMorse = (t) =>
+        t
+          .toLowerCase()
+          .split("")
+          .map((c) => MORSE_ENC[c] || "?")
+          .join(" ");
+      const fromMorse = (t) =>
+        t
+          .trim()
+          .split(" ")
+          .map((c) => (c === "/" ? " " : MORSE_DEC[c] || "?"))
+          .join("");
+      const toBinary = (t) =>
+        t
+          .split("")
+          .map((c) => c.charCodeAt(0).toString(2).padStart(8, "0"))
+          .join(" ");
+      const fromBinary = (t) =>
+        t
+          .trim()
+          .split(/\s+/)
+          .map((b) => {
+            const n = parseInt(b, 2);
+            return isNaN(n) ? "?" : String.fromCharCode(n);
+          })
+          .join("");
+      const HIERO = {
+        a: "𓀀",
+        b: "𓃀",
+        c: "𓎡",
+        d: "𓂧",
+        e: "𓇋",
+        f: "𓆑",
+        g: "𓎼",
+        h: "𓉔",
+        i: "𓇌",
+        j: "𓆓",
+        k: "𓎡",
+        l: "𓃭",
+        m: "𓅓",
+        n: "𓈖",
+        o: "𓅱",
+        p: "𓊪",
+        q: "𓎤",
+        r: "𓂋",
+        s: "𓊃",
+        t: "𓏏",
+        u: "𓅱",
+        v: "𓆑",
+        w: "𓅱",
+        x: "𓎡",
+        y: "𓇌",
+        z: "𓊃",
+        " ": "  ",
+        ".": "𓇯",
+        ",": "𓇯",
+        "!": "𓇯",
+        "?": "𓇯",
+      };
+      const HIERO_DEC = Object.fromEntries(
+        Object.entries(HIERO)
+          .filter(([k, v]) => k.length === 1)
+          .map(([k, v]) => [v, k]),
+      );
+      const toHiero = (t) =>
+        t
+          .toLowerCase()
+          .split("")
+          .map((c) => HIERO[c] || c)
+          .join("");
+      const fromHiero = (t) => {
+        let r = "",
+          i = 0;
+        while (i < t.length) {
+          const c = t[i];
+          r += HIERO_DEC[c] || c;
+          i++;
+        }
+        return r;
+      };
+      const RUNIC = {
+        a: "ᚨ",
+        b: "ᛒ",
+        c: "ᚲ",
+        d: "ᛞ",
+        e: "ᛖ",
+        f: "ᚠ",
+        g: "ᚷ",
+        h: "ᚺ",
+        i: "ᛁ",
+        j: "ᛃ",
+        k: "ᚲ",
+        l: "ᛚ",
+        m: "ᛗ",
+        n: "ᚾ",
+        o: "ᛟ",
+        p: "ᛈ",
+        q: "ᚲ",
+        r: "ᚱ",
+        s: "ᛊ",
+        t: "ᛏ",
+        u: "ᚢ",
+        v: "ᚠ",
+        w: "ᚹ",
+        x: "ᚲ",
+        y: "ᛃ",
+        z: "ᛉ",
+        " ": " ",
+        ".": "᛬",
+        ",": "᛬",
+        "!": "᛬",
+        "?": "᛬",
+      };
+      const RUNIC_DEC = Object.fromEntries(
+        Object.entries(RUNIC)
+          .filter(([k, v]) => k.length === 1 && v.length === 1)
+          .map(([k, v]) => [v, k]),
+      );
+      const toRunic = (t) =>
+        t
+          .toLowerCase()
+          .split("")
+          .map((c) => RUNIC[c] || c)
+          .join("");
+      const fromRunic = (t) =>
+        t
+          .split("")
+          .map((c) => RUNIC_DEC[c] || c)
+          .join("");
+      function pigLatinWord(w) {
+        if (!/[a-z]/i.test(w)) return w;
+        const l = w.toLowerCase(),
+          v = "aeiou";
+        if (v.includes(l[0])) return w + "way";
+        let i = 0;
+        while (i < l.length && !v.includes(l[i])) i++;
+        if (i === l.length) return w + "ay";
+        const r = l.slice(i) + l.slice(0, i) + "ay";
+        return w[0] === w[0].toUpperCase()
+          ? r.charAt(0).toUpperCase() + r.slice(1)
+          : r;
+      }
+      const toPigLatin = (t) =>
+        t
+          .split(/(\s+|[^a-zA-Z]+)/)
+          .map((w) => (/^[a-zA-Z]+$/.test(w) ? pigLatinWord(w) : w))
+          .join("");
+      const UWU_FACES = [" owo", " uwu", " >w<", " ^w^", " :3", " >.<"];
+      function toUwu(t) {
+        let r = t
+          .replace(/r/g, "w")
+          .replace(/R/g, "W")
+          .replace(/l/g, "w")
+          .replace(/L/g, "W")
+          .replace(/n([aeiou])/gi, (_, v) => "ny" + v)
+          .replace(/ove/g, "uv")
+          .replace(/th/g, "d")
+          .replace(/TH/g, "D")
+          .replace(/you/gi, "chu")
+          .replace(
+            /!/g,
+            () =>
+              " !" + UWU_FACES[Math.floor(Math.random() * UWU_FACES.length)],
+          );
+        if (t.length > 5 && !r.match(/owo|uwu|>w</))
+          r = r + UWU_FACES[t.length % UWU_FACES.length];
+        return r;
+      }
+      const WAIFU_MAP = {
+        hello: "h-hewwo",
+        hi: "hii~",
+        hey: "h-hey",
+        goodbye: "s-see you~",
+        bye: "baiiii~",
+        yes: "y-yes~",
+        yeah: "y-yeah~",
+        no: "n-no~",
+        please: "p-please~",
+        thank: "thank you so much~",
+        thanks: "thank youuu~",
+        sorry: "s-sorry",
+        help: "h-help~",
+        good: "so good~",
+        great: "so great~",
+        amazing: "amazinggg~",
+        bad: "h-horrible~",
+        very: "so",
+        really: "r-really",
+        cute: "so cute~",
+        love: "l-love~",
+        like: "l-like~",
+        hate: "h-hate",
+        friend: "f-friend~",
+        you: "y-you",
+        your: "y-your",
+        i: "i",
+        me: "m-me",
+        my: "my",
+        stop: "s-stop",
+        look: "l-look",
+        see: "s-see",
+        go: "g-go",
+        come: "c-come",
+        want: "w-want~",
+        need: "n-need~",
+        food: "f-food~",
+        eat: "eat",
+        sleep: "s-sleepy~",
+        happy: "so happy~",
+        sad: "s-sad~",
+        scared: "s-scared",
+        heart: "h-heart",
+        beautiful: "so beautiful~",
+        weird: "w-weird~",
+      };
+      const WAIFU_ACTIONS = [
+        "*blushes*",
+        "*fiddles with fingers*",
+        "*looks away shyly*",
+        "*pounces on you*",
+        "*twirls hair*",
+        "*hides behind sleeve*",
+        "*peeks at you*",
+        "*runs away*",
+        "*trips adorably*",
+        "*makes heart with hands*",
+        "*whispers*",
+        "*gasps softly*",
+        "*covers mouth*",
+        "*stomps foot*",
+        "*waves shyly*",
+        "*looks around nervously*",
+      ];
+      const WAIFU_ENDERS = [" ~", "...~", " ehehe~", " hehe~", " uwu~"];
+      function stutter(w) {
+        if (w.length < 2 || Math.random() > 0.3) return w;
+        const c = w[0];
+        const reps = Math.floor(Math.random() * 3) + 1; // 1-3 extra repeats = up to 4 total
+        return Array(reps).fill(c).join("-") + "-" + w;
+      }
+      function toWaifu(t) {
+        // map words then inject actions mid-sentence randomly
+        const tokens = t.split(/(\s+|[.,!?;:]+)/);
+        let words = tokens.map((w) => {
+          const l = w.toLowerCase(),
+            m = WAIFU_MAP[l];
+          if (m) return m;
+          if (/^[a-zA-Z]+$/.test(w)) return stutter(w);
+          return w;
+        });
+        // inject actions randomly between words (not at start/end)
+        const result = [];
+        for (let i = 0; i < words.length; i++) {
+          result.push(words[i]);
+          // inject after a real word, randomly, not at very end
+          if (
+            i < words.length - 2 &&
+            /^[a-zA-Z]/.test(words[i]) &&
+            Math.random() < 0.05 + Math.min(t.length / 2000, 0.1)
+          ) {
+            const act =
+              WAIFU_ACTIONS[Math.floor(Math.random() * WAIFU_ACTIONS.length)];
+            result.push(" " + act);
+          }
+        }
+        let r = result.join("");
+        r = r.trimEnd() + WAIFU_ENDERS[t.length % WAIFU_ENDERS.length];
+        if (t.length > 6) {
+          const act =
+            WAIFU_ACTIONS[Math.floor(t.length % WAIFU_ACTIONS.length)];
+          r = act + " " + r.charAt(0).toLowerCase() + r.slice(1);
+        }
+        return r;
+      }
+      const ARCHAIC = {
+        you: "thou",
+        your: "thy",
+        yours: "thine",
+        yourself: "thyself",
+        are: "art",
+        have: "hast",
+        has: "hath",
+        do: "dost",
+        does: "doth",
+        will: "shalt",
+        would: "wouldst",
+        could: "couldst",
+        should: "shouldst",
+        very: "most",
+        really: "verily",
+        truly: "forsooth",
+        indeed: "verily",
+        yes: "yea",
+        no: "nay",
+        but: "yet",
+        therefore: "wherefore",
+        because: "for",
+        hello: "hail",
+        hi: "hail",
+        hey: "hark",
+        goodbye: "fare thee well",
+        bye: "fare thee well",
+        please: "prithee",
+        thanks: "gramercy",
+        thank: "gramercy",
+        here: "hither",
+        there: "thither",
+        now: "forthwith",
+        soon: "anon",
+        good: "goodly",
+        great: "wondrous",
+        bad: "vile",
+      };
+      function toArchaic(t) {
+        return t
+          .split(/(\s+|[.,!?;:]+)/)
+          .map((w) => {
+            const l = w.toLowerCase(),
+              m = ARCHAIC[l];
+            if (m)
+              return w[0] === w[0].toUpperCase() &&
+                w.length > 1 &&
+                !/^[.,!?]/.test(w)
+                ? m.charAt(0).toUpperCase() + m.slice(1)
+                : m;
+            if (/ing$/.test(l) && l.length > 5) return w.slice(0, -3) + "eth";
+            return w;
+          })
+          .join("");
+      }
+
+      // Shakespeare
+      const SHAKES_MAP = {
+        i: "I",
+        me: "me",
+        my: "mine",
+        you: "thee",
+        your: "thy",
+        yours: "thine",
+        yourself: "thyself",
+        we: "we",
+        us: "us",
+        our: "our",
+        they: "they",
+        them: "them",
+        their: "their",
+        am: "am",
+        is: "is",
+        are: "art",
+        was: "wast",
+        were: "wert",
+        be: "be",
+        have: "hath",
+        has: "hath",
+        had: "hadst",
+        do: "dost",
+        does: "doth",
+        did: "didst",
+        will: "wilt",
+        would: "wouldst",
+        shall: "shalt",
+        should: "shouldst",
+        could: "couldst",
+        might: "mayst",
+        go: "goeth",
+        goes: "goeth",
+        gone: "gone",
+        come: "cometh",
+        comes: "cometh",
+        say: "sayeth",
+        says: "sayeth",
+        said: "spake",
+        speak: "speaketh",
+        spoke: "spake",
+        know: "knowest",
+        knew: "knewest",
+        see: "seest",
+        saw: "sawest",
+        think: "thinkest",
+        thought: "thoughtst",
+        give: "givest",
+        gave: "gavest",
+        take: "takest",
+        took: "tookest",
+        make: "makest",
+        made: "madest",
+        love: "lovest",
+        hate: "hatest",
+        fear: "fearest",
+        hope: "hopest",
+        yes: "yea, verily",
+        no: "nay",
+        not: "not",
+        very: "most",
+        really: "forsooth",
+        truly: "in sooth",
+        indeed: "indeed",
+        good: "goodly",
+        great: "most noble",
+        bad: "foul",
+        evil: "most vile",
+        beautiful: "fairest",
+        ugly: "most foul",
+        happy: "merry",
+        sad: "melancholy",
+        angry: "wrathful",
+        afraid: "afeard",
+        hello: "hail, well met",
+        hi: "hail",
+        hey: "hark",
+        goodbye: "fare thee well",
+        bye: "fare thee well",
+        please: "prithee",
+        thanks: "I thank thee",
+        thank: "I thank thee",
+        sorry: "I am most aggrieved",
+        help: "aid me",
+        now: "forthwith",
+        soon: "anon",
+        here: "hither",
+        there: "thither",
+        where: "whither",
+        why: "wherefore",
+        what: "what",
+        when: "when",
+        how: "how",
+        friend: "dear friend",
+        enemy: "foe",
+        love: "beloved",
+        heart: "heart",
+        soul: "soul",
+        life: "life",
+        death: "death",
+        world: "this mortal coil",
+        time: "time",
+        day: "day",
+        night: "night",
+        king: "liege",
+        queen: "sovereign lady",
+        god: "the heavens",
+      };
+      const SHAKES_OPENERS = [
+        "Hark! ",
+        "Methinks, ",
+        "Forsooth, ",
+        "In sooth, ",
+        "By the heavens, ",
+        "What ho! ",
+        "Prithee, ",
+      ];
+      const SHAKES_ENDERS = [
+        "\n\nThus speaks the Bard.",
+        "\n\n— As written in the stars.",
+        "\n\nSo it is spoken.",
+      ];
+      function toShakespeare(t) {
+        const words = t.split(/(\s+|[.,!?;:]+)/);
+        let r = words
+          .map((w) => {
+            const l = w.toLowerCase(),
+              m = SHAKES_MAP[l];
+            if (m)
+              return w[0] === w[0].toUpperCase() &&
+                w.length > 1 &&
+                !/^[.,!?]/.test(w)
+                ? m.charAt(0).toUpperCase() + m.slice(1)
+                : m;
+            if (/ing$/.test(l) && l.length > 5) return w.slice(0, -3) + "eth";
+            if (/ed$/.test(l) && l.length > 4) return w.slice(0, -2) + "'d";
+            return w;
+          })
+          .join("");
+        if (t.length > 6) {
+          const op = SHAKES_OPENERS[t.length % SHAKES_OPENERS.length];
+          r = op + r.charAt(0).toLowerCase() + r.slice(1);
+        }
+        if ((t.match(/[.!?]/g) || []).length >= 2)
+          r += SHAKES_ENDERS[t.length % SHAKES_ENDERS.length];
+        return r;
+      }
+
+      const VPRE = [
+        "I daresay, ",
+        "One finds that ",
+        "It is most curious that ",
+        "Pray tell, ",
+        "Upon my word, ",
+        "I venture to suggest that ",
+        "How frightfully ",
+        "My dear fellow, ",
+        "By Jove, ",
+        "Good heavens, ",
+      ];
+      const VMAP = {
+        hello: "good day",
+        hi: "good day",
+        hey: "I say",
+        bye: "cheerio",
+        goodbye: "toodle-pip",
+        yes: "quite so",
+        yeah: "quite",
+        no: "I'm afraid not",
+        ok: "very well",
+        okay: "very well",
+        cool: "rather splendid",
+        great: "capital",
+        good: "splendid",
+        bad: "frightful",
+        amazing: "extraordinary",
+        wonderful: "marvellous",
+        terrible: "most dreadful",
+        very: "exceedingly",
+        really: "most",
+        friend: "dear companion",
+        you: "one",
+        your: "one's",
+        i: "I",
+        me: "one",
+        my: "one's",
+        think: "venture to think",
+        want: "should very much like",
+        go: "proceed",
+        said: "remarked",
+        say: "remark",
+        like: "find rather agreeable",
+        love: "am frightfully fond of",
+        hate: "find most disagreeable",
+        money: "coin of the realm",
+        food: "sustenance",
+        house: "residence",
+        home: "abode",
+        work: "endeavour",
+        job: "occupation",
+        today: "this very day",
+        now: "at this juncture",
+        soon: "presently",
+        problem: "predicament",
+      };
+      function toVictorian(t) {
+        const words = t.split(/(\s+|[.,!?;:]+)/);
+        let r = words
+          .map((w) => {
+            const l = w.toLowerCase(),
+              m = VMAP[l];
+            if (m)
+              return w[0] === w[0].toUpperCase() &&
+                w.length > 1 &&
+                !/^[.,!?]/.test(w)
+                ? m.charAt(0).toUpperCase() + m.slice(1)
+                : m;
+            return w;
+          })
+          .join("");
+        if (t.length > 8 && /[a-z]/i.test(t)) {
+          const op = VPRE[t.length % VPRE.length];
+          r = op + r.charAt(0).toLowerCase() + r.slice(1);
+        }
+        if ((t.match(/[.!?]/g) || []).length >= 2)
+          r += "\n\nYours faithfully,\nA Gentleman of Discernment";
+        return r;
+      }
+      const PMAP = {
+        hello: "ahoy",
+        hi: "ahoy",
+        hey: "ahoy",
+        friend: "matey",
+        friends: "mateys",
+        yes: "aye",
+        yeah: "aye",
+        no: "nay",
+        you: "ye",
+        your: "yer",
+        my: "me",
+        am: "be",
+        is: "be",
+        are: "be",
+        good: "fine",
+        great: "grand",
+        amazing: "blimey",
+        food: "grub",
+        drink: "grog",
+        money: "doubloons",
+        gold: "plunder",
+        treasure: "booty",
+        ship: "vessel",
+        boat: "vessel",
+        man: "scallywag",
+        woman: "lass",
+        girl: "lass",
+        boy: "lad",
+        look: "spy",
+        see: "spy",
+        go: "sail",
+        home: "port",
+        very: "mighty",
+        really: "truly",
+        think: "reckon",
+        want: "desire",
+        stop: "belay",
+        help: "aid",
+        bye: "farewell",
+        goodbye: "farewell",
+      };
+      function toPirate(t) {
+        const ints = [
+          "Arrr! ",
+          "Blimey! ",
+          "Shiver me timbers! ",
+          "Yo ho! ",
+          "Avast! ",
+        ];
+        let r = t
+          .split(/(\s+|[.,!?;:]+)/)
+          .map((w) => {
+            const l = w.toLowerCase(),
+              m = PMAP[l];
+            if (m)
+              return w[0] === w[0].toUpperCase() && w.length > 1
+                ? m.charAt(0).toUpperCase() + m.slice(1)
+                : m;
+            return w;
+          })
+          .join("");
+        if (t.length > 10 && !r.match(/^(arrr|ahoy|blimey|avast)/i))
+          r = ints[Math.floor(Math.random() * ints.length)] + r;
+        return r;
+      }
+      const SMAP = {
+        hello: "howdy",
+        hi: "howdy",
+        hey: "howdy",
+        goodbye: "y'all come back now",
+        bye: "y'all come back",
+        yes: "sure 'nough",
+        yeah: "you betcha",
+        no: "no sir",
+        very: "right",
+        really: "plumb",
+        good: "real good",
+        great: "right fine",
+        bad: "ain't worth a lick",
+        food: "vittles",
+        friend: "sugar",
+        everyone: "all y'all",
+        people: "folks",
+        tired: "tuckered out",
+        thanks: "much obliged",
+        please: "if you don't mind",
+        sorry: "bless your heart",
+        you: "y'all",
+        your: "y'all's",
+      };
+      function toSouthern(t) {
+        const words = t.split(/(\s+|[.,!?;:]+)/);
+        let r = words
+          .map((w) => {
+            const l = w.toLowerCase(),
+              m = SMAP[l];
+            if (m)
+              return w[0] === w[0].toUpperCase() &&
+                w.length > 1 &&
+                !/^[.,!?]/.test(w)
+                ? m.charAt(0).toUpperCase() + m.slice(1)
+                : m;
+            if (/ing\b/.test(l) && l.length > 4)
+              return w.replace(/ing\b/, "in'");
+            return w;
+          })
+          .join("");
+        if (t.length > 6 && !r.match(/^howdy/i))
+          r = "Well, " + r.charAt(0).toLowerCase() + r.slice(1);
+        return r;
+      }
+      const VGMAP = {
+        yes: "totally",
+        yeah: "like, yeah",
+        no: "as if",
+        good: "so good",
+        great: "literally amazing",
+        bad: "the worst",
+        amazing: "literally dying",
+        very: "so",
+        really: "literally",
+        hello: "oh em gee, hi",
+        hi: "hiiii",
+        hey: "oh hey",
+        goodbye: "byeee",
+        bye: "byeee",
+        think: "feel like",
+        want: "like, want",
+        friend: "bestie",
+        friends: "besties",
+        love: "am obsessed with",
+        hate: "cannot even with",
+        cool: "so fetch",
+        tired: "literally dead",
+        thanks: "omg thanks",
+        please: "pleaseeee",
+        sorry: "oh my god, sorry",
+      };
+      const VGFILL = [", like,", ", literally,", ", you know,", ", basically,"];
+      function toValleyGirl(t) {
+        const words = t.split(/(\s+|[.,!?;:]+)/);
+        let r = words
+          .map((w) => {
+            const l = w.toLowerCase(),
+              m = VGMAP[l];
+            if (m)
+              return w[0] === w[0].toUpperCase() &&
+                w.length > 1 &&
+                !/^[.,!?]/.test(w)
+                ? m.charAt(0).toUpperCase() + m.slice(1)
+                : m;
+            return w;
+          })
+          .join("");
+        const wa = r.split(" ");
+        if (wa.length > 4) {
+          const mid = Math.floor(wa.length / 2);
+          wa.splice(mid, 0, VGFILL[t.length % VGFILL.length]);
+          r = wa.join(" ");
+        }
+        return r + "???";
+      }
+      function toEnglish(text, from) {
+        if (from === "morse") return fromMorse(text);
+        if (from === "binary") return fromBinary(text);
+        if (from === "hieroglyph") return fromHiero(text);
+        if (from === "runic") return fromRunic(text);
+        const maps = {
+          archaic: ARCHAIC,
+          victorian: VMAP,
+          pirate: PMAP,
+          southern: SMAP,
+          valleygirl: VGMAP,
+          shakespeare: SHAKES_MAP,
+        };
+        const map = maps[from];
+        if (!map) return text;
+        const rev = Object.fromEntries(
+          Object.entries(map).map(([k, v]) => [v.toLowerCase(), k]),
+        );
+        return text
+          .split(/(\s+|[.,!?;:]+)/)
+          .map((w) => rev[w.toLowerCase()] || w)
+          .join("");
+      }
+      function translate(text, from, to) {
+        if (!text.trim()) return "";
+        if (from === to) return text;
+        const eng = from === "english" ? text : toEnglish(text, from);
+        switch (to) {
+          case "english":
+            return eng;
+          case "morse":
+            return toMorse(eng);
+          case "binary":
+            return toBinary(eng);
+          case "hieroglyph":
+            return toHiero(eng);
+          case "runic":
+            return toRunic(eng);
+          case "archaic":
+            return toArchaic(eng);
+          case "pirate":
+            return toPirate(eng);
+          case "victorian":
+            return toVictorian(eng);
+          case "southern":
+            return toSouthern(eng);
+          case "valleygirl":
+            return toValleyGirl(eng);
+          case "shakespeare":
+            return toShakespeare(eng);
+          case "piglatin":
+            return toPigLatin(eng);
+          case "uwu":
+            return toUwu(eng);
+          case "waifu":
+            return toWaifu(eng);
+          default:
+            return eng;
+        }
+      }
+      const input = document.getElementById("input"),
+        output = document.getElementById("output"),
+        srcSel = document.getElementById("src-lang"),
+        tgtSel = document.getElementById("tgt-lang"),
+        srcLabel = document.getElementById("src-label"),
+        tgtLabel = document.getElementById("tgt-label"),
+        charCount = document.getElementById("char-count"),
+        copyBtn = document.getElementById("copy-btn"),
+        infoText = document.getElementById("info-text"),
+        swapBtn = document.getElementById("swap-btn"),
+        panelMeta = document.getElementById("panel-meta");
+      const LNAMES = {
+        english: "ENGLISH",
+        archaic: "ARCHAIC ENG.",
+        pirate: "PIRATE",
+        victorian: "VICTORIAN",
+        southern: "SOUTHERN US",
+        valleygirl: "VALLEY GIRL",
+        shakespeare: "SHAKESPEAREAN",
+        piglatin: "PIG LATIN",
+        uwu: "UWU-SPEAK",
+        waifu: "ANIME WAIFU",
+        hieroglyph: "HIEROGLYPHS",
+        runic: "RUNIC",
+        morse: "MORSE CODE",
+        binary: "BINARY",
+      };
+      const INFO = {
+        morse: "ENCODING: DOTS AND DASHES // INTERNATIONAL MORSE CODE STANDARD",
+        binary: "ENCODING: ASCII BINARY // 8-BIT PER CHARACTER",
+        hieroglyph:
+          "ENCODING: EGYPTIAN HIEROGLYPHS // UNICODE BLOCK 13000–1342F",
+        runic: "ENCODING: ELDER FUTHARK // PROTO-GERMANIC RUNIC ALPHABET",
+        archaic: "DIALECT: ARCHAIC ENGLISH // CIRCA 16TH CENTURY",
+        shakespeare: "DIALECT: SHAKESPEAREAN // CIRCA 1590–1613",
+        pirate: "DIALECT: MARITIME SLANG // GOLDEN AGE OF PIRACY",
+        victorian: "DIALECT: VICTORIAN ENGLISH // CIRCA 1837–1901",
+        southern: "DIALECT: SOUTHERN AMERICAN ENGLISH",
+        valleygirl: "DIALECT: VALLEY GIRL // SOUTHERN CALIFORNIA",
+        piglatin: "CIPHER: PIG LATIN // ENGLISH LANGUAGE GAME",
+        uwu: "DIALECT: UWU-SPEAK // INTERNET CULTURE VARIANT",
+        waifu: "DIALECT: ANIME WAIFU // STUTTERS, TILDES & RANDOM ACTIONS",
+        english: "STANDARD: MODERN ENGLISH // ISO 639-1: EN",
+      };
+      const OCLS = {
+        morse: "output-box morse",
+        binary: "output-box binary",
+        hieroglyph: "output-box hieroglyph",
+        runic: "output-box runic",
+      };
+      function updateChips() {
+        document
+          .querySelectorAll(".lang-chip")
+          .forEach((c) =>
+            c.classList.toggle(
+              "active",
+              c.dataset.lang === srcSel.value ||
+                c.dataset.lang === tgtSel.value,
+            ),
+          );
+      }
+      function updateLabels() {
+        srcLabel.textContent =
+          LNAMES[srcSel.value] || srcSel.value.toUpperCase();
+        tgtLabel.textContent =
+          LNAMES[tgtSel.value] || tgtSel.value.toUpperCase();
+        infoText.textContent = INFO[tgtSel.value] || "MODULE READY";
+        updateChips();
+      }
+      function doTranslate() {
+        const text = input.value;
+        charCount.textContent = text.length + " CHARS";
+        panelMeta.textContent = text.length > 0 ? "TRANSLATING..." : "READY";
+        if (!text.trim()) {
+          output.innerHTML =
+            '<span class="output-placeholder">// awaiting input...</span>';
+          output.className = "output-box";
+          panelMeta.textContent = "READY";
+          return;
+        }
+        const result = translate(text, srcSel.value, tgtSel.value);
+        output.textContent = result;
+        output.className = OCLS[tgtSel.value] || "output-box";
+        panelMeta.textContent = "OUTPUT READY // " + result.length + " CHARS";
+      }
+      input.addEventListener("input", doTranslate);
+      srcSel.addEventListener("change", () => {
+        updateLabels();
+        doTranslate();
+      });
+      tgtSel.addEventListener("change", () => {
+        updateLabels();
+        doTranslate();
+      });
+      swapBtn.addEventListener("click", () => {
+        const tmp = srcSel.value;
+        srcSel.value = tgtSel.value;
+        tgtSel.value = tmp;
+        const outText = output.querySelector(".output-placeholder")
+          ? ""
+          : output.innerText;
+        if (outText) input.value = outText;
+        updateLabels();
+        doTranslate();
+      });
+      copyBtn.addEventListener("click", () => {
+        if (output.querySelector(".output-placeholder")) return;
+        const text = output.innerText;
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+        copyBtn.textContent = "[ COPIED ]";
+        copyBtn.classList.add("copied");
+        setTimeout(() => {
+          copyBtn.textContent = "[ COPY ]";
+          copyBtn.classList.remove("copied");
+        }, 1800);
+      });
+      updateLabels();
+
+      // info popup
+      (async () => {
+        try {
+          const res = await fetch("../tools.json");
+          const data = await res.json();
+          const file = window.location.pathname.split("/").pop() || "";
+          const tool = data.tools.find((t) =>
+            (t.src || t.file || "").endsWith(file),
+          );
+          if (tool) {
+            document.getElementById("info-title").textContent =
+              tool.title || tool.name;
+            document.getElementById("info-id").textContent = "#" + tool.id;
+          }
+          if (data.main) document.getElementById("info-brand").href = data.main;
+          if (data.lore) document.getElementById("info-nova").href = data.lore;
+        } catch (e) {}
+      })();
+      function toggleInfo() {
+        document.getElementById("info-overlay").classList.toggle("open");
+      }
+      function closeInfo() {
+        document.getElementById("info-overlay").classList.remove("open");
+      }
+      function handleOverlayClick(e) {
+        if (e.target.id === "info-overlay") closeInfo();
+      }
+    </script>
+  </body>
+</html>
