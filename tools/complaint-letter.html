@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complaint Letter Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+  :root {
+    --bg: #e8e0d0;
+    --paper: #faf7f2;
+    --ink: #1c1812;
+    --ink-dim: #6b6050;
+    --ink-faint: #c0b89a;
+    --red: #8b1a1a;
+    --border: #d4c8b0;
+    --shadow: rgba(28,24,18,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    font-family: 'EB Garamond', serif;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 20px 80px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(180,160,120,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(160,140,100,0.1) 0%, transparent 50%);
+  }
+
+  .page { width: 100%; max-width: 680px; }
+
+  /* Header */
+  .masthead {
+    text-align: center;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--ink);
+    position: relative;
+  }
+
+  .masthead::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0; right: 0;
+    height: 1px;
+    background: var(--ink);
+  }
+
+  .masthead h1 {
+    font-size: clamp(26px, 5vw, 40px);
+    font-weight: 500;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .masthead h1 em { font-style: italic; }
+
+  .masthead-sub {
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+
+  /* Controls */
+  .controls {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    margin-bottom: 32px;
+    box-shadow: 2px 2px 0 var(--border);
+  }
+
+  .ctrl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 24px;
+    margin-bottom: 24px;
+  }
+
+  .ctrl-field { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl-field.wide { grid-column: span 2; }
+
+  .ctrl-field label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+
+  .ctrl-field input,
+  .ctrl-field select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    font-family: 'EB Garamond', serif;
+    font-size: 17px;
+    color: var(--ink);
+    padding: 4px 2px 6px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .ctrl-field input::placeholder { color: var(--ink-faint); font-style: italic; }
+  .ctrl-field input:focus,
+  .ctrl-field select:focus { border-color: var(--ink-dim); }
+
+  .ctrl-field select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6050' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    padding-right: 20px;
+  }
+
+  /* Outrage meter */
+  .outrage-section { margin-bottom: 0; }
+
+  .outrage-label {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .outrage-val { color: var(--red); font-weight: 700; }
+
+  .outrage-track {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  .outrage-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--ink-dim), var(--red));
+    transition: width 0.2s;
+  }
+
+  input[type=range]#outrage {
+    width: 100%;
+    appearance: none;
+    background: transparent;
+    height: 20px;
+    cursor: pointer;
+    margin-top: -12px;
+  }
+
+  input[type=range]#outrage::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--ink);
+    border-radius: 50%;
+    border: 2px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--ink);
+  }
+
+  .outrage-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'EB Garamond', serif;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--ink-faint);
+  }
+
+  /* Generate */
+  .gen-btn {
+    width: 100%;
+    margin-top: 24px;
+    padding: 13px;
+    background: var(--ink);
+    border: none;
+    color: var(--paper);
+    font-family: 'EB Garamond', serif;
+    font-size: 18px;
+    font-style: italic;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 3px 3px 0 var(--ink-faint);
+  }
+
+  .gen-btn:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink-faint); }
+  .gen-btn:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--ink-faint); }
+
+  /* Letter */
+  .letter-wrap {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .letter-wrap.visible { display: block; }
+
+  .letter-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .tool-btn {
+    font-family: 'Courier Prime', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .tool-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+  .letter {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    padding: 52px 60px 60px;
+    box-shadow:
+      4px 4px 0 var(--border),
+      8px 8px 0 rgba(28,24,18,0.06),
+      0 12px 40px rgba(28,24,18,0.1);
+    position: relative;
+    line-height: 1.85;
+    font-size: clamp(15px, 2vw, 17px);
+  }
+
+  /* Letterhead */
+  .letter-head {
+    border-bottom: 1px solid var(--ink-faint);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .sender-name {
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .sender-detail {
+    font-size: 12px;
+    color: var(--ink-dim);
+    font-style: italic;
+    margin-top: 3px;
+  }
+
+  .letter-date {
+    font-size: 13px;
+    color: var(--ink-dim);
+    text-align: right;
+    font-style: italic;
+  }
+
+  /* Body */
+  .letter-recipient {
+    margin-bottom: 20px;
+    font-style: italic;
+    color: var(--ink-dim);
+    font-size: 14px;
+  }
+
+  .letter-subject {
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--ink);
+    font-style: normal;
+    border-bottom: 1px solid var(--ink-faint);
+    padding-bottom: 8px;
+  }
+
+  .letter-body p { margin-bottom: 1.4em; }
+  .letter-body p:last-child { margin-bottom: 0; }
+
+  .letter-sign {
+    margin-top: 32px;
+  }
+
+  .sign-close {
+    font-style: italic;
+    margin-bottom: 32px;
+    display: block;
+  }
+
+  .sign-name {
+    font-weight: 500;
+    font-size: 18px;
+    display: block;
+  }
+
+  .sign-title {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink-dim);
+    display: block;
+    margin-top: 3px;
+  }
+
+  /* Anger stamp */
+  .anger-stamp {
+    position: absolute;
+    top: 48px;
+    right: 52px;
+    border: 3px solid var(--red);
+    color: var(--red);
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    padding: 4px 10px;
+    transform: rotate(12deg);
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-transform: uppercase;
+  }
+
+  .anger-stamp.visible { opacity: 0.75; }
+
+  @keyframes letterin {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .letter { animation: letterin 0.4s ease; }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: absolute; top: 16px; right: 16px; z-index: 10;
+    background: transparent; border: 1px solid rgba(44,24,16,0.2);
+    color: #2c1810; font-family: 'Courier Prime', monospace; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s; opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #2c1810; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(232,224,208,0.9); border: 1px solid rgba(44,24,16,0.12);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'EB Garamond', serif; font-size: 20px;
+    letter-spacing: 5px; color: #2c1810; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(44,24,16,0.12);
+    color: #2c1810; font-family: 'Courier Prime', monospace; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'Courier Prime', monospace; font-size: 12px;
+    letter-spacing: 2px; color: #2c1810; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #2c1810; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <h1>The <em>Complaint</em> Letter</h1>
+    <div class="masthead-sub">// Generator of Formal Grievances</div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-grid">
+      <div class="ctrl-field">
+        <label>Your Name</label>
+        <input type="text" id="sender-name" placeholder="Reginald H. Forthwright">
+      </div>
+      <div class="ctrl-field">
+        <label>Your Title</label>
+        <input type="text" id="sender-title" placeholder="Concerned Citizen">
+      </div>
+      <div class="ctrl-field">
+        <label>Complaint About</label>
+        <select id="company">
+          <option value="supermarket">A Supermarket</option>
+          <option value="airline">An Airline</option>
+          <option value="broadband">A Broadband Provider</option>
+          <option value="restaurant">A Restaurant</option>
+          <option value="council">The Local Council</option>
+          <option value="bank">A Bank</option>
+          <option value="streaming">A Streaming Service</option>
+          <option value="gym">A Gym</option>
+          <option value="hotel">A Hotel</option>
+          <option value="delivery">A Delivery Company</option>
+        </select>
+      </div>
+      <div class="ctrl-field">
+        <label>The Incident</label>
+        <input type="text" id="incident" placeholder="the biscuit aisle situation">
+      </div>
+    </div>
+
+    <div class="outrage-section">
+      <div class="outrage-label">
+        <span>Level of Outrage</span>
+        <span class="outrage-val" id="outrage-label-val">Mildly Peeved</span>
+      </div>
+      <div class="outrage-track">
+        <div class="outrage-fill" id="outrage-fill" style="width: 20%"></div>
+      </div>
+      <input type="range" id="outrage" min="1" max="5" value="1" oninput="updateOutrage()">
+      <div class="outrage-labels">
+        <span>Mildly Peeved</span>
+        <span>Incandescent</span>
+      </div>
+    </div>
+
+    <button class="gen-btn" onclick="generate()">Draft My Complaint</button>
+  </div>
+
+  <div class="letter-wrap" id="letter-wrap">
+    <div class="letter-toolbar">
+      <button class="tool-btn" onclick="generate()">Redraft</button>
+      <button class="tool-btn" onclick="copyLetter()">Copy</button>
+    </div>
+
+    <div class="letter" id="letter">
+      <div class="anger-stamp" id="anger-stamp">Outraged</div>
+
+      <div class="letter-head">
+        <div>
+          <div class="sender-name" id="letter-sender-name">—</div>
+          <div class="sender-detail" id="letter-sender-detail">—</div>
+        </div>
+        <div class="letter-date" id="letter-date">—</div>
+      </div>
+
+      <div class="letter-recipient" id="letter-recipient">—</div>
+      <div class="letter-subject" id="letter-subject">—</div>
+      <div class="letter-body" id="letter-body"></div>
+
+      <div class="letter-sign">
+        <span class="sign-close" id="sign-close">—</span>
+        <span class="sign-name" id="sign-name">—</span>
+        <span class="sign-title" id="sign-title">—</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const outrageLabels = ['Mildly Peeved', 'Displeased', 'Genuinely Upset', 'Furious', 'Incandescent'];
+const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const now = new Date();
+
+function updateOutrage() {
+  const val = parseInt(document.getElementById('outrage').value);
+  const pct = (val - 1) / 4 * 100;
+  document.getElementById('outrage-fill').style.width = pct + '%';
+  document.getElementById('outrage-label-val').textContent = outrageLabels[val - 1];
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ── Company data ──────────────────────────────────────────────────────────────
+const companies = {
+  supermarket: { name: 'FreshMart PLC', dept: 'Customer Experience Department', title: 'Head of Customer Relations' },
+  airline:     { name: 'SkyBridge Airways', dept: 'Passenger Services Division', title: 'Director of Passenger Welfare' },
+  broadband:   { name: 'SwiftConnect Broadband', dept: 'Customer Satisfaction Team', title: 'Head of Service Quality' },
+  restaurant:  { name: 'The Golden Spatula Restaurant Group', dept: 'Guest Relations', title: 'General Manager' },
+  council:     { name: 'The Local Borough Council', dept: 'Public Services Office', title: 'Chief Executive Officer' },
+  bank:        { name: 'Meridian Bank plc', dept: 'Customer Complaints Division', title: 'Head of Customer Experience' },
+  streaming:   { name: 'StreamNow Entertainment', dept: 'Subscriber Relations', title: 'Director of Customer Success' },
+  gym:         { name: 'PeakForm Fitness Centres', dept: 'Member Experience Team', title: 'Regional Manager' },
+  hotel:       { name: 'The Grand Vantage Hotel Group', dept: 'Guest Services Department', title: 'Director of Guest Relations' },
+  delivery:    { name: 'SwiftDrop Logistics', dept: 'Customer Resolution Team', title: 'Head of Delivery Operations' },
+};
+
+// ── Letter templates by outrage level ────────────────────────────────────────
+const subjects = {
+  1: ['A Minor Matter Requiring Your Attention', 'A Small Concern I Wished to Raise', 'A Gentle Query Regarding Recent Events'],
+  2: ['A Matter of Some Concern', 'Regarding a Recent Unsatisfactory Experience', 'A Complaint I Feel Obliged to Make'],
+  3: ['A Formal Complaint Regarding Unacceptable Standards', 'A Serious Matter Demanding Your Immediate Attention', 'Regarding a Deeply Disappointing Experience'],
+  4: ['An Urgent and Serious Complaint: Immediate Action Required', 'A Catalogue of Failures I Can No Longer Ignore', 'I Write With Considerable Distress Regarding Your Establishment'],
+  5: ['A Letter of Profound and Historic Grievance', 'URGENT: The Complete Collapse of All Standards', 'A Document I Shall Be Forwarding to Every Relevant Authority'],
+};
+
+const openings = {
+  1: [
+    'I hope this letter finds you well. I am writing to bring to your attention a small but not insignificant matter that arose during my recent experience with your establishment.',
+    'I write as a long-standing and generally satisfied customer, which is precisely why I feel the need to raise what I hope will be treated as a constructive concern.',
+    'I trust you will receive this letter in the spirit in which it is intended — not as an attack, but as a gentle nudge toward the standards your organisation once reliably maintained.',
+  ],
+  2: [
+    'I am writing to express my dissatisfaction following a recent encounter with your organisation that left me, frankly, rather underwhelmed.',
+    'It is with some reluctance that I put pen to paper, as I am not by nature a complaining sort of person. However, the events of recent days have made correspondence unavoidable.',
+    'I have given this matter considerable thought before writing, as I wanted to ensure my concerns were expressed fairly and without undue emotion. I believe I have achieved this, though it has not been easy.',
+  ],
+  3: [
+    'I write in a state of genuine disappointment that I had hoped, after thirty years of commerce, I would never again have occasion to feel.',
+    'What I am about to describe is not, I want to stress, a trivial inconvenience. It is a systematic failure of the most basic standards, and I intend to document it fully.',
+    'I have been a customer of yours for many years. I mention this not to leverage goodwill, but to contextualise the depth of my current dismay.',
+  ],
+  4: [
+    'I will not pretend to be calm. The events I am about to describe have caused me a level of distress that I have not experienced since the council resurfaced my road without giving adequate notice.',
+    'I am writing this letter immediately upon returning home, still in my coat, because I feared that if I waited until morning I would have recovered enough composure to understate the severity of what occurred.',
+    'There comes a moment in every man\'s life when he must put aside politeness and speak plainly. That moment, for me, is now.',
+  ],
+  5: [
+    'I have drafted this letter seven times. Six of those drafts were too restrained. This one is not.',
+    'When historians write about the decline of standards in this country, I intend for this incident to be cited as a primary source. To that end, I am being thorough.',
+    'I want you to understand that I did not arrive at this letter lightly. I spent three days attempting to achieve resolution through your customer service telephone line before concluding that written documentation was the only way to ensure this matter was treated with the gravity it demands.',
+  ],
+};
+
+const middles = {
+  1: [
+    'During my visit, I encountered {incident}, which I found to be somewhat below the standard I have come to expect. I do not wish to make too much of this — I appreciate that these things happen — but I felt it only right to mention it.',
+    'Specifically, I became aware of {incident}. I raised this with a member of staff who was perfectly pleasant, though ultimately unable to resolve the matter to my satisfaction.',
+    'The issue in question relates to {incident}. It is a small thing, perhaps, but small things accumulate, and I would hate for this to become a pattern.',
+  ],
+  2: [
+    'The crux of my complaint concerns {incident}. I observed this firsthand and can confirm that it was not an isolated occurrence but rather appeared to be entirely standard practice at your establishment.',
+    'I was confronted with {incident}, which I found difficult to reconcile with the marketing materials your company has so liberally distributed, which make certain promises I consider to have been, on this occasion, broken.',
+    'On the matter of {incident}: I am not an unreasonable person, but I do have standards, and what I witnessed fell measurably short of them.',
+  ],
+  3: [
+    'The incident in question — {incident} — is not, I want to make clear, the kind of thing one simply forgets. I have attempted to forget it. I cannot.',
+    'I refer specifically to {incident}. I took photographs. I have retained receipts. I am prepared to provide statutory declarations if required.',
+    'What occurred can be summarised as follows: {incident}. I am aware that summarising it thus makes it sound almost manageable. It was not manageable. I want that on the record.',
+  ],
+  4: [
+    'I shall describe {incident} as plainly as I am able, which is to say: I will not be using the word "unacceptable" because I no longer consider it strong enough. I will instead use the phrase "a waking nightmare from which I am still attempting to recover."',
+    'The matter of {incident} is merely the most recent in a sequence of events that, taken together, constitute what I can only describe as a sustained and coordinated assault on my wellbeing as a customer.',
+    'On the subject of {incident}: I have consulted with several friends and family members who uniformly agreed that my reaction — which I shall not reproduce here for reasons of decorum — was entirely proportionate.',
+  ],
+  5: [
+    'I speak now of {incident}. I speak of it knowing that no words I possess are adequate to the task. I will try nonetheless, because silence is not something I am prepared to offer you.',
+    '{incident}. I have written those words and read them back to myself and I remain as incredulous as I was in the moment. My doctor has been informed.',
+    'The full account of {incident} runs to eleven pages in my personal journal, which I maintain for precisely these purposes. I have condensed it here, though I want it understood that the condensation has required real sacrifice.',
+  ],
+};
+
+const demands = {
+  1: [
+    'I would appreciate it if this matter could be looked into at your convenience. A brief acknowledgement would be most welcome.',
+    'I am not seeking compensation — merely an assurance that this has been noted and that steps will be taken to prevent a recurrence.',
+    'A written response at your earliest convenience would be appreciated. I do not require urgency, merely acknowledgement.',
+  ],
+  2: [
+    'I expect a written response within fourteen days. I also expect some indication of what remedial action will be taken.',
+    'I would like an apology, a clear explanation of what went wrong, and some assurance that this will not happen again. I do not consider this unreasonable.',
+    'I am requesting a full account of what happened, why it happened, and what your organisation intends to do about it. I will be monitoring the situation.',
+  ],
+  3: [
+    'I require a full written apology, a detailed explanation, and meaningful compensation for the considerable inconvenience I have been caused. I have done my research regarding your obligations in this regard.',
+    'I expect a response within seven days. Failure to respond will result in this matter being escalated to the relevant regulatory body, of which I am aware there are several.',
+    'I am requesting a formal investigation, a written apology, and a gesture of goodwill that reflects the seriousness with which you have taken my complaint. I will know if you have not taken it seriously.',
+  ],
+  4: [
+    'I require a personal response from a senior member of your leadership team. A form letter from a customer service representative will not suffice and will be returned unopened.',
+    'I am requesting full compensation, a formal apology, a written explanation, a commitment to staff retraining, and a personal call from whoever is in charge of the department responsible. I have blocked out my diary.',
+    'My demands are as follows, and I will not negotiate: a full apology, prompt compensation, and a promise — in writing — that you have taken steps to ensure this never happens again. I will be checking.',
+  ],
+  5: [
+    'I want a personal response, full compensation, a public commitment to improvement, and I want the name of the individual directly responsible. I intend to write to my MP, the relevant ombudsman, and several newspapers. I have already drafted those letters.',
+    'Nothing short of a complete structural review of your organisation, a personal apology from your Chief Executive, and a cheque of sufficient magnitude to reflect the gravity of what has occurred will satisfy me. I have consulted a solicitor. They found the situation "extraordinary."',
+    'I am forwarding copies of this letter to the regulatory authority, my local councillor, two national newspapers, and a consumer rights podcast to which I have been a loyal subscriber for four years. I am also posting it on a forum. Good day.',
+  ],
+};
+
+const closings = {
+  1: ['With moderate displeasure', 'Yours with hope for resolution', 'With tempered disappointment'],
+  2: ['With notable dissatisfaction', 'Yours in a state of mild indignation', 'Disappointed, but willing to be persuaded otherwise'],
+  3: ['Yours in considerable frustration', 'With deep and sincere disappointment', 'Awaiting your response with dwindling patience'],
+  4: ['Yours in a state of profound agitation', 'Furiously, but formally', 'With barely contained indignation'],
+  5: ['Incandescently yours', 'In a state of historic displeasure', 'Yours with the full weight of my considerable grievance'],
+};
+
+const stampLabels = {
+  3: 'Unhappy',
+  4: 'Furious',
+  5: 'OUTRAGED',
+};
+
+function generate() {
+  const senderName  = document.getElementById('sender-name').value.trim() || 'A. Concerned';
+  const senderTitle = document.getElementById('sender-title').value.trim() || 'Concerned Member of the Public';
+  const companyKey  = document.getElementById('company').value;
+  const incident    = document.getElementById('incident').value.trim() || 'an incident I can only describe as unacceptable';
+  const outrage     = parseInt(document.getElementById('outrage').value);
+  const company     = companies[companyKey];
+
+  // Build letter parts
+  const opening = pick(openings[outrage]);
+  const middle  = pick(middles[outrage]).replace(/{incident}/g, incident);
+  const demand  = pick(demands[outrage]);
+  const closing = pick(closings[outrage]);
+  const subject = pick(subjects[outrage]);
+
+  // Populate letter
+  document.getElementById('letter-sender-name').textContent = senderName;
+  document.getElementById('letter-sender-detail').textContent = senderTitle;
+  document.getElementById('letter-date').textContent =
+    `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+  document.getElementById('letter-recipient').textContent =
+    `The ${company.title}\n${company.dept}\n${company.name}`;
+
+  document.getElementById('letter-subject').textContent = `Re: ${subject}`;
+
+  const bodyEl = document.getElementById('letter-body');
+  bodyEl.innerHTML = [
+    `<p>Dear ${company.title},</p>`,
+    `<p>${opening}</p>`,
+    `<p>${middle}</p>`,
+    `<p>${demand}</p>`,
+  ].join('');
+
+  document.getElementById('sign-close').textContent = closing + ',';
+  document.getElementById('sign-name').textContent  = senderName;
+  document.getElementById('sign-title').textContent = senderTitle;
+
+  // Anger stamp
+  const stamp = document.getElementById('anger-stamp');
+  if (outrage >= 3) {
+    stamp.textContent = stampLabels[outrage] || 'OUTRAGED';
+    stamp.classList.add('visible');
+  } else {
+    stamp.classList.remove('visible');
+  }
+
+  // Show letter
+  const wrap = document.getElementById('letter-wrap');
+  wrap.classList.remove('visible');
+  void wrap.offsetWidth;
+  wrap.classList.add('visible');
+}
+
+function copyLetter() {
+  const name    = document.getElementById('letter-sender-name').textContent;
+  const title   = document.getElementById('letter-sender-detail').textContent;
+  const date    = document.getElementById('letter-date').textContent;
+  const recip   = document.getElementById('letter-recipient').textContent;
+  const subject = document.getElementById('letter-subject').textContent;
+  const body    = document.getElementById('letter-body').innerText;
+  const close   = document.getElementById('sign-close').textContent;
+  const sigName = document.getElementById('sign-name').textContent;
+  const sigTitle= document.getElementById('sign-title').textContent;
+
+  const text = `${name}\n${title}\n${date}\n\n${recip}\n\n${subject}\n\n${body}\n\n${close}\n${sigName}\n${sigTitle}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>

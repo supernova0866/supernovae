@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Death Clock</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Italiana&family=Lato:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --bg: #080808;
+    --fg: #e8e4de;
+    --dim: #3a3835;
+    --dimmer: #1e1c1a;
+    --red: #8b1a1a;
+    --red-bright: #c0392b;
+    --sub: #5a5652;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Lato', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  /* Entry screen */
+  #entry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 420px;
+    width: 100%;
+  }
+
+  .entry-title {
+    font-family: 'Italiana', serif;
+    font-size: clamp(48px, 12vw, 88px);
+    letter-spacing: 4px;
+    line-height: 1;
+    margin-bottom: 12px;
+    opacity: 0;
+    animation: rise 0.8s 0.1s forwards;
+  }
+
+  .entry-sub {
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--sub);
+    text-transform: uppercase;
+    margin-bottom: 56px;
+    opacity: 0;
+    animation: rise 0.6s 0.3s forwards;
+  }
+
+  .entry-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    opacity: 0;
+    animation: rise 0.6s 0.5s forwards;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-field.wide { grid-column: span 2; }
+
+  .form-field label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--sub);
+    text-transform: uppercase;
+  }
+
+  .form-field input,
+  .form-field select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--dim);
+    color: var(--fg);
+    font-family: 'Lato', sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    padding: 6px 2px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .form-field input:focus,
+  .form-field select:focus { border-color: var(--sub); }
+
+  .form-field select {
+    cursor: pointer;
+    appearance: none;
+    color-scheme: dark;
+  }
+
+  .form-field input[type="date"] { color-scheme: dark; }
+
+  .begin-btn {
+    margin-top: 8px;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--sub);
+    font-family: 'Lato', sans-serif;
+    font-size: 12px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 300;
+  }
+
+  .begin-btn:hover {
+    border-color: var(--fg);
+    color: var(--fg);
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Clock screen ── */
+  #clock-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  /* Life bar — full width at top */
+  .life-bar-wrap {
+    width: 100%;
+    margin-bottom: 64px;
+    position: relative;
+  }
+
+  .life-bar-track {
+    width: 100%;
+    height: 1px;
+    background: var(--dimmer);
+  }
+
+  .life-bar-elapsed {
+    position: absolute;
+    top: 0; left: 0;
+    height: 1px;
+    background: var(--red-bright);
+    box-shadow: 0 0 6px var(--red);
+    transition: width 1s linear;
+  }
+
+  .life-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .life-bar-pct {
+    position: absolute;
+    top: -22px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--red-bright);
+    transform: translateX(-50%);
+    transition: left 1s linear;
+    white-space: nowrap;
+  }
+
+  /* Main countdown */
+  .clock-hero {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+
+  .clock-label {
+    font-size: 10px;
+    letter-spacing: 6px;
+    color: var(--sub);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .countdown {
+    font-family: 'Italiana', serif;
+    font-size: clamp(48px, 11vw, 100px);
+    letter-spacing: 2px;
+    line-height: 1;
+    color: var(--fg);
+  }
+
+  .countdown-sub {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--sub);
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+
+  /* Stats grid */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--dimmer);
+    border: 1px solid var(--dimmer);
+    width: 100%;
+    margin-bottom: 40px;
+  }
+
+  .stat {
+    background: var(--bg);
+    padding: 20px 16px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'Italiana', serif;
+    font-size: clamp(20px, 3.5vw, 30px);
+    letter-spacing: 1px;
+    color: var(--fg);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--sub);
+    text-transform: uppercase;
+  }
+
+  /* Quote */
+  .quote {
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(14px, 2vw, 16px);
+    color: var(--sub);
+    text-align: center;
+    max-width: 460px;
+    line-height: 1.7;
+    margin-bottom: 32px;
+  }
+
+  .reset-btn {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: color 0.2s;
+    padding: 8px;
+    font-family: 'Lato', sans-serif;
+  }
+
+  .reset-btn:hover { color: var(--sub); }
+
+  /* Disclaimer */
+  .disclaimer {
+    position: fixed;
+    bottom: 16px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--dimmer);
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: fixed; top: 18px; right: 20px; z-index: 1000;
+    background: transparent; border: 1px solid rgba(232,228,222,0.1);
+    color: #e8e4de; font-family: 'Lato', sans-serif; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s;
+    opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #e8e4de; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(8,8,8,0.9); border: 1px solid rgba(232,228,222,0.1);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'Italiana', serif; font-size: 20px;
+    letter-spacing: 5px; color: #e8e4de; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(232,228,222,0.1);
+    color: #e8e4de; font-family: 'Lato', sans-serif; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'Lato', sans-serif; font-size: 12px;
+    letter-spacing: 2px; color: #e8e4de; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #e8e4de; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+
+<!-- Entry -->
+<div id="entry">
+  <div class="entry-title">Death<br>Clock</div>
+  <div class="entry-sub">// a statistical estimate</div>
+
+  <div class="entry-form">
+    <div class="form-row">
+      <div class="form-field wide">
+        <label>Date of Birth</label>
+        <input type="date" id="dob">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Biological Sex</label>
+        <select id="sex">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Smoking</label>
+        <select id="smoking">
+          <option value="never">Never</option>
+          <option value="former">Former</option>
+          <option value="current">Current</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Exercise</label>
+        <select id="exercise">
+          <option value="active">Active</option>
+          <option value="moderate">Moderate</option>
+          <option value="sedentary">Sedentary</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Country</label>
+        <select id="country">
+          <option value="78">Global avg (73)</option>
+          <option value="83">Japan / Switzerland</option>
+          <option value="82">Australia / Canada</option>
+          <option value="81">UK / Germany</option>
+          <option value="79">USA</option>
+          <option value="76">Brazil / China</option>
+          <option value="72">India</option>
+          <option value="65">Sub-Saharan Africa</option>
+        </select>
+      </div>
+    </div>
+    <button class="begin-btn" onclick="calculate()">Face the Clock</button>
+  </div>
+</div>
+
+<!-- Clock -->
+<div id="clock-screen">
+  <div class="life-bar-wrap">
+    <div class="life-bar-pct" id="bar-pct">0%</div>
+    <div class="life-bar-track">
+      <div class="life-bar-elapsed" id="bar-elapsed" style="width:0%"></div>
+    </div>
+    <div class="life-bar-labels">
+      <span id="birth-label">Birth</span>
+      <span>—</span>
+      <span id="death-label">Est. Death</span>
+    </div>
+  </div>
+
+  <div class="clock-hero">
+    <div class="clock-label">Estimated seconds remaining</div>
+    <div class="countdown" id="countdown">—</div>
+    <div class="countdown-sub">seconds</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val" id="stat-years">—</div>
+      <div class="stat-label">Years Left</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-days">—</div>
+      <div class="stat-label">Days Left</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-weeks">—</div>
+      <div class="stat-label">Weeks Left</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-lived">—</div>
+      <div class="stat-label">Years Lived</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-elapsed">—</div>
+      <div class="stat-label">% Elapsed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-death-year">—</div>
+      <div class="stat-label">Est. Year</div>
+    </div>
+  </div>
+
+  <div class="quote" id="quote">—</div>
+
+  <button class="reset-btn" onclick="reset()">← Start Over</button>
+</div>
+
+<div class="disclaimer">statistical estimate only · based on WHO life expectancy data · not a medical prediction</div>
+
+<script>
+const quotes = [
+  "The tragedy of life is not that it ends so soon, but that we wait so long to begin it.",
+  "We are all just walking each other home.",
+  "It's not that I'm afraid to die, I just don't want to be there when it happens.",
+  "In the end, it's not the years in your life that count. It's the life in your years.",
+  "The idea is to die young as late as possible.",
+  "Life is what happens while you are busy making other plans.",
+  "You only live once, but if you do it right, once is enough.",
+  "To die would be an awfully big adventure.",
+  "Time is a created thing. To say 'I don't have time' is to say 'I don't want to.'",
+  "Life is short. Smile while you still have teeth.",
+];
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+let deathTime = null;
+let tickInterval = null;
+
+function calculate() {
+  const dob      = document.getElementById('dob').value;
+  if (!dob) return;
+
+  const sex      = document.getElementById('sex').value;
+  const smoking  = document.getElementById('smoking').value;
+  const exercise = document.getElementById('exercise').value;
+  const baseLE   = parseInt(document.getElementById('country').value);
+
+  // Life expectancy modifiers (years)
+  let le = baseLE;
+  if (sex === 'female') le += 4;
+  if (smoking === 'current') le -= 10;
+  if (smoking === 'former')  le -= 3;
+  if (exercise === 'active')   le += 3;
+  if (exercise === 'sedentary') le -= 2;
+
+  const birthDate = new Date(dob);
+  const birthYear = birthDate.getFullYear();
+  const deathYear = birthYear + le;
+
+  // Estimated death date: same month/day as birth, in death year
+  deathTime = new Date(birthDate);
+  deathTime.setFullYear(deathYear);
+
+  document.getElementById('entry').style.display = 'none';
+  const cs = document.getElementById('clock-screen');
+  cs.style.display = 'flex';
+
+  // Labels
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('birth-label').textContent =
+    `${months[birthDate.getMonth()]} ${birthYear}`;
+  document.getElementById('death-label').textContent =
+    `Est. ${months[deathTime.getMonth()]} ${deathYear}`;
+  document.getElementById('stat-death-year').textContent = deathYear;
+
+  document.getElementById('quote').textContent = `"${pick(quotes)}"`;
+
+  if (tickInterval) clearInterval(tickInterval);
+  tick();
+  tickInterval = setInterval(tick, 1000);
+}
+
+function tick() {
+  const now  = Date.now();
+  const birth = new Date(document.getElementById('dob').value).getTime();
+  const death = deathTime.getTime();
+
+  const totalLife    = death - birth;
+  const elapsed      = now - birth;
+  const remaining    = Math.max(0, death - now);
+
+  const secRemaining = Math.floor(remaining / 1000);
+  const daysRemaining = remaining / 86400000;
+  const weeksRemaining = daysRemaining / 7;
+  const yearsRemaining = daysRemaining / 365.25;
+  const yearsLived     = elapsed / (365.25 * 86400000);
+  const pctElapsed     = Math.min(100, (elapsed / totalLife) * 100);
+
+  // Countdown
+  document.getElementById('countdown').textContent =
+    secRemaining.toLocaleString();
+
+  // Stats
+  document.getElementById('stat-years').textContent  = yearsRemaining.toFixed(1);
+  document.getElementById('stat-days').textContent   = Math.floor(daysRemaining).toLocaleString();
+  document.getElementById('stat-weeks').textContent  = Math.floor(weeksRemaining).toLocaleString();
+  document.getElementById('stat-lived').textContent  = yearsLived.toFixed(1);
+  document.getElementById('stat-elapsed').textContent = pctElapsed.toFixed(2) + '%';
+
+  // Bar
+  document.getElementById('bar-elapsed').style.width = pctElapsed + '%';
+  document.getElementById('bar-pct').style.left      = pctElapsed + '%';
+  document.getElementById('bar-pct').textContent     = pctElapsed.toFixed(1) + '%';
+}
+
+function reset() {
+  clearInterval(tickInterval);
+  document.getElementById('clock-screen').style.display = 'none';
+  document.getElementById('entry').style.display = 'flex';
+}
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>

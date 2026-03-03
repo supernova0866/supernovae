@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomodoro but Mean</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+  :root {
+    --bg: #0f0d0d;
+    --red: #e63329;
+    --red-dim: #7a1a16;
+    --fg: #f0ece6;
+    --dim: #3a3535;
+    --dim2: #5a5252;
+    --work-color: #e63329;
+    --break-color: #2e8b57;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 20px 60px;
+    overflow-y: auto;
+  }
+
+  /* Noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Title */
+  .title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 10vw, 72px);
+    letter-spacing: 2px;
+    line-height: 1;
+    color: var(--fg);
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .title .mean {
+    color: var(--red);
+    font-style: normal;
+  }
+
+  .tagline {
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: var(--dim2);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  /* Mode tabs */
+  .mode-tabs {
+    display: flex;
+    width: 100%;
+    margin-bottom: 32px;
+    border: 1px solid var(--dim);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--dim);
+    color: var(--dim2);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tab:last-child { border-right: none; }
+  .tab:hover { background: var(--dim); color: var(--fg); }
+  .tab.active.work { background: var(--red); color: #fff; }
+  .tab.active.break { background: var(--break-color); color: #fff; }
+
+  /* Timer ring */
+  .timer-wrap {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin-bottom: 24px;
+  }
+
+  .timer-svg {
+    width: 220px;
+    height: 220px;
+    transform: rotate(-90deg);
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: var(--dim);
+    stroke-width: 4;
+  }
+
+  .ring-fill {
+    fill: none;
+    stroke: var(--red);
+    stroke-width: 4;
+    stroke-linecap: butt;
+    stroke-dasharray: 754; /* 2π * 120 */
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear, stroke 0.3s;
+  }
+
+  .timer-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .timer-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 60px;
+    line-height: 1;
+    letter-spacing: 2px;
+    color: var(--fg);
+    transition: color 0.3s;
+  }
+
+  .timer-display.urgent { color: var(--red); animation: urgentPulse 0.5s ease-in-out infinite alternate; }
+  @keyframes urgentPulse { to { opacity: 0.6; } }
+
+  .timer-mode {
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--dim2);
+    text-transform: uppercase;
+  }
+
+  /* Taunt message */
+  .taunt {
+    font-size: clamp(16px, 3vw, 22px);
+    font-style: italic;
+    color: var(--fg);
+    text-align: center;
+    min-height: 2.4em;
+    line-height: 1.3;
+    margin-bottom: 32px;
+    padding: 0 20px;
+    transition: opacity 0.3s;
+    font-weight: 300;
+  }
+
+  .taunt.flash {
+    animation: tauntFlash 0.4s ease;
+  }
+
+  @keyframes tauntFlash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .btn {
+    padding: 12px 32px;
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--dim2);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:hover { border-color: var(--fg); color: var(--fg); }
+
+  .btn.primary {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+    font-size: 15px;
+    padding: 14px 48px;
+  }
+
+  .btn.primary:hover {
+    background: #ff4a3f;
+    border-color: #ff4a3f;
+  }
+
+  .btn.primary.break-mode {
+    background: var(--break-color);
+    border-color: var(--break-color);
+  }
+
+  .btn.primary.break-mode:hover { background: #3aab6a; border-color: #3aab6a; }
+
+  /* Session counter */
+  .sessions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .session-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.3s;
+  }
+
+  .session-dot.done { background: var(--red); }
+  .session-dot.break-done { background: var(--break-color); }
+
+  .sessions-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--dim2);
+    text-transform: uppercase;
+    margin-left: 8px;
+  }
+
+  /* Settings row */
+  .settings-row {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .setting {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .setting label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--dim2);
+    text-transform: uppercase;
+  }
+
+  .setting input[type=range] {
+    width: 80px;
+    accent-color: var(--red);
+  }
+
+  .setting .val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--fg);
+    letter-spacing: 1px;
+  }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: fixed; top: 18px; right: 20px; z-index: 1000;
+    background: transparent; border: 1px solid rgba(240,236,230,0.1);
+    color: #f0ece6; font-family: 'Barlow Condensed', sans-serif; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s;
+    opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #f0ece6; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(15,13,13,0.88); border: 1px solid rgba(240,236,230,0.1);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'Bebas Neue', cursive; font-size: 20px;
+    letter-spacing: 5px; color: #f0ece6; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(240,236,230,0.1);
+    color: #f0ece6; font-family: 'Barlow Condensed', sans-serif; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 12px;
+    letter-spacing: 2px; color: #f0ece6; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #f0ece6; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">Pomodoro <span class="mean">but Mean</span></div>
+  <div class="tagline">// focus or face consequences</div>
+
+  <div class="mode-tabs">
+    <button class="tab active work" onclick="switchMode('work')">Work</button>
+    <button class="tab break" onclick="switchMode('break')">Break</button>
+  </div>
+
+  <div class="timer-wrap">
+    <svg class="timer-svg" viewBox="0 0 280 280">
+      <circle class="ring-bg" cx="140" cy="140" r="120"/>
+      <circle class="ring-fill" id="ring" cx="140" cy="140" r="120"/>
+    </svg>
+    <div class="timer-center">
+      <div class="timer-display" id="timer-display">25:00</div>
+      <div class="timer-mode" id="timer-mode">work session</div>
+    </div>
+  </div>
+
+  <div class="taunt" id="taunt">ready when you are. no pressure.</div>
+
+  <div class="controls">
+    <button class="btn" onclick="resetTimer()">Reset</button>
+    <button class="btn primary" id="start-btn" onclick="toggleTimer()">Start</button>
+    <button class="btn" onclick="skipSession()">Skip</button>
+  </div>
+
+  <div class="sessions" id="sessions">
+    <div class="session-dot" id="dot-0"></div>
+    <div class="session-dot" id="dot-1"></div>
+    <div class="session-dot" id="dot-2"></div>
+    <div class="session-dot" id="dot-3"></div>
+    <div class="sessions-label">sessions today</div>
+  </div>
+
+  <div class="settings-row">
+    <div class="setting">
+      <label>Work (min)</label>
+      <input type="range" min="1" max="60" value="25" id="work-slider" oninput="updateSettings()">
+      <div class="val" id="work-val">25</div>
+    </div>
+    <div class="setting">
+      <label>Break (min)</label>
+      <input type="range" min="1" max="30" value="5" id="break-slider" oninput="updateSettings()">
+      <div class="val" id="break-val">5</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Taunts ────────────────────────────────────────────────────────────────────
+const taunts = {
+  idle: [
+    "ready when you are. no pressure.",
+    "the work isn't going to do itself.",
+    "just sitting here. waiting.",
+    "your future self is watching.",
+    "tick tock.",
+  ],
+  working: [
+    "good. keep going. don't ruin it.",
+    "still at it? proud of you. barely.",
+    "focus. you're almost good at this.",
+    "don't you dare open twitter.",
+    "you're doing it. try not to mess up.",
+    "yes, this. keep doing this.",
+    "impressive. for you, anyway.",
+    "almost halfway. don't celebrate yet.",
+    "no. you may not check your phone.",
+    "eyes on the work. eyes. on. the. work.",
+    "if you stop now i will know.",
+    "still going? surprising, honestly.",
+  ],
+  slacking: [
+    "...are you still there?",
+    "hello? the timer is running.",
+    "the audacity.",
+    "your focus has left the building.",
+    "this is why deadlines exist.",
+    "that's not working, that's existing.",
+    "i'm not angry. i'm disappointed.",
+    "come back. please. i'm begging.",
+  ],
+  urgent: [
+    "LESS THAN A MINUTE. DO NOT STOP.",
+    "SO CLOSE. DON'T YOU DARE.",
+    "FINISH IT. NOW.",
+    "30 SECONDS. YOU'VE COME TOO FAR.",
+    "THIS IS NOT THE TIME TO FALTER.",
+  ],
+  breakIdle: [
+    "take a real break. not a doom-scroll.",
+    "stand up. stretch. hydrate.",
+    "you actually did it. rest.",
+    "five minutes. make them count.",
+    "step away from the screen.",
+  ],
+  breaking: [
+    "fine. you earned this. barely.",
+    "don't get too comfortable.",
+    "rest. but know i'm watching.",
+    "tick tock. break ends soon.",
+    "enjoy it while it lasts.",
+    "hydrate or diedrate. your choice.",
+  ],
+  breakEnd: [
+    "break's over. back to work.",
+    "did you rest? good. now focus.",
+    "alright, party's over.",
+    "refreshed? great. now do something with it.",
+    "time waits for no one. especially you.",
+  ],
+  done: [
+    "session complete. you did... okay.",
+    "not bad. for you.",
+    "done. was that so hard?",
+    "another one down. many more to go.",
+    "fine. take your break. you earned it.",
+  ],
+};
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let workMins  = 25;
+let breakMins = 5;
+let mode      = 'work'; // 'work' | 'break'
+let running   = false;
+let remaining = workMins * 60;
+let total     = workMins * 60;
+let interval  = null;
+let sessions  = 0;
+let tauntTimer = null;
+
+const CIRCUMFERENCE = 2 * Math.PI * 120; // 754.0
+
+// ── DOM ───────────────────────────────────────────────────────────────────────
+const display   = document.getElementById('timer-display');
+const modeLabel = document.getElementById('timer-mode');
+const ring      = document.getElementById('ring');
+const tauntEl   = document.getElementById('taunt');
+const startBtn  = document.getElementById('start-btn');
+
+function fmt(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function updateRing() {
+  const pct = remaining / total;
+  ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - pct);
+}
+
+function setTaunt(text) {
+  tauntEl.classList.remove('flash');
+  void tauntEl.offsetWidth;
+  tauntEl.classList.add('flash');
+  tauntEl.textContent = text;
+}
+
+function rotateTaunts() {
+  if (!running) return;
+  const pool = mode === 'work' ? taunts.working : taunts.breaking;
+  setTaunt(pick(pool));
+  tauntTimer = setTimeout(rotateTaunts, 18000 + Math.random() * 12000);
+}
+
+function toggleTimer() {
+  if (running) {
+    pause();
+  } else {
+    start();
+  }
+}
+
+function start() {
+  running = true;
+  startBtn.textContent = 'Pause';
+  setTaunt(pick(mode === 'work' ? taunts.working : taunts.breaking));
+  tauntTimer = setTimeout(rotateTaunts, 20000);
+
+  interval = setInterval(() => {
+    remaining--;
+    display.textContent = fmt(remaining);
+    updateRing();
+
+    // Urgent mode
+    if (remaining <= 30 && mode === 'work') {
+      display.classList.add('urgent');
+      if (remaining % 10 === 0) setTaunt(pick(taunts.urgent));
+    }
+
+    if (remaining <= 0) {
+      clearInterval(interval);
+      running = false;
+      display.classList.remove('urgent');
+      onSessionEnd();
+    }
+  }, 1000);
+}
+
+function pause() {
+  running = false;
+  clearInterval(interval);
+  clearTimeout(tauntTimer);
+  startBtn.textContent = 'Resume';
+  setTaunt(pick(taunts.slacking));
+}
+
+function onSessionEnd() {
+  clearTimeout(tauntTimer);
+  startBtn.textContent = 'Start';
+
+  if (mode === 'work') {
+    sessions = Math.min(sessions + 1, 4);
+    updateDots();
+    setTaunt(pick(taunts.done));
+    // Auto-switch to break
+    setTimeout(() => {
+      switchMode('break');
+      setTaunt(pick(taunts.breakEnd));
+    }, 2000);
+  } else {
+    setTaunt(pick(taunts.breakEnd));
+    setTimeout(() => switchMode('work'), 2000);
+  }
+}
+
+function resetTimer() {
+  clearInterval(interval);
+  clearTimeout(tauntTimer);
+  running = false;
+  remaining = total;
+  display.textContent = fmt(remaining);
+  display.classList.remove('urgent');
+  startBtn.textContent = 'Start';
+  updateRing();
+  setTaunt(pick(taunts.idle));
+}
+
+function skipSession() {
+  clearInterval(interval);
+  clearTimeout(tauntTimer);
+  running = false;
+  display.classList.remove('urgent');
+  onSessionEnd();
+}
+
+function switchMode(m) {
+  clearInterval(interval);
+  clearTimeout(tauntTimer);
+  running = false;
+  display.classList.remove('urgent');
+  mode = m;
+
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab.${m}`).classList.add('active');
+
+  if (m === 'work') {
+    total = workMins * 60;
+    ring.style.stroke = 'var(--work-color)';
+    modeLabel.textContent = 'work session';
+    startBtn.classList.remove('break-mode');
+    setTaunt(pick(taunts.idle));
+  } else {
+    total = breakMins * 60;
+    ring.style.stroke = 'var(--break-color)';
+    modeLabel.textContent = 'break time';
+    startBtn.classList.add('break-mode');
+    setTaunt(pick(taunts.breakIdle));
+  }
+
+  remaining = total;
+  display.textContent = fmt(remaining);
+  startBtn.textContent = 'Start';
+  updateRing();
+}
+
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    dot.classList.toggle('done', i < sessions);
+  }
+}
+
+function updateSettings() {
+  workMins  = parseInt(document.getElementById('work-slider').value);
+  breakMins = parseInt(document.getElementById('break-slider').value);
+  document.getElementById('work-val').textContent  = workMins;
+  document.getElementById('break-val').textContent = breakMins;
+  if (!running) {
+    total     = (mode === 'work' ? workMins : breakMins) * 60;
+    remaining = total;
+    display.textContent = fmt(remaining);
+    updateRing();
+  }
+}
+
+// Init
+updateRing();
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>

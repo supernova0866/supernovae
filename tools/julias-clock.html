@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Julia's Clock</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sono:wght@200;300;400&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; width: 100vw; height: 100vh; font-family: 'Sono', monospace; cursor: crosshair; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+  .corner-tl { position: absolute; top: 24px; left: 28px; }
+  .title { font-size: 11px; letter-spacing: 5px; color: rgba(255,255,255,0.4); text-transform: uppercase; font-weight: 200; }
+  .depth-label { font-size: 28px; font-weight: 200; color: rgba(255,255,255,0.8); letter-spacing: -0.5px; margin-top: 6px; line-height: 1; }
+  .depth-sub { font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-top: 4px; }
+  .corner-br { position: absolute; bottom: 24px; right: 28px; text-align: right; }
+  .coords { font-size: 10px; letter-spacing: 1px; color: rgba(255,255,255,0.2); line-height: 2; font-weight: 200; white-space: pre; }
+  .controls { position: absolute; bottom: 24px; left: 28px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+  .controls-btns { display: flex; gap: 12px; }
+  .speed-wrap {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 2px;
+  }
+  .speed-label {
+    font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,0.25);
+    text-transform: uppercase; font-family: 'Sono', monospace; white-space: nowrap;
+    min-width: 52px;
+  }
+  .speed-val {
+    font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4);
+    font-family: 'Sono', monospace; min-width: 28px; text-align: right;
+  }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; height: 2px; border-radius: 2px;
+    background: rgba(255,255,255,0.12); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: rgba(255,255,255,0.6); cursor: pointer;
+    transition: background 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { background: #fff; }
+  input[type=range]::-moz-range-thumb {
+    width: 12px; height: 12px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.6); cursor: pointer;
+  }
+  .btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); font-family: 'Sono', monospace; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; padding: 7px 14px; cursor: pointer; transition: all 0.2s; font-weight: 200; }
+  .btn:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); border-color: rgba(255,255,255,0.3); }
+  .btn.active { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.4); }
+  .hint { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); font-size: 10px; letter-spacing: 4px; color: rgba(255,255,255,0.15); text-transform: uppercase; white-space: nowrap; transition: opacity 2s; }
+
+  /* info button */
+  .btn-info { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); font-family: 'Sono', monospace; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; padding: 7px 14px; cursor: pointer; transition: all 0.2s; font-weight: 200; }
+  .btn-info:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); border-color: rgba(255,255,255,0.3); }
+
+  /* overlay */
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+
+  /* popup box — styled to match the tool */
+  .info-box {
+    background: rgba(8,8,8,0.92);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 28px 32px 24px;
+    min-width: 280px;
+    position: relative;
+    transform: translateY(8px) scale(0.97);
+    transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+
+  .info-brand {
+    display: block; font-size: 20px; letter-spacing: 6px;
+    color: rgba(255,255,255,0.9); text-transform: uppercase;
+    font-family: 'Sono', monospace; font-weight: 400;
+    margin-bottom: 24px; text-decoration: none;
+    transition: color 0.15s;
+  }
+  .info-brand:hover { color: #fff; }
+  .info-nova {
+    color: #4a90d9; text-decoration: none; transition: color 0.15s;
+  }
+  .info-nova:hover { color: #6aaaf0; }
+  .info-line {
+    font-size: 11px; letter-spacing: 3px; color: rgba(255,255,255,0.5);
+    text-transform: uppercase; font-family: 'Sono', monospace;
+    line-height: 2.2;
+  }
+  .info-line span { color: rgba(255,255,255,0.85); }
+  .info-close {
+    position: absolute; top: 14px; right: 16px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.35); font-family: 'Sono', monospace;
+    font-size: 10px; letter-spacing: 2px; padding: 4px 9px;
+    cursor: pointer; transition: all 0.15s; text-transform: uppercase;
+  }
+  .info-close:hover { color: #fff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div class="corner-tl">
+    <div class="title">// Julia's Clock</div>
+    <div class="depth-label" id="depth-display">0.00</div>
+    <div class="depth-sub">julia constant</div>
+  </div>
+  <div class="corner-br">
+    <div class="coords" id="coords"></div>
+  </div>
+  <div class="controls">
+    <div class="speed-wrap">
+      <span class="speed-label">Speed</span>
+      <input type="range" id="speed-slider" min="0" max="4" step="1" value="1"
+             oninput="setSpeed(this.value)">
+      <span class="speed-val" id="speed-val">1×</span>
+    </div>
+    <div class="controls-btns">
+      <button class="btn active" id="btn-auto" onclick="toggleAuto()">Animate</button>
+      <button class="btn" onclick="resetView()">Reset</button>
+      <button class="btn" onclick="nextPalette()">Palette</button>
+      <button class="btn-info" onclick="toggleInfo()">ⓘ</button>
+    </div>
+  </div>
+  <div class="hint" id="hint">right-drag to pan · scroll to zoom</div>
+</div>
+
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box" id="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl');
+if (!gl) {
+  document.body.innerHTML = '<div style="color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace;letter-spacing:3px">WEBGL NOT SUPPORTED</div>';
+}
+
+// ── Shaders ──────────────────────────────────────────────────────────────────
+
+const VS = `
+  attribute vec2 a_pos;
+  void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+`;
+
+const FS = `
+  precision highp float;
+  uniform vec2  u_res;
+  uniform vec2  u_center;
+  uniform float u_zoom;
+  uniform vec2  u_julia;   // Julia constant c
+  uniform int   u_maxIter;
+  uniform int   u_palette;
+
+  vec3 pal(float t, int p) {
+    float s = t * 6.28318;
+    // p==0: dark blue/purple — original
+    if (p == 0) return vec3(
+      0.05 + 0.45*(0.5+0.5*cos(s)),
+      0.02 + 0.15*(0.5+0.5*cos(s+1.0)),
+      0.20 + 0.80*(0.5+0.5*cos(s+3.8)));
+    // p==1: fire — deep orange/red fills whole canvas
+    if (p == 1) return vec3(
+      0.50 + 0.50*cos(s + 0.0),
+      0.20 + 0.35*cos(s + 1.6),
+      0.02 + 0.08*cos(s + 3.0));
+    // p==2: teal/green — rich mid tones
+    if (p == 2) return vec3(
+      0.05 + 0.20*cos(s + 2.0),
+      0.40 + 0.45*cos(s + 0.5),
+      0.35 + 0.35*cos(s + 1.2));
+    // p==3: berry/magenta — deep warm purple
+    return vec3(
+      0.45 + 0.40*cos(s + 0.2),
+      0.08 + 0.18*cos(s + 2.5),
+      0.35 + 0.35*cos(s + 4.0));
+  }
+
+  void main() {
+    // Map pixel to complex plane
+    vec2 uv = (gl_FragCoord.xy - u_res * 0.5) / (u_zoom * min(u_res.x, u_res.y));
+    float zr = uv.x + u_center.x;
+    float zi = uv.y + u_center.y;
+
+    // Julia iteration: z -> z^2 + c
+    float cr = u_julia.x;
+    float ci = u_julia.y;
+    float zr2 = zr*zr, zi2 = zi*zi;
+    float n = 0.0;
+
+    for (int i = 0; i < 1024; i++) {
+      if (i >= u_maxIter) break;
+      zi  = 2.0*zr*zi + ci;
+      zr  = zr2 - zi2 + cr;
+      zr2 = zr*zr; zi2 = zi*zi;
+      if (zr2 + zi2 > 4.0) {
+        float log_zn = log(zr2+zi2)*0.5;
+        float nu = log(log_zn/log(2.0))/log(2.0);
+        n = float(i)+1.0-nu;
+        break;
+      }
+      n = float(i);
+    }
+
+    if (zr2+zi2 <= 4.0) { gl_FragColor = vec4(0.0,0.0,0.0,1.0); return; }
+    float t = mod(n * 0.018, 1.0);
+    gl_FragColor = vec4(pal(t, u_palette), 1.0);
+  }
+`;
+
+// ── Compile ──────────────────────────────────────────────────────────────────
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'a_pos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const uRes     = gl.getUniformLocation(prog, 'u_res');
+const uCenter  = gl.getUniformLocation(prog, 'u_center');
+const uZoom    = gl.getUniformLocation(prog, 'u_zoom');
+const uJulia   = gl.getUniformLocation(prog, 'u_julia');
+const uMaxIter = gl.getUniformLocation(prog, 'u_maxIter');
+const uPalette = gl.getUniformLocation(prog, 'u_palette');
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let cx = 0.0, cy = 0.0;   // view center
+let zoom = 1.8;            // view zoom
+
+// Julia constant — we animate this along a path through the Mandelbrot set
+// The path is a slow parametric curve through interesting regions
+let t = 0.0;               // animation time
+const SPEEDS = [0.5, 1, 2, 3, 4];
+let speedIdx = 1;          // default 1×
+let animating = true;
+let paletteIdx = 0;
+
+// Path visits known beautiful Julia parameter regions near Mandelbrot boundary
+// Interpolates slowly between hand-picked coordinates
+const waypoints = [
+  [ 0.285,   0.013  ],  // near main cardioid — tight spirals
+  [-0.4,     0.6    ],  // seahorse — long filaments
+  [-0.7269,  0.1889 ],  // rabbit — classic trifold
+  [-0.8,     0.156  ],  // dense tendrils
+  [-0.7435,  0.1314 ],  // deep spiral
+  [ 0.0,    -0.8    ],  // san marco — dramatic symmetry
+  [-0.1,     0.651  ],  // tip filaments
+  [-0.123,   0.745  ],  // feather
+  [ 0.37,    0.1    ],  // elephant valley
+  [-0.5,    -0.5    ],  // swirling cross
+];
+
+function juliaPoint(t) {
+  const speed = t * 0.0003;
+  const total = waypoints.length;
+  const idx   = Math.floor(speed) % total;
+  const next  = (idx + 1) % total;
+  // smooth cubic ease between waypoints
+  const frac  = speed - Math.floor(speed);
+  const ease  = frac * frac * (3 - 2 * frac);
+  const cr = waypoints[idx][0] * (1 - ease) + waypoints[next][0] * ease;
+  const ci = waypoints[idx][1] * (1 - ease) + waypoints[next][1] * ease;
+  return { cr, ci };
+}
+
+function getMaxIter() {
+  return Math.min(800, Math.floor(150 + zoom * 40));
+}
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── Draw ──────────────────────────────────────────────────────────────────────
+
+function draw() {
+  const { cr, ci } = juliaPoint(t);
+
+  gl.uniform2f(uRes, canvas.width, canvas.height);
+  gl.uniform2f(uCenter, cx, cy);
+  gl.uniform1f(uZoom, zoom);
+  gl.uniform2f(uJulia, cr, ci);
+  gl.uniform1i(uMaxIter, getMaxIter());
+  gl.uniform1i(uPalette, paletteIdx);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  const { cr: dcr, ci: dci } = juliaPoint(t);
+  document.getElementById('depth-display').textContent =
+    `${dcr.toFixed(4)}, ${dci >= 0 ? '+' : ''}${dci.toFixed(4)}i`;
+  document.getElementById('coords').textContent =
+    `zoom  ${zoom.toFixed(2)}×\ncenter  ${cx.toFixed(3)}, ${cy.toFixed(3)}`;
+}
+
+// ── Loop ──────────────────────────────────────────────────────────────────────
+
+function loop() {
+  if (animating) t += SPEEDS[speedIdx];
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+
+// fetch tool metadata from tools.json
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+
+function setSpeed(v) {
+  speedIdx = parseInt(v);
+  const labels = ['0.5×','1×','2×','3×','4×'];
+  document.getElementById('speed-val').textContent = labels[speedIdx];
+}
+
+function toggleAuto() {
+  animating = !animating;
+  document.getElementById('btn-auto').classList.toggle('active', animating);
+}
+
+function resetView() {
+  cx = 0; cy = 0; zoom = 1.8; t = 0;
+  animating = true;
+  document.getElementById('btn-auto').classList.add('active');
+}
+
+function nextPalette() {
+  paletteIdx = (paletteIdx + 1) % 4;
+}
+
+// ── Interaction ───────────────────────────────────────────────────────────────
+
+
+
+// Scroll to zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.15 : 0.87;
+  zoom *= factor;
+  zoom = Math.max(0.1, Math.min(zoom, 500));
+}, { passive: false });
+
+// Right-click drag to pan
+let dragging = false, dragX = 0, dragY = 0;
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 2) {
+    dragging = true; dragX = e.clientX; dragY = e.clientY;
+    canvas.style.cursor = 'grab'; e.preventDefault();
+  }
+});
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const scale = 3.5 / (zoom * Math.min(canvas.width, canvas.height));
+  cx -= (e.clientX - dragX) * scale;
+  cy += (e.clientY - dragY) * scale;
+  dragX = e.clientX; dragY = e.clientY;
+});
+canvas.addEventListener('mouseup', e => {
+  if (e.button === 2) { dragging = false; canvas.style.cursor = 'crosshair'; }
+});
+canvas.addEventListener('mouseleave', () => { dragging = false; canvas.style.cursor = 'crosshair'; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── Go ────────────────────────────────────────────────────────────────────────
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

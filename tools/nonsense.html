@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nonsense Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --bg: #f7f4ef;
+    --paper: #fdfbf8;
+    --ink: #1a1814;
+    --ink-dim: #6b6560;
+    --ink-faint: #c8c3bc;
+    --red: #c0392b;
+    --border: #ddd8d0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    font-family: 'Crimson Pro', serif;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
+  }
+
+  /* Subtle texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; width: 100%; max-width: 740px; }
+
+  /* Header */
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .masthead {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .masthead span {
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .edition {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  .subhead {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Mode selector */
+  .mode-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 36px;
+    border: 1px solid var(--border);
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 10px 8px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--border);
+    font-family: 'Crimson Pro', serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--ink-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .mode-btn:last-child { border-right: none; }
+
+  .mode-btn:hover { background: var(--border); color: var(--ink); }
+
+  .mode-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* Generate button */
+  .generate-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 48px;
+  }
+
+  .gen-btn {
+    padding: 14px 52px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-style: italic;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--ink-faint);
+  }
+
+  .gen-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--ink-faint);
+  }
+
+  .gen-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--ink-faint);
+  }
+
+  /* Output — the document */
+  .document {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    padding: 48px 52px;
+    box-shadow: 4px 4px 0 var(--border), 8px 8px 0 var(--ink-faint);
+    min-height: 300px;
+    position: relative;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .document.visible { opacity: 1; }
+
+  /* Confidential stamp */
+  .stamp {
+    position: absolute;
+    top: 36px;
+    right: 40px;
+    border: 3px solid var(--red);
+    color: var(--red);
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    padding: 4px 10px;
+    transform: rotate(8deg);
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+
+  .doc-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .doc-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(20px, 3.5vw, 30px);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    letter-spacing: -0.3px;
+  }
+
+  .doc-meta {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 20px;
+    font-size: 13px;
+    color: var(--ink-dim);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    margin-bottom: 28px;
+  }
+
+  .doc-meta .key { font-weight: 400; font-style: italic; }
+  .doc-meta .val { color: var(--ink); }
+
+  .doc-body {
+    font-size: 16px;
+    line-height: 1.85;
+    color: var(--ink);
+  }
+
+  .doc-body p { margin-bottom: 18px; }
+  .doc-body p:last-child { margin-bottom: 0; }
+
+  /* Animate text in word by word */
+  .word {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(3px);
+    animation: word-in 0.12s forwards;
+  }
+
+  @keyframes word-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Copy button */
+  .doc-footer {
+    margin-top: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  .doc-footer .doc-id {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--ink-faint);
+    font-family: 'Crimson Pro', serif;
+  }
+
+  .copy-btn {
+    font-family: 'Crimson Pro', serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--ink-dim);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+  footer {
+    margin-top: 48px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--ink-faint);
+    text-align: center;
+  }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: absolute; top: 16px; right: 16px; z-index: 10;
+    background: transparent; border: 1px solid rgba(28,24,18,0.2);
+    color: #1c1812; font-family: 'Crimson Pro', serif; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s; opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #1c1812; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(247,244,239,0.88); border: 1px solid rgba(28,24,18,0.12);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'Playfair Display', serif; font-size: 20px;
+    letter-spacing: 5px; color: #1c1812; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(28,24,18,0.12);
+    color: #1c1812; font-family: 'Crimson Pro', serif; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'Crimson Pro', serif; font-size: 12px;
+    letter-spacing: 2px; color: #1c1812; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #1c1812; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="masthead">The <span>Nonsense</span> Report</div>
+    <div class="edition">
+      Vol. VII, Issue 42<br>
+      Est. MCMXCIX
+    </div>
+  </header>
+
+  <div class="subhead">
+    <span>Authoritative Gibberish Since 1999</span>
+    <span id="today-date"></span>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" onclick="setMode('corporate')">Corporate</button>
+    <button class="mode-btn" onclick="setMode('academic')">Academic</button>
+    <button class="mode-btn" onclick="setMode('legal')">Legal</button>
+    <button class="mode-btn" onclick="setMode('tech')">Tech</button>
+    <button class="mode-btn" onclick="setMode('political')">Political</button>
+  </div>
+
+  <div class="generate-wrap">
+    <button class="gen-btn" onclick="generate()">Generate Nonsense</button>
+  </div>
+
+  <div class="document" id="document">
+    <div class="stamp" id="stamp">Confidential</div>
+    <div class="doc-label" id="doc-label">MEMORANDUM</div>
+    <div class="doc-title" id="doc-title">Click "Generate Nonsense" to begin</div>
+    <div class="doc-meta" id="doc-meta"></div>
+    <div class="doc-body" id="doc-body"></div>
+    <div class="doc-footer">
+      <div class="doc-id" id="doc-id"></div>
+      <button class="copy-btn" onclick="copyText()">Copy</button>
+    </div>
+  </div>
+
+  <footer>all statements are fictional. any resemblance to actual strategy is coincidental.</footer>
+</div>
+
+<script>
+// ── Date ─────────────────────────────────────────────────────────────────────
+const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const now = new Date();
+document.getElementById('today-date').textContent =
+  `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+
+// ── Mode ──────────────────────────────────────────────────────────────────────
+let mode = 'corporate';
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ── Word banks ────────────────────────────────────────────────────────────────
+const banks = {
+  corporate: {
+    stamp: ['Confidential','Proprietary','Eyes Only','Restricted'],
+    label: ['MEMORANDUM','INTERNAL BRIEF','STRATEGIC DIRECTIVE','ACTION ITEM','SYNERGY REPORT'],
+    toFrom: {
+      to: ['All Stakeholders','Cross-Functional Leadership','The Innovation Task Force','Global Operations','People & Culture'],
+      from: ['Office of Transformation','Strategic Excellence Division','The Alignment Committee','Chief Synergy Officer'],
+      re: ['Q{N} Realignment Initiative','Paradigm Optimization Framework','Holistic Value Proposition','Agile Transformation Roadmap','Culture of Excellence Protocol'],
+    },
+    adj: ['synergistic','cross-functional','value-driven','agile','disruptive','holistic','scalable','forward-thinking','best-in-class','mission-critical','robust','innovative'],
+    noun: ['synergy','paradigm','bandwidth','ecosystem','framework','leverage','deliverable','stakeholder','alignment','pivot','throughput','vertical','touchpoint','KPI'],
+    verb: ['leverage','optimize','streamline','ideate','circle back','unpack','socialize','deep dive','move the needle','boil the ocean','peel the onion','take offline'],
+    sentence: [
+      'We need to {verb} our {adj} {noun} in order to {verb} the {adj} {noun} going forward.',
+      'At the end of the day, our {adj} {noun} needs to {verb} across all {adj} {noun}s.',
+      'I\'d like to {verb} this {noun} and ensure we\'re all aligned on the {adj} {noun}.',
+      'As we {verb} into Q{N}, it\'s critical that we {verb} our {adj} {noun} with a focus on {noun}.',
+      'The {adj} {noun} team will {verb} a series of {adj} {noun}s to drive {noun} across the board.',
+      'Let\'s make sure we\'re not trying to {verb} the ocean here — focus on the {adj} {noun} first.',
+      'Going forward, all {noun}s should be {adj} and tied to measurable {noun} outcomes.',
+    ],
+  },
+  academic: {
+    stamp: ['Under Review','Pre-Print','Draft Only','Not For Citation'],
+    label: ['ABSTRACT','WORKING PAPER','RESEARCH NOTE','THEORETICAL FRAMEWORK','CRITICAL INQUIRY'],
+    toFrom: {
+      to: ['The Academic Community','Journal of Theoretical Studies','Peer Review Committee','Department of Complex Systems'],
+      from: ['Institute for Advanced Abstraction','Centre for Epistemic Uncertainty','School of Post-Structural Thought'],
+      re: ['Ontological Implications of {adj} {noun}','A {adj} Analysis of {noun} in Late-Stage {noun}','Toward a {adj} Theory of {noun}'],
+    },
+    adj: ['epistemological','post-structural','liminal','dialectical','hermeneutic','rhizomatic','ontological','discursive','heteronormative','iterative','reductive','systemic'],
+    noun: ['hegemony','praxis','paradigm','discourse','ontology','subjectivity','apparatus','positionality','agency','materiality','temporality','assemblage'],
+    verb: ['interrogate','problematize','deconstruct','foreground','theorize','situate','articulate','destabilize','reify','elide','instantiate','suture'],
+    sentence: [
+      'This paper seeks to {verb} the {adj} dimensions of {noun} as they relate to the {adj} production of {noun}.',
+      'Building on existing literature, we {verb} the notion that {noun} is inherently {adj} in its {adj} manifestations.',
+      'The {adj} implications of {noun} cannot be understood outside of its {adj} relationship to {noun}.',
+      'We argue that attempts to {verb} {noun} without accounting for {adj} {noun} are fundamentally {adj}.',
+      'Drawing on {adj} theory, we {verb} the {adj} {noun} that underlies contemporary {noun}.',
+      'The {noun}, we contend, is always already {adj} — a {adj} site of {noun} and counter-{noun}.',
+    ],
+  },
+  legal: {
+    stamp: ['Privileged','Attorney-Client','Confidential','Without Prejudice'],
+    label: ['NOTICE','DECLARATION','WHEREAS CLAUSE','LEGAL MEMORANDUM','CEASE & DESIST'],
+    toFrom: {
+      to: ['All Relevant Parties','The Honorable Court','Opposing Counsel','The Custodian of Records'],
+      from: ['Office of General Counsel','Legal Affairs Division','Regulatory Compliance Bureau'],
+      re: ['The Matter of {adj} {noun}','Re: {adj} Obligations Under Section {N}','Notice of {adj} {noun} Proceedings'],
+    },
+    adj: ['aforementioned','hereinafter','indemnifiable','tortious','fiduciary','statutory','injunctive','punitive','contractual','jurisdictional','dispositive','ancillary'],
+    noun: ['party','covenant','indemnification','liability','jurisdiction','covenant','breach','remedy','consideration','estoppel','damages','subrogation','lien'],
+    verb: ['indemnify','adjudicate','remand','estop','subpoena','enjoin','promulgate','stipulate','warrant','covenant','seek redress','null and void'],
+    sentence: [
+      'The {adj} party shall {verb} all {adj} {noun}s arising from the {adj} {noun} herein described.',
+      'Pursuant to the {adj} provisions of Section {N}, all {noun}s are hereby {adj} and subject to {noun}.',
+      'Notwithstanding the {adj} {noun}, the {adj} obligations of each party shall remain in full force.',
+      'The {adj} {noun} constitutes a material breach of the {adj} covenant, entitling the non-breaching party to {verb}.',
+      'Any {adj} {noun} must be {adj} in accordance with applicable {noun} and shall not {verb} existing {noun}s.',
+      'WHEREAS, the {adj} party has failed to {verb} its {adj} {noun}s; NOW, THEREFORE, be it resolved that all {noun}s are {adj}.',
+    ],
+  },
+  tech: {
+    stamp: ['Alpha Build','Internal Only','Deprecated','Breaking Change'],
+    label: ['RFC','TECHNICAL SPEC','ARCHITECTURE DECISION','POST-MORTEM','INCIDENT REPORT'],
+    toFrom: {
+      to: ['Engineering All-Hands','Platform Team','Infrastructure Guild','The On-Call Rotation'],
+      from: ['Office of the CTO','Platform Architecture','Developer Experience Team'],
+      re: ['Migration to {adj} {noun}','Deprecation of {adj} {noun} Pipeline','{adj} {noun} Incident Post-Mortem'],
+    },
+    adj: ['serverless','event-driven','cloud-native','distributed','asynchronous','idempotent','stateless','containerized','microservice','real-time','fault-tolerant','sharded'],
+    noun: ['pipeline','orchestrator','container','namespace','endpoint','payload','webhook','runtime','daemon','shard','monorepo','cache','middleware','abstraction'],
+    verb: ['provision','deprecate','refactor','containerize','orchestrate','instrument','throttle','hydrate','serialize','garbage collect','spawn','monkey-patch'],
+    sentence: [
+      'We need to {verb} the {adj} {noun} before we can {verb} the {adj} {noun} in production.',
+      'The {adj} {noun} is causing latency spikes — we should {verb} it and move to a {adj} {noun} pattern.',
+      'After the incident, we\'ve decided to {verb} all {adj} {noun}s and implement a {adj} {noun} layer.',
+      'The {adj} {noun} failed to {verb} under load, causing the {adj} {noun} to enter an undefined state.',
+      'Going forward, all {noun}s must be {adj} and {verb}d before merging to main.',
+      'We\'ve identified a race condition in the {adj} {noun} that occurs when two {noun}s attempt to {verb} simultaneously.',
+    ],
+  },
+  political: {
+    stamp: ['Classified','Sensitive','Eyes Only','Not For Release'],
+    label: ['POLICY BRIEF','TALKING POINTS','POSITION PAPER','PRESS RELEASE','INTERNAL MEMO'],
+    toFrom: {
+      to: ['The Constituency','Senior Leadership','The Committee on {adj} Affairs','All Campaign Staff'],
+      from: ['Office of Strategic Communications','The Policy Directorate','Communications War Room'],
+      re: ['Our {adj} Commitment to {noun}','The {adj} {noun} Crisis and Our Response','A New Vision for {adj} {noun}'],
+    },
+    adj: ['bipartisan','grassroots','evidence-based','transformative','common-sense','forward-looking','bold','historic','unprecedented','decisive','pragmatic','visionary'],
+    noun: ['future','community','accountability','transparency','opportunity','values','freedom','prosperity','dialogue','mandate','consensus','reform'],
+    verb: ['deliver','champion','empower','listen to','invest in','fight for','stand with','hold accountable','build bridges with','reach across the aisle to','double down on'],
+    sentence: [
+      'We will {verb} the {adj} {noun} that our {noun} deserves, and we will not stop until we do.',
+      'This is not just a {adj} issue — it is a {noun} issue, and it requires a {adj} response.',
+      'Our {adj} plan to {verb} {noun} is the most {adj} initiative this office has ever proposed.',
+      'The people have spoken: they want {adj} {noun}, and we will {verb} exactly that.',
+      'We remain committed to our {adj} vision of {noun} for all — not just the few.',
+      'Now is not the time for half-measures. We must {verb} {noun} with {adj} urgency.',
+    ],
+  },
+};
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function fill(template, bank) {
+  return template
+    .replace(/{adj}/g,  () => pick(bank.adj))
+    .replace(/{noun}/g, () => pick(bank.noun))
+    .replace(/{verb}/g, () => pick(bank.verb))
+    .replace(/{N}/g,    () => Math.floor(Math.random() * 9) + 1);
+}
+
+function makeSentences(bank, count) {
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    out.push(fill(pick(bank.sentence), bank));
+  }
+  return out;
+}
+
+function makeParagraph(bank, sentCount) {
+  return makeSentences(bank, sentCount).join(' ');
+}
+
+function genDocId() {
+  return `DOC-${Math.random().toString(36).slice(2,6).toUpperCase()}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+}
+
+// ── Generate ──────────────────────────────────────────────────────────────────
+
+let lastText = '';
+
+function generate() {
+  const bank = banks[mode];
+  const doc = document.getElementById('document');
+  doc.classList.add('visible');
+
+  // Stamp
+  document.getElementById('stamp').textContent = pick(bank.stamp);
+
+  // Label
+  document.getElementById('doc-label').textContent = pick(bank.label);
+
+  // Title
+  const titleTpl = pick(bank.toFrom.re);
+  document.getElementById('doc-title').textContent = fill(titleTpl, bank);
+
+  // Meta
+  const metaEl = document.getElementById('doc-meta');
+  const to   = fill(pick(bank.toFrom.to), bank);
+  const from = fill(pick(bank.toFrom.from), bank);
+  const date = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  metaEl.innerHTML = `
+    <span class="key">To:</span>     <span class="val">${to}</span>
+    <span class="key">From:</span>   <span class="val">${from}</span>
+    <span class="key">Date:</span>   <span class="val">${date}</span>
+    <span class="key">Priority:</span><span class="val">${pick(['Urgent','High','Critical','Immediate','Elevated'])}</span>
+  `;
+
+  // Body — 3 paragraphs
+  const p1 = makeParagraph(bank, 3);
+  const p2 = makeParagraph(bank, 3);
+  const p3 = makeParagraph(bank, 2);
+  lastText = [
+    document.getElementById('doc-title').textContent,
+    `To: ${to} | From: ${from} | Date: ${date}`,
+    p1, p2, p3
+  ].join('\n\n');
+
+  // Animate body
+  const bodyEl = document.getElementById('doc-body');
+  bodyEl.innerHTML = '';
+  animateParagraphs([p1, p2, p3], bodyEl);
+
+  // Doc ID
+  document.getElementById('doc-id').textContent = genDocId();
+}
+
+function animateParagraphs(paragraphs, container) {
+  let delay = 0;
+  paragraphs.forEach(text => {
+    const p = document.createElement('p');
+    text.split(' ').forEach(word => {
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.textContent = word;
+      span.style.animationDelay = `${delay}ms`;
+      delay += 18;
+      p.appendChild(span);
+      p.appendChild(document.createTextNode(' '));
+    });
+    container.appendChild(p);
+  });
+}
+
+function copyText() {
+  if (!lastText) return;
+  navigator.clipboard.writeText(lastText).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+// Generate one on load
+generate();
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>

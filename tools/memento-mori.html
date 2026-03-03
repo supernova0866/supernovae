@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memento Mori</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Caveat:wght@400;600&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; background: #000; color: #f0ece6; font-family: 'Cormorant Garamond', serif; overflow: hidden; user-select: none; }
+.screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; }
+h1 { font-size: clamp(44px, 9vw, 80px); font-weight: 300; letter-spacing: 8px; line-height: 1.1; color: #f0ece6; text-align: center; margin-bottom: 10px; }
+.title-sub { font-size: 11px; letter-spacing: 6px; color: #333; text-transform: uppercase; text-align: center; margin-bottom: 52px; }
+.begin-btn { font-family: 'Caveat', cursive; font-size: 28px; color: #f0ece6; background: none; border: none; cursor: pointer; position: relative; padding: 4px 2px 6px; }
+.begin-btn::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: #f0ece6; opacity: 0.3; }
+.begin-btn:hover { opacity: 0.6; }
+.day-label { font-size: 12px; letter-spacing: 6px; color: #444; text-transform: uppercase; margin-bottom: 18px; }
+.day-question { font-size: clamp(22px, 4vw, 34px); font-weight: 300; font-style: italic; color: #f0ece6; margin-bottom: 44px; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 460px; }
+.choice-btn { background: #000; border: 1px solid #222; padding: 22px 16px; cursor: pointer; text-align: center; transition: background 0.15s, border-color 0.15s; font-family: 'Cormorant Garamond', serif; }
+.choice-btn:hover { background: #111; border-color: #444; }
+.choice-icon { font-size: 26px; margin-bottom: 8px; }
+.choice-name { font-size: 16px; font-weight: 400; color: #f0ece6; margin-bottom: 4px; }
+.choice-detail { font-size: 12px; font-style: italic; color: #555; }
+.flavour-text { font-size: clamp(20px, 3.5vw, 30px); font-style: italic; font-weight: 300; color: #f0ece6; text-align: center; max-width: 500px; line-height: 1.7; white-space: pre-line; padding: 0 32px; }
+.death-line { position: fixed; font-weight: 300; font-style: italic; color: #f0ece6; text-align: center; white-space: pre-line; line-height: 1.5; transform: translate(-50%, -50%); pointer-events: none; }
+.float-stat { position: fixed; font-style: italic; font-weight: 300; color: #f0ece6; text-align: center; white-space: pre-line; line-height: 1.4; pointer-events: none; transform: translate(-50%, -50%); }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: fixed; top: 18px; right: 20px; z-index: 1000;
+    background: transparent; border: 1px solid rgba(240,236,230,0.1);
+    color: #f0ece6; font-family: 'Caveat', cursive; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s;
+    opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #f0ece6; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(0,0,0,0.92); border: 1px solid rgba(240,236,230,0.1);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'Cormorant Garamond', serif; font-size: 20px;
+    letter-spacing: 5px; color: #f0ece6; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(240,236,230,0.1);
+    color: #f0ece6; font-family: 'Caveat', cursive; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'Caveat', cursive; font-size: 12px;
+    letter-spacing: 2px; color: #f0ece6; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #f0ece6; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+
+<div class="screen" id="s-title">
+  <h1>Memento<br>Mori</h1>
+  <div class="title-sub">remember, you will die</div>
+  <button class="begin-btn" id="begin-btn" onclick="startGame()" style="opacity:0;transition:opacity 0.8s ease;">begin</button>
+</div>
+
+<div class="screen" id="s-game">
+  <div class="day-label" id="day-label">Day 1</div>
+  <div class="day-question">Today you will —</div>
+  <div class="choices">
+    <button class="choice-btn" onclick="choose('bless')">
+      <div class="choice-icon">🌹</div>
+      <div class="choice-name">Help Someone</div>
+      <div class="choice-detail">give without keeping score</div>
+    </button>
+    <button class="choice-btn" onclick="choose('work')">
+      <div class="choice-icon">💼</div>
+      <div class="choice-name">Work</div>
+      <div class="choice-detail" id="work-detail">earn $0</div>
+    </button>
+    <button class="choice-btn" onclick="choose('fun')">
+      <div class="choice-icon">✨</div>
+      <div class="choice-name">Have Fun</div>
+      <div class="choice-detail">just for today</div>
+    </button>
+    <button class="choice-btn" onclick="choose('love')">
+      <div class="choice-icon">🕯️</div>
+      <div class="choice-name">Be With Loved Ones</div>
+      <div class="choice-detail">put the phone down</div>
+    </button>
+  </div>
+</div>
+
+<div class="screen" id="s-flavour">
+  <div class="flavour-text" id="flavour-text"></div>
+</div>
+
+<div class="screen" id="s-death"></div>
+
+<script>
+const LINES = {
+  bless: [
+    "A stranger remembered your name.",
+    "It cost you nothing.\nIt meant everything to them.",
+    "You didn't ask for thanks.\nYou didn't get any.\nIt was enough.",
+    "Someone slept a little easier that night.",
+    "The world was, by a small amount, better.",
+    "You gave what you didn't have.\nSomehow it was enough.",
+    "They won't forget.\nYou already have.",
+    "A small kindness.\nIt rippled further than you knew.",
+    "You asked nothing in return.\nThat was the whole point.",
+    "Someone carried a little less weight that day.",
+    "You didn't think twice.\nThey thought about it for years.",
+    "It wasn't convenient.\nYou did it anyway.",
+    "No one saw.\nThat was never the point.",
+    "You made someone feel less alone.\nIn a world that is very large.",
+    "A door held.\nA word spoken.\nA life, briefly, made easier.",
+    "You were tired.\nYou helped anyway.\nThat's the whole story.",
+    "The kindness cost you an afternoon.\nIt gave them a week.",
+    "They said thank you.\nYou forgot by the time you got home.",
+    "You showed up.\nThat was enough.",
+    "Somewhere, someone is still grateful.\nThey just haven't told you.",
+  ],
+  work: [
+    "The money came.\nThe hours went.",
+    "You were tired of it.\nYou did it anyway.",
+    "The numbers grew.\nSomething else shrank.",
+    "A productive day.\nA quiet evening.",
+    "You told yourself: soon I'll slow down.",
+    "You were good at it.\nYou were tired of it.\nBoth were true.",
+    "The inbox emptied.\nRefilled by morning.",
+    "Another day closer to enough.\nWhatever that means.",
+    "The work asked nothing of your heart.\nYou gave it anyway.",
+    "You built something.\nYou're not sure it mattered.",
+    "The meeting ended.\nAnother began.",
+    "You stayed late.\nNo one noticed.\nYou noticed.",
+    "A deadline met.\nA moment missed.",
+    "You were efficient.\nYou were elsewhere.",
+    "The work will outlast the week.\nProbably not much more than that.",
+    "Competent. Reliable. Present.\nMostly.",
+    "You gave it your best hours.\nYou gave the rest what was left.",
+    "The task is done.\nAnother waits, patient as stone.",
+    "You traded time for money.\nAs agreed.",
+    "You were useful today.\nThat is something.",
+  ],
+  fun: [
+    "You laughed until it hurt.",
+    "For a few hours, nothing was wrong.",
+    "You were completely, entirely present.",
+    "You forgot to worry.\nIt felt like flying.",
+    "A memory was made.\nYou didn't know it yet.",
+    "You let yourself have this.",
+    "The afternoon went too fast.\nThat meant it was good.",
+    "You were light.\nJust for today.",
+    "Nothing was solved.\nNothing needed to be.",
+    "You chose joy.\nDeliberately.",
+    "You were alive in a way\nyou sometimes forget is possible.",
+    "There was nowhere else you needed to be.",
+    "You didn't think about tomorrow once.",
+    "The world kept moving.\nYou briefly didn't care.",
+    "You were ridiculous.\nIt was wonderful.",
+    "Something happened today\nthat you'll smile about for no reason.",
+    "You played.\nLike you used to.",
+    "It was frivolous.\nThat was the whole point.",
+    "You gave yourself permission.\nFinally.",
+    "Today was a good day.\nSimply.",
+  ],
+  love: [
+    "You didn't check your phone once.",
+    "They said something you'll remember\nfor the rest of your life.",
+    "You stayed a little longer than planned.",
+    "Nothing important was said.\nEverything important was felt.",
+    "Time moved differently.",
+    "You were seen.\nYou let yourself be.",
+    "They laughed at something you said.\nYou replayed it for days.",
+    "The silence between you was comfortable.",
+    "You chose them.\nAgain.\nWithout thinking.",
+    "You didn't say I love you.\nYou didn't have to.",
+    "You were fully there.\nThey noticed.",
+    "You remembered what mattered.\nFor a whole afternoon.",
+    "The hours disappeared.\nYou didn't mind.",
+    "You were known.\nFully.\nAnd still wanted.",
+    "They looked at you like\nyou were enough.",
+    "Something small happened\nthat neither of you will forget.",
+    "You held on a little longer.\nSo did they.",
+    "The conversation went\nwherever it needed to go.",
+    "You put the work down.\nYou chose this instead.\nGood.",
+    "This is what you'll think about\nat the very end.",
+  ],
+};
+
+// Shuffled pools — refill when empty
+const pools = {};
+function getPools() {
+  Object.keys(LINES).forEach(k => { pools[k] = [...LINES[k]].sort(() => Math.random() - 0.5); });
+}
+function pickLine(type) {
+  if (!pools[type] || pools[type].length === 0) {
+    pools[type] = [...LINES[type]].sort(() => Math.random() - 0.5);
+  }
+  return pools[type].pop();
+}
+getPools();
+
+// legacy alias
+const F = LINES;
+
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function fade(el, from, to, ms) {
+  return new Promise(resolve => {
+    el.style.transition = 'none';
+    el.style.opacity = from;
+    void el.offsetWidth;
+    el.style.transition = 'opacity ' + ms + 'ms ease';
+    el.style.opacity = to;
+    setTimeout(resolve, ms + 20);
+  });
+}
+
+async function crossFade(fromId, toId, ms) {
+  const from = document.getElementById(fromId);
+  const to   = document.getElementById(toId);
+  await fade(from, 1, 0, ms);
+  from.style.pointerEvents = 'none';
+  to.style.pointerEvents = 'auto';
+  await fade(to, 0, 1, ms);
+}
+
+function showOnly(id) {
+  document.querySelectorAll('.screen').forEach(s => { s.style.opacity = '0'; s.style.pointerEvents = 'none'; });
+  const el = document.getElementById(id);
+  el.style.opacity = '1';
+  el.style.pointerEvents = 'auto';
+}
+
+let day, totalDays, stats, workEarning, busy = false;
+showOnly('s-title');
+// stagger: reveal begin btn after title text settles
+setTimeout(() => {
+  const bb = document.getElementById('begin-btn');
+  if (bb) bb.style.opacity = '1';
+}, 900);
+
+function startGame() {
+  totalDays = 15 + Math.floor(Math.random() * 46);
+  day = 1;
+  stats = { bless: 0, work: 0, money: 0, fun: 0, love: 0 };
+  busy = false;
+  setWork();
+  document.getElementById('day-label').textContent = 'Day 1';
+  crossFade('s-title', 's-game', 500);
+}
+
+function setWork() {
+  workEarning = (5 + Math.floor(Math.random() * 16)) * 10;
+  document.getElementById('work-detail').textContent = 'earn $' + workEarning;
+}
+
+async function choose(type) {
+  if (busy) return;
+  busy = true;
+  stats[type]++;
+  if (type === 'work') stats.money += workEarning;
+  document.getElementById('flavour-text').textContent = pickLine(type);
+  await crossFade('s-game', 's-flavour', 400);
+  await sleep(1900);
+  day++;
+  if (day > totalDays) {
+    await crossFade('s-flavour', 's-death', 500);
+    await sleep(400);
+    await runDeath();
+  } else {
+    setWork();
+    document.getElementById('day-label').textContent = 'Day ' + day;
+    await crossFade('s-flavour', 's-game', 400);
+    busy = false;
+  }
+}
+
+function mkEl(cls, text, x, y, sz) {
+  const el = document.createElement('div');
+  el.className = cls;
+  el.style.cssText = 'left:' + x + ';top:' + y + ';font-size:' + sz + 'px;opacity:0;';
+  el.textContent = text;
+  document.getElementById('s-death').appendChild(el);
+  return el;
+}
+
+async function popLine(text, x, y, sz, hold) {
+  const el = mkEl('death-line', text, x, y, sz);
+  await fade(el, 0, 1, 700);
+  await sleep(hold);
+  await fade(el, 1, 0, 600);
+  el.remove();
+}
+
+async function runDeath() {
+  const ds = document.getElementById('s-death');
+  ds.innerHTML = '';
+  await sleep(500);
+
+  await popLine('You Died...', '50%', '50%', 34, 2000);
+  await sleep(400);
+
+  // stats float in
+  const defs = [
+    { t: 'You got ' + stats.bless + ' blessing' + (stats.bless !== 1 ? 's' : ''), x: '22%', y: '28%' },
+    { t: 'You earned $' + stats.money.toLocaleString(), x: '74%', y: '32%' },
+    { t: 'You spent ' + stats.fun + ' day' + (stats.fun !== 1 ? 's' : '') + ' having fun', x: '20%', y: '66%' },
+    { t: 'You spent ' + stats.love + ' day' + (stats.love !== 1 ? 's' : '') + '\nwith loved ones', x: '74%', y: '68%' },
+  ];
+
+  const els = defs.map(d => mkEl('float-stat', d.t, d.x, d.y, 20));
+  for (const el of els) { await sleep(320); await fade(el, 0, 1, 600); }
+  await sleep(1800);
+
+  // "but you died..."
+  await popLine('But you died...', '50%', '50%', 26, 2000);
+  await sleep(300);
+
+  // "so will the memories..."
+  const l2 = mkEl('death-line', 'So will the memories you made.', '50%', '88%', 18);
+  await fade(l2, 0, 1, 700);
+  await sleep(900);
+
+  // stats fade out randomly
+  const shuffled = [...els].sort(() => Math.random() - 0.5);
+  for (const el of shuffled) { await sleep(360); await fade(el, 1, 0, 600); el.remove(); }
+
+  await sleep(400);
+  await fade(l2, 1, 0, 600);
+  l2.remove();
+  await sleep(500);
+
+  await popLine('So at last...', '50%', '50%', 28, 2200);
+  await sleep(400);
+
+  const l4 = mkEl('death-line', 'Does it all matter...?', '50%', '50%', 28);
+  await fade(l4, 0, 1, 800);
+  await sleep(3800);
+  await fade(l4, 1, 0, 800);
+  l4.remove();
+  await sleep(700);
+
+  await crossFade('s-death', 's-title', 800);
+  await sleep(600);
+  const bb = document.getElementById('begin-btn');
+  if (bb) { bb.style.opacity = '1'; }
+}
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>

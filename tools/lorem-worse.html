@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lorem Ipsum but Worse</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Mono:wght@300;400&display=swap');
+
+  :root {
+    --bg: #1a1a18;
+    --panel: #222220;
+    --border: #333330;
+    --fg: #f0ede6;
+    --dim: #7a7870;
+    --accent: #d4a853;
+    --accent-dim: #6b5428;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Fraunces', serif;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  /* ── Header ── */
+  header {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+  }
+
+  .logo {
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    color: var(--fg);
+  }
+
+  .logo em { font-style: italic; color: var(--accent); }
+
+  .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  /* ── Sidebar ── */
+  aside {
+    border-right: 1px solid var(--border);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* Genre pills */
+  .genres {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .genre-btn {
+    width: 100%;
+    text-align: left;
+    padding: 9px 14px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--dim);
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.12s;
+    border-radius: 2px;
+    font-style: italic;
+  }
+
+  .genre-btn:hover { color: var(--fg); border-color: var(--border); }
+  .genre-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Options */
+  .option-row {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .option {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .option-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .option-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .option-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    height: 2px;
+  }
+
+  /* Type selector */
+  .type-select {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+  }
+
+  .type-btn {
+    flex: 1;
+    padding: 7px 4px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .type-btn:last-child { border-right: none; }
+  .type-btn:hover { color: var(--fg); background: var(--border); }
+  .type-btn.active { background: var(--accent-dim); color: var(--accent); }
+
+  /* Generate button */
+  .gen-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    border: none;
+    color: #1a1a18;
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-style: italic;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+
+  .gen-btn:hover { background: #e0b862; }
+
+  /* ── Output ── */
+  main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .output-toolbar {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .output-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+  }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 5px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .action-btn:hover { border-color: var(--fg); color: var(--fg); }
+
+  .output-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 52px;
+  }
+
+  .output-text {
+    font-size: clamp(16px, 2vw, 20px);
+    line-height: 1.9;
+    color: var(--fg);
+    font-weight: 300;
+    max-width: 680px;
+  }
+
+  .output-text p {
+    margin-bottom: 1.6em;
+  }
+
+  .output-text p:last-child { margin-bottom: 0; }
+
+  .placeholder {
+    font-style: italic;
+    color: var(--dim);
+    font-size: 18px;
+  }
+
+  /* Word count badge */
+  .wc {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 32px;
+    letter-spacing: 2px;
+  }
+
+  @keyframes fadein {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .output-text p {
+    animation: fadein 0.3s ease both;
+  }
+
+  .output-text p:nth-child(1) { animation-delay: 0.0s; }
+  .output-text p:nth-child(2) { animation-delay: 0.06s; }
+  .output-text p:nth-child(3) { animation-delay: 0.12s; }
+  .output-text p:nth-child(4) { animation-delay: 0.18s; }
+  .output-text p:nth-child(5) { animation-delay: 0.24s; }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: fixed; top: 18px; right: 20px; z-index: 1000;
+    background: transparent; border: 1px solid rgba(240,237,230,0.15);
+    color: #f0ede6; font-family: 'DM Mono', monospace; font-size: 13px;
+    padding: 5px 10px; cursor: pointer; transition: all 0.2s; opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #f0ede6; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(26,26,24,0.88); border: 1px solid rgba(240,237,230,0.1);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'Fraunces', serif; font-size: 20px;
+    letter-spacing: 5px; color: #f0ede6; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(240,237,230,0.1);
+    color: #f0ede6; font-family: 'DM Mono', monospace; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    letter-spacing: 2px; color: #f0ede6; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #f0ede6; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Lorem <em>Ipsum</em> but Worse</div>
+  <div class="logo-sub">// placeholder text generator</div>
+</header>
+
+<aside>
+  <div>
+    <div class="section-label">Genre</div>
+    <div class="genres" id="genres">
+      <button class="genre-btn active" onclick="setGenre('medieval', this)">Medieval</button>
+      <button class="genre-btn" onclick="setGenre('pirate', this)">Pirate</button>
+      <button class="genre-btn" onclick="setGenre('corporate', this)">Corporate</button>
+      <button class="genre-btn" onclick="setGenre('conspiracy', this)">Conspiracy</button>
+      <button class="genre-btn" onclick="setGenre('romance', this)">Romance Novel</button>
+      <button class="genre-btn" onclick="setGenre('techbro', this)">Tech Bro</button>
+      <button class="genre-btn" onclick="setGenre('victorian', this)">Victorian</button>
+      <button class="genre-btn" onclick="setGenre('sportscaster', this)">Sportscaster</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Output Type</div>
+    <div class="type-select">
+      <button class="type-btn active" onclick="setType('paragraphs', this)">¶ Para</button>
+      <button class="type-btn" onclick="setType('sentences', this)">— Sent</button>
+      <button class="type-btn" onclick="setType('words', this)">Aa Word</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Amount</div>
+    <div class="option-row">
+      <div class="option">
+        <div class="option-top">
+          <span class="option-name">Count</span>
+          <span class="option-val" id="count-val">3</span>
+        </div>
+        <input type="range" min="1" max="10" value="3" id="count-slider"
+          oninput="document.getElementById('count-val').textContent = this.value">
+      </div>
+    </div>
+  </div>
+
+  <button class="gen-btn" onclick="generate()">Generate</button>
+</aside>
+
+<main>
+  <div class="output-toolbar">
+    <div class="output-meta" id="output-meta">— words</div>
+    <div class="toolbar-actions">
+      <button class="action-btn" onclick="copyOutput()">Copy</button>
+      <button class="action-btn" onclick="generate()">Regenerate</button>
+    </div>
+  </div>
+  <div class="output-area">
+    <div class="output-text" id="output">
+      <p class="placeholder">Select a genre and click Generate.</p>
+    </div>
+  </div>
+</main>
+
+<script>
+let genre = 'medieval';
+let outputType = 'paragraphs';
+
+function setGenre(g, el) {
+  genre = g;
+  document.querySelectorAll('.genre-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setType(t, el) {
+  outputType = t;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── Word banks ────────────────────────────────────────────────────────────────
+
+const genres = {
+  medieval: {
+    nouns: ['knight','peasant','dragon','plague','siege','trebuchet','moat','herald','goblin','serf','parchment','dungeon','blacksmith','wench','minstrel','turnip','trebuchet','hovel','witch','leech'],
+    verbs: ['didst','hath','smiteth','galloppeth','doth beseech','hast forsaken','rallieth','plundereth','doth perish','hast vanquished'],
+    adj: ['most foul','verily cursed','pestilent','besmirched','most honourable','wretched','gallant','fetid','most peculiar','odious'],
+    sentences: [
+      'Hark! The {noun} doth approach from yonder hill, most {adj} in countenance.',
+      'Verily, the {noun} hath {verb} upon the {adj} {noun} thrice before the cock did crow.',
+      'Lo, it came to pass that the {adj} {noun} didst encounter a most {adj} {noun} in the village square.',
+      'The {noun} {verb} most mightily, for the kingdom had grown {adj} and the {noun} rebellious.',
+      'Thus spake the {noun}: "Nay, thou art a most {adj} {noun} and I shall {verb} thee forthwith."',
+      'Forsooth, no {noun} hath ever been so {adj} as the one that now {verb} upon the {adj} land.',
+      'And lo, the {adj} {noun} did lie scattered upon the field, whilst the {noun} {verb} in triumph.',
+    ],
+  },
+  pirate: {
+    nouns: ['plank','kraken','rum','treasure','scurvy dog','barnacle','cannon','parrot','jolly roger','landlubber','bilge','cutlass','doubloon','sea witch','maelstrom','port','crow\'s nest','loot'],
+    verbs: ['be plunderin\'','be keelhaulin\'','be walkin\'','arr, doth','be buryin\'','hoist','be swabbin\'','be pillagin\'','scuttle'],
+    adj: ['scurvy','barnacle-encrusted','rum-soaked','cursed','landlubbin\'','foul','treacherous','salty','black-hearted','bilge-drenched'],
+    sentences: [
+      'Arr, the {adj} {noun} hath been spotted off the port bow, and she be {verb} our {noun}!',
+      'Shiver me timbers! The {noun} be more {adj} than a {noun} in a hurricane, arr.',
+      'Blimey, I once knew a {adj} {noun} who {verb} the entire cargo of {noun} from Tortuga to Nassau.',
+      'The {noun} says to the {noun}: "Arr, ye be the most {adj} {noun} I ever did see."',
+      'Dead men tell no tales, but this {adj} {noun} won\'t stop {verb} about his {noun}.',
+      'Yo ho ho and a barrel of {noun}! The {adj} {noun} {verb} upon the open sea.',
+    ],
+  },
+  corporate: {
+    nouns: ['synergy','paradigm','bandwidth','stakeholder','deliverable','ecosystem','pivot','KPI','touchpoint','vertical','leverage','alignment','roadmap','throughput','headcount'],
+    verbs: ['leverage','circle back on','ideate around','unpack','socialize','deep dive into','move the needle on','take offline','double-click on','action'],
+    adj: ['cross-functional','value-driven','agile','scalable','mission-critical','best-in-class','forward-thinking','data-driven','holistic','disruptive'],
+    sentences: [
+      'Going forward, we need to {verb} the {adj} {noun} to ensure we\'re all aligned on the {noun}.',
+      'At the end of the day, the {adj} {noun} needs to {verb} if we want to hit our {noun} targets.',
+      'I\'d love to {verb} this with you — can we find some {noun} on the calendar this week?',
+      'The {adj} {noun} team has identified several key {noun}s that we need to {verb} before EOD.',
+      'Per my last email, the {noun} remains {adj} and we have yet to {verb} the core {noun}.',
+      'To be transparent, the {noun} is not in a {adj} place right now, but we\'re working to {verb} it.',
+    ],
+  },
+  conspiracy: {
+    nouns: ['chemtrail','microchip','lizard person','deep state','flat earth','Illuminati','5G tower','moon landing','nanobots','shadow government','controlled opposition','false flag','elite','matrix','frequency'],
+    verbs: ['have already infiltrated','are silencing','have been covering up','control','engineered','have suppressed','are activating','have implanted','are harvesting'],
+    adj: ['sheeple don\'t know that','the mainstream media hides how','what they don\'t tell you is that','it\'s not a coincidence that','wake up —','if you do your research,','the elites don\'t want you to know that'],
+    sentences: [
+      '{adj} the {noun} {verb} every major {noun} since 1947.',
+      'Think about it: why would the {noun} {verb} information about {noun} unless they had something to hide?',
+      '{adj} the {noun} {verb} our water supply, and the {noun} is just a distraction.',
+      'I\'ve connected the dots. The {noun} and the {noun} are the same organisation. Always have been.',
+      '{adj} every {noun} you see is actually a {noun} designed to keep you from the truth.',
+      'Do your own research. The {noun} {verb} this information for decades. Why now? Why us? Follow the money.',
+    ],
+  },
+  romance: {
+    nouns: ['rake','governess','bosom','smouldering gaze','heaving chest','forbidden desire','drawing room','duke','scoundrel','longing','bodice','moor','gaslight','carriage','whisper'],
+    verbs: ['smouldered','heaved dramatically','trembled with longing','gazed with forbidden desire','swooned','pressed against','burned with passion','quivered','ached for'],
+    adj: ['devastatingly handsome','breathlessly beautiful','scandalously improper','achingly tender','intoxicatingly forbidden','dangerously attractive','torturously slow'],
+    sentences: [
+      'His {adj} gaze swept across the {noun}, and she felt her {noun} {verb} in a most improper manner.',
+      'Never had she encountered a {adj} {noun} — yet here he stood, and her {noun} {verb} without her consent.',
+      '"You are a scoundrel," she breathed, though her {noun} {verb} as his {adj} hand found hers.',
+      'The {adj} {noun} {verb} in the firelight, and she knew — she had always known — that this was ruination.',
+      'He was everything improper, everything {adj}, and yet her {noun} {verb} each time he entered the {noun}.',
+      'Their eyes met across the {noun}. The {adj} silence {verb} between them like a confession unspoken.',
+    ],
+  },
+  techbro: {
+    nouns: ['moonshot','disruption','unicorn','hustle','10x engineer','founder','runway','exit','metrics','user','product','grind','vision','crunch','ping'],
+    verbs: ['disrupting','10x-ing','crushing it','shipping','scaling','pivoting','grinding','hacking','iterating','moving fast'],
+    adj: ['10x','full-stack','data-driven','growth-hacking','lean','hungry','passionate','mission-driven','serial','overnight'],
+    sentences: [
+      'We\'re not just building a {noun} — we\'re {verb} the entire {noun} industry. Full stop.',
+      'I don\'t believe in work-life balance. I believe in {verb} until the {noun} speaks for itself.',
+      'Honestly? The best {adj} {noun}s I\'ve met were {verb} at 3am because they believed in the {noun}.',
+      'We raised a seed round, hired {adj} people, and we\'re {verb} hard. The {noun} will come.',
+      'Some people want a salary. {adj} people want {noun}. Know which one you are before you {verb}.',
+      'I\'ve failed three times. Each time, the {noun} got cleaner. Now we\'re {verb} at {adj} speed.',
+    ],
+  },
+  victorian: {
+    nouns: ['parlour','consumptive','laudanum','governess','séance','dirigible','phrenologist','corset','telegram','gaslight','asylum','chimney sweep','automaton','vapours','ether'],
+    verbs: ['doth afflict','hath prostrated','hath caused considerable alarm among','doth unsettle','hath prompted much consternation in','hath given one quite the'],
+    adj: ['most vexing','frightfully peculiar','terribly unseemly','dreadfully improper','frightfully modern','most disagreeable','preposterously outlandish'],
+    sentences: [
+      'One finds the matter of the {noun} to be {adj} and altogether unbecoming of a {noun} of good standing.',
+      'The {adj} business with the {noun} {verb} the entire household, and Mrs {noun} took to her {noun} for a fortnight.',
+      'I confess I find the {noun} to be {adj} — quite unlike anything one encounters in polite society.',
+      'The physician prescribed {noun} for the {adj} condition, though the {noun} found it gave her quite the {noun}.',
+      'Society has been thrown into {adj} disarray by the {noun}\'s revelation regarding the {adj} {noun}.',
+      'One simply cannot abide a {adj} {noun} at the dinner table. It is, frankly, {adj}.',
+    ],
+  },
+  sportscaster: {
+    nouns: ['quarterback','momentum','playbook','locker room','fourth quarter','clutch moment','defensive line','crowd','dynasty','legacy','endzone','timeout','audible','rivalry'],
+    verbs: ['digs deep','finds the pocket','takes it to the house','reads the defense','makes the call','puts the team on his back','steps up huge','comes alive'],
+    adj: ['gritty','blue-collar','seasoned','electrifying','veteran','hungry','physical','high-motor','emotional','resilient'],
+    sentences: [
+      'And THAT is why you play sixty minutes of football, folks — the {adj} {noun} {verb} when it matters most!',
+      'You talk about {noun}, you talk about {noun} — this {adj} team has it ALL, and they are NOT done.',
+      'He {verb}, the {noun} erupts, and I have GOOSEBUMPS in the booth right now, I am not going to lie.',
+      'This is what {noun} is all about. A {adj} {noun}, a {adj} {noun}, and a moment nobody in this building will ever forget.',
+      'The {adj} {noun} {verb} under pressure — that\'s the sign of a true {noun}, folks, and everyone can see it.',
+      'You can\'t draw that up in the {noun}. That is pure {adj} {noun} coming up CLUTCH.',
+    ],
+  },
+};
+
+// ── Generator ─────────────────────────────────────────────────────────────────
+
+function fillTemplate(tpl, g) {
+  return tpl
+    .replace(/{noun}/g,  () => pick(g.nouns))
+    .replace(/{verb}/g,  () => pick(g.verbs))
+    .replace(/{adj}/g,   () => pick(g.adj));
+}
+
+function makeSentence(g) {
+  return fillTemplate(pick(g.sentences), g);
+}
+
+function makeParagraph(g, sentCount) {
+  const sents = [];
+  for (let i = 0; i < sentCount; i++) sents.push(makeSentence(g));
+  return sents.join(' ');
+}
+
+function makeWords(g, count) {
+  const pool = [...g.nouns, ...g.adj];
+  const words = [];
+  for (let i = 0; i < count; i++) words.push(pick(pool));
+  return words.join(', ') + '.';
+}
+
+function generate() {
+  const g = genres[genre];
+  const count = parseInt(document.getElementById('count-slider').value);
+  const outputEl = document.getElementById('output');
+  let paragraphs = [];
+
+  if (outputType === 'paragraphs') {
+    for (let i = 0; i < count; i++) {
+      paragraphs.push(makeParagraph(g, 3 + Math.floor(Math.random() * 3)));
+    }
+  } else if (outputType === 'sentences') {
+    for (let i = 0; i < count; i++) {
+      paragraphs.push(makeSentence(g));
+    }
+  } else {
+    paragraphs.push(makeWords(g, count * 8));
+  }
+
+  outputEl.innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
+
+  const wordCount = outputEl.textContent.trim().split(/\s+/).length;
+  document.getElementById('output-meta').textContent =
+    `${wordCount} words · ${genre} · ${outputType}`;
+}
+
+function copyOutput() {
+  // Extract text from each <p> and join with double newlines to preserve paragraph breaks
+  const paras = document.getElementById('output').querySelectorAll('p');
+  const text = paras.length
+    ? Array.from(paras).map(p => p.textContent.trim()).join('\n\n')
+    : document.getElementById('output').textContent.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+// Generate on load
+generate();
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>

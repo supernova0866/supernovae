@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HACK.EXE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+  :root {
+    --green: #00ff41;
+    --green-dim: #00c032;
+    --green-dark: #003b00;
+    --bg: #0a0a0a;
+    --scanline: rgba(0,0,0,0.25);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    height: 100vh;
+    overflow: hidden;
+    cursor: none;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent, transparent 2px,
+      var(--scanline) 2px, var(--scanline) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  #cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    background: var(--green);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 200;
+    box-shadow: 0 0 10px var(--green), 0 0 20px var(--green);
+    transform: translate(-50%, -50%);
+  }
+
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 8px 20px;
+    background: rgba(0,0,0,0.85);
+    border-bottom: 1px solid var(--green-dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 50;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    letter-spacing: 3px;
+  }
+
+  #header .title { text-shadow: 0 0 10px var(--green); }
+  #header .lang { color: var(--green-dim); font-size: 16px; letter-spacing: 4px; }
+
+  #terminal {
+    position: fixed;
+    inset: 0;
+    padding: 55px 40px 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  #code-output {
+    font-size: 15px;
+    line-height: 1.75;
+    letter-spacing: 0.4px;
+    white-space: pre;
+  }
+
+  .line {
+    display: block;
+    animation: fadein 0.07s forwards;
+  }
+
+  .line.dim    { color: #1c5c1c; }
+  .line.mid    { color: #2e8b2e; }
+  .line.bright { color: var(--green); text-shadow: 0 0 6px rgba(0,255,65,0.5); }
+
+  @keyframes fadein {
+    from { opacity: 0; transform: translateX(-4px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .blink-cursor {
+    display: inline-block;
+    width: 9px; height: 1em;
+    background: var(--green);
+    vertical-align: text-bottom;
+    animation: blink 0.7s steps(1) infinite;
+    box-shadow: 0 0 8px var(--green);
+    margin-left: 2px;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #start-screen {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.93);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 150;
+    font-family: 'VT323', monospace;
+    text-align: center;
+  }
+
+  #start-screen h1 {
+    font-size: 90px;
+    letter-spacing: 12px;
+    text-shadow: 0 0 30px var(--green), 0 0 60px var(--green);
+    animation: flicker 4s infinite;
+  }
+
+  #start-screen p {
+    font-size: 22px;
+    color: var(--green-dim);
+    letter-spacing: 5px;
+    margin-top: 16px;
+  }
+
+  #start-screen .sub {
+    font-size: 15px;
+    color: #1a4a1a;
+    margin-top: 8px;
+    letter-spacing: 2px;
+  }
+
+  @keyframes flicker {
+    0%, 94%, 96%, 98%, 100% { opacity: 1; }
+    95% { opacity: 0.3; }
+    97% { opacity: 0.6; }
+    99% { opacity: 0.2; }
+  }
+
+  /* info button */
+  #btn-info {
+    background: transparent; border: 1px solid var(--green-dark);
+    color: var(--green-dim); font-family: 'VT323', monospace;
+    font-size: 18px; letter-spacing: 2px; padding: 0 10px;
+    cursor: pointer; transition: all 0.2s; line-height: 1;
+    height: 28px; display: flex; align-items: center;
+  }
+  #btn-info:hover { border-color: var(--green); color: var(--green); text-shadow: 0 0 8px var(--green); }
+
+  /* overlay */
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: #0a0a0a; border: 1px solid var(--green-dark);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    box-shadow: 0 0 40px rgba(0,255,65,0.07);
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'VT323', monospace;
+    font-size: 20px; letter-spacing: 6px; color: var(--green);
+    text-shadow: 0 0 10px rgba(0,255,65,0.4);
+    margin-bottom: 20px; text-decoration: none; transition: color 0.15s;
+  }
+  .info-brand:hover { color: #fff; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid var(--green-dark);
+    color: var(--green-dim); font-family: 'VT323', monospace;
+    font-size: 16px; padding: 2px 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .info-close:hover { color: var(--green); border-color: var(--green); }
+  .info-line {
+    font-family: 'Share Tech Mono', monospace; font-size: 13px;
+    letter-spacing: 2px; color: var(--green-dim); line-height: 2.2;
+  }
+  .info-line span { color: var(--green); }
+  .info-nova { color: #4a90d9; text-decoration: none; transition: color 0.15s; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+
+<div id="start-screen">
+  <h1>HACK.EXE</h1>
+  <p>PRESS ANY KEY TO BEGIN</p>
+  <div class="sub">// just keep typing</div>
+</div>
+
+<div id="header">
+  <div class="title">&#9619; HACK.EXE &#9619;</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="lang" id="lang-display">&#8212;</div>
+    <button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+  </div>
+</div>
+
+<div id="terminal">
+  <div id="code-output"><span class="blink-cursor"></span></div>
+</div>
+
+<script>
+const snippets = [
+  {
+    lang: 'PYTHON',
+    lines: [
+      'import os, sys, socket, hashlib',
+      'from datetime import datetime',
+      '',
+      'def scan_network(target_range):',
+      '    active_hosts = []',
+      '    for i in range(1, 255):',
+      '        ip = f"{target_range}.{i}"',
+      '        response = os.system(f"ping -c 1 -W 1 {ip} > /dev/null 2>&1")',
+      '        if response == 0:',
+      '            active_hosts.append(ip)',
+      '            print(f"[+] Host found: {ip}")',
+      '    return active_hosts',
+      '',
+      'def generate_hash(data, algorithm="sha256"):',
+      '    h = hashlib.new(algorithm)',
+      '    h.update(data.encode("utf-8"))',
+      '    return h.hexdigest()',
+      '',
+      'def connect_socket(host, port):',
+      '    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)',
+      '    sock.settimeout(5)',
+      '    try:',
+      '        sock.connect((host, port))',
+      '        banner = sock.recv(1024).decode().strip()',
+      '        print(f"[*] Banner: {banner}")',
+      '        return sock',
+      '    except Exception as e:',
+      '        print(f"[-] Connection failed: {e}")',
+      '        return None',
+      '',
+      'if __name__ == "__main__":',
+      '    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")',
+      '    print(f"[*] Scan initiated at {timestamp}")',
+      '    targets = scan_network("192.168.1")',
+      '    print(f"[*] Found {len(targets)} active hosts")',
+    ]
+  },
+  {
+    lang: 'JAVASCRIPT',
+    lines: [
+      'const crypto = require("crypto");',
+      'const net = require("net");',
+      'const EventEmitter = require("events");',
+      '',
+      'class PacketSniffer extends EventEmitter {',
+      '  constructor(options = {}) {',
+      '    super();',
+      '    this.buffer = Buffer.alloc(65536);',
+      '    this.packets = [];',
+      '    this.running = false;',
+      '    this.options = { timeout: 5000, ...options };',
+      '  }',
+      '',
+      '  async capture(interface_name) {',
+      '    this.running = true;',
+      '    while (this.running) {',
+      '      const packet = await this.readPacket();',
+      '      if (packet) {',
+      '        this.packets.push(packet);',
+      '        this.emit("packet", packet);',
+      '        this.analyze(packet);',
+      '      }',
+      '    }',
+      '  }',
+      '',
+      '  analyze(packet) {',
+      '    const { src, dst, protocol, payload } = packet;',
+      '    const hash = crypto.createHash("md5").update(payload).digest("hex");',
+      '    console.log(`[+] ${protocol} ${src} -> ${dst}`);',
+      '    console.log(`    Hash: ${hash}`);',
+      '    if (this.detectAnomaly(packet)) {',
+      '      this.emit("anomaly", { packet, timestamp: Date.now() });',
+      '    }',
+      '  }',
+      '',
+      '  detectAnomaly(packet) {',
+      '    return packet.payload.length > 8192 ||',
+      '      this.packets.filter(p => p.src === packet.src).length > 100;',
+      '  }',
+      '',
+      '  stop() { this.running = false; }',
+      '}',
+    ]
+  },
+  {
+    lang: 'RUST',
+    lines: [
+      'use std::net::{TcpListener, TcpStream};',
+      'use std::io::{Read, Write};',
+      'use std::thread;',
+      'use std::sync::{Arc, Mutex};',
+      'use std::collections::HashMap;',
+      '',
+      '#[derive(Debug, Clone)]',
+      'struct Session {',
+      '    id: String,',
+      '    address: String,',
+      '    bytes_recv: usize,',
+      '    bytes_sent: usize,',
+      '}',
+      '',
+      'fn handle_client(mut stream: TcpStream, sessions: Arc<Mutex<HashMap<String, Session>>>) {',
+      '    let addr = stream.peer_addr().unwrap().to_string();',
+      '    let session_id = generate_id(&addr);',
+      '    println!("[+] New connection: {} ({})", addr, session_id);',
+      '    let mut buffer = [0u8; 4096];',
+      '    loop {',
+      '        match stream.read(&mut buffer) {',
+      '            Ok(0) => break,',
+      '            Ok(n) => {',
+      '                let data = &buffer[..n];',
+      '                println!("[*] Received {} bytes from {}", n, addr);',
+      '                stream.write_all(data).unwrap();',
+      '            }',
+      '            Err(e) => {',
+      '                eprintln!("[-] Error: {}", e);',
+      '                break;',
+      '            }',
+      '        }',
+      '    }',
+      '    sessions.lock().unwrap().remove(&session_id);',
+      '    println!("[-] Disconnected: {}", addr);',
+      '}',
+    ]
+  },
+  {
+    lang: 'GO',
+    lines: [
+      'package main',
+      '',
+      'import (',
+      '    "crypto/tls"',
+      '    "fmt"',
+      '    "log"',
+      '    "net"',
+      '    "sync"',
+      ')',
+      '',
+      'type Proxy struct {',
+      '    addr   string',
+      '    target string',
+      '    mu     sync.Mutex',
+      '    conns  map[string]net.Conn',
+      '}',
+      '',
+      'func NewProxy(addr, target string) *Proxy {',
+      '    return &Proxy{addr: addr, target: target, conns: make(map[string]net.Conn)}',
+      '}',
+      '',
+      'func (p *Proxy) Start() error {',
+      '    ln, err := net.Listen("tcp", p.addr)',
+      '    if err != nil { return fmt.Errorf("listen failed: %w", err) }',
+      '    defer ln.Close()',
+      '    log.Printf("[*] Listening on %s -> %s", p.addr, p.target)',
+      '    for {',
+      '        conn, err := ln.Accept()',
+      '        if err != nil { log.Printf("[-] Accept error: %v", err); continue }',
+      '        go p.handle(conn)',
+      '    }',
+      '}',
+      '',
+      'func (p *Proxy) handle(client net.Conn) {',
+      '    defer client.Close()',
+      '    remote, err := tls.Dial("tcp", p.target, &tls.Config{InsecureSkipVerify: true})',
+      '    if err != nil { log.Printf("[-] Dial failed: %v", err); return }',
+      '    defer remote.Close()',
+      '    p.mu.Lock()',
+      '    p.conns[client.RemoteAddr().String()] = client',
+      '    p.mu.Unlock()',
+      '    done := make(chan struct{}, 2)',
+      '    go p.pipe(client, remote, done)',
+      '    go p.pipe(remote, client, done)',
+      '    <-done',
+      '}',
+    ]
+  },
+  {
+    lang: 'C',
+    lines: [
+      '#include <stdio.h>',
+      '#include <stdlib.h>',
+      '#include <string.h>',
+      '#include <unistd.h>',
+      '#include <sys/socket.h>',
+      '#include <netinet/in.h>',
+      '#include <pthread.h>',
+      '',
+      '#define MAX_CLIENTS 256',
+      '#define BUFFER_SIZE 4096',
+      '#define PORT 8080',
+      '',
+      'typedef struct { int socket; struct sockaddr_in address; int id; } client_t;',
+      'client_t *clients[MAX_CLIENTS];',
+      'pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;',
+      '',
+      'void broadcast(char *message, int sender_id) {',
+      '    pthread_mutex_lock(&clients_mutex);',
+      '    for (int i = 0; i < MAX_CLIENTS; i++) {',
+      '        if (clients[i] && clients[i]->id != sender_id) {',
+      '            if (send(clients[i]->socket, message, strlen(message), 0) < 0) {',
+      '                perror("Send failed"); break;',
+      '            }',
+      '        }',
+      '    }',
+      '    pthread_mutex_unlock(&clients_mutex);',
+      '}',
+      '',
+      'void *handle_client(void *arg) {',
+      '    char buffer[BUFFER_SIZE];',
+      '    client_t *client = (client_t *)arg;',
+      '    printf("[+] Client %d connected\\n", client->id);',
+      '    while (1) {',
+      '        int bytes = recv(client->socket, buffer, BUFFER_SIZE, 0);',
+      '        if (bytes <= 0) break;',
+      '        broadcast(buffer, client->id);',
+      '    }',
+      '    close(client->socket);',
+      '    free(client);',
+      '    pthread_exit(NULL);',
+      '}',
+    ]
+  },
+  {
+    lang: 'BASH',
+    lines: [
+      '#!/bin/bash',
+      'set -euo pipefail',
+      '',
+      'TARGET="$1"',
+      'THREADS=50',
+      'TIMEOUT=2',
+      'OUTPUT="results.txt"',
+      '',
+      'log() {',
+      '  echo "[$(date +%H:%M:%S)] $1" | tee -a scan.log',
+      '}',
+      '',
+      'check_port() {',
+      '  local port="$1"',
+      '  if timeout "$TIMEOUT" bash -c "echo >/dev/tcp/$TARGET/$port" 2>/dev/null; then',
+      '    echo "$port" >> "$OUTPUT"',
+      '    log "OPEN: $port"',
+      '  fi',
+      '}',
+      '',
+      'export -f check_port',
+      'export TARGET TIMEOUT OUTPUT',
+      '',
+      'log "Starting scan on $TARGET"',
+      'seq 1 65535 | xargs -P "$THREADS" -I {} bash -c "check_port {}"',
+      '',
+      'FOUND=$(wc -l < "$OUTPUT")',
+      'log "Scan complete. Found $FOUND open ports."',
+      '',
+      'while IFS= read -r port; do',
+      '  BANNER=$(echo "" | nc -w1 "$TARGET" "$port" 2>/dev/null | head -1)',
+      '  if [ -n "$BANNER" ]; then log "Banner on $port: $BANNER"; fi',
+      'done < "$OUTPUT"',
+      '',
+      'log "Done. Results saved to $OUTPUT"',
+    ]
+  },
+  {
+    lang: 'JAVA',
+    lines: [
+      'import java.net.*;',
+      'import java.io.*;',
+      'import java.util.*;',
+      'import java.util.concurrent.*;',
+      'import java.security.*;',
+      'import javax.crypto.*;',
+      '',
+      'public class SecureChannel {',
+      '    private static final String ALGO = "AES/GCM/NoPadding";',
+      '    private static final int KEY_SIZE = 256;',
+      '    private static final int GCM_IV_LEN = 12;',
+      '    private final SecretKey secretKey;',
+      '    private final ExecutorService executor;',
+      '    private final Map<String, Socket> connections;',
+      '',
+      '    public SecureChannel() throws NoSuchAlgorithmException {',
+      '        KeyGenerator kg = KeyGenerator.getInstance("AES");',
+      '        kg.init(KEY_SIZE, new SecureRandom());',
+      '        this.secretKey = kg.generateKey();',
+      '        this.executor = Executors.newCachedThreadPool();',
+      '        this.connections = new ConcurrentHashMap<>();',
+      '    }',
+      '',
+      '    public byte[] encrypt(byte[] data) throws Exception {',
+      '        byte[] iv = new byte[GCM_IV_LEN];',
+      '        new SecureRandom().nextBytes(iv);',
+      '        Cipher cipher = Cipher.getInstance(ALGO);',
+      '        GCMParameterSpec spec = new GCMParameterSpec(128, iv);',
+      '        cipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);',
+      '        byte[] encrypted = cipher.doFinal(data);',
+      '        byte[] result = new byte[GCM_IV_LEN + encrypted.length];',
+      '        System.arraycopy(iv, 0, result, 0, GCM_IV_LEN);',
+      '        System.arraycopy(encrypted, 0, result, GCM_IV_LEN, encrypted.length);',
+      '        return result;',
+      '    }',
+      '',
+      '    public void connect(String host, int port) {',
+      '        executor.submit(() -> {',
+      '            try {',
+      '                Socket socket = new Socket(host, port);',
+      '                connections.put(host + ":" + port, socket);',
+      '                System.out.printf("[+] Connected to %s:%d%n", host, port);',
+      '            } catch (IOException e) {',
+      '                System.err.printf("[-] Failed: %s%n", e.getMessage());',
+      '            }',
+      '        });',
+      '    }',
+      '}',
+    ]
+  }
+];
+
+function buildLinePool() {
+  const pool = [];
+  const shuffled = [...snippets].sort(() => Math.random() - 0.5);
+  for (const s of shuffled) {
+    for (const line of s.lines) {
+      pool.push({ text: line, lang: s.lang });
+    }
+  }
+  return pool;
+}
+
+let pool = buildLinePool();
+let poolIndex = 0;
+let displayedLines = [];
+const MAX_VISIBLE = 28;
+
+const codeOutput = document.getElementById('code-output');
+const langDisplay = document.getElementById('lang-display');
+const startScreen = document.getElementById('start-screen');
+const cursorEl = document.getElementById('cursor');
+
+document.addEventListener('mousemove', e => {
+  cursorEl.style.left = e.clientX + 'px';
+  cursorEl.style.top = e.clientY + 'px';
+});
+
+function getNextLine() {
+  if (poolIndex >= pool.length) {
+    pool = buildLinePool();
+    poolIndex = 0;
+  }
+  return pool[poolIndex++];
+}
+
+function addLine() {
+  const { text, lang } = getNextLine();
+  displayedLines.push({ text, lang });
+  langDisplay.textContent = lang;
+  if (displayedLines.length > MAX_VISIBLE) displayedLines.shift();
+  renderLines();
+}
+
+function renderLines() {
+  const total = displayedLines.length;
+  let html = '';
+  for (let i = 0; i < total; i++) {
+    const age = total - 1 - i;
+    let cls = 'line';
+    if (age === 0) cls += ' bright';
+    else if (age <= 4) cls += ' mid';
+    else cls += ' dim';
+    const text = displayedLines[i].text === '' ? ' ' : escHtml(displayedLines[i].text);
+    html += `<span class="${cls}">${text}</span>\n`;
+  }
+  html += '<span class="blink-cursor"></span>';
+  codeOutput.innerHTML = html;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+let started = false;
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  e.preventDefault();
+
+  if (!started) {
+    startScreen.style.display = 'none';
+    started = true;
+    for (let i = 0; i < 5; i++) addLine();
+    return;
+  }
+
+  addLine();
+});
+
+// ── Info popup ────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+</body>
+</html>

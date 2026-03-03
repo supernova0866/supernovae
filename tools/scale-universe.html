@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scale of the Universe</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;400&family=DM+Mono:wght@300;400&display=swap');
+
+  :root {
+    --bg: #02020a;
+    --fg: #e8e4f0;
+    --dim: rgba(232,228,240,0.3);
+    --dimmer: rgba(232,228,240,0.08);
+    --accent: #a78bfa;
+    --accent2: #60a5fa;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--fg); font-family:'DM Mono',monospace; height:100vh; overflow:hidden; user-select:none; }
+
+  #canvas { position:fixed; inset:0; z-index:1; }
+
+  /* top bar */
+  #topbar {
+    position:fixed; top:0; left:0; right:0; z-index:10;
+    padding:18px 32px; display:flex; justify-content:space-between; align-items:center;
+    background:linear-gradient(to bottom,rgba(2,2,10,0.95),transparent);
+  }
+  #topbar-title { font-family:'Unbounded',sans-serif; font-weight:200; font-size:11px; letter-spacing:5px; color:var(--dim); text-transform:uppercase; }
+  #topbar-nav   { font-size:10px; letter-spacing:3px; color:var(--dimmer); text-transform:uppercase; }
+
+  /* info panel */
+  #info { position:fixed; left:40px; top:50%; transform:translateY(-50%); z-index:10; max-width:260px; }
+  .info-row { overflow:hidden; }
+  .info-row-inner { transition:transform 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease; }
+  .info-row-inner.exit-up   { transform:translateY(-100%); opacity:0; }
+  .info-row-inner.exit-down { transform:translateY(100%);  opacity:0; }
+  .info-row-inner.enter     { transform:translateY(0);     opacity:1; }
+
+  #info-scale { font-size:10px; letter-spacing:4px; color:var(--accent); text-transform:uppercase; margin-bottom:10px; }
+  #info-name  { font-family:'Unbounded',sans-serif; font-weight:200; font-size:clamp(16px,2.2vw,26px); line-height:1.25; margin-bottom:8px; }
+  #info-size  { font-size:11px; letter-spacing:2px; color:var(--accent2); margin-bottom:4px; }
+  #info-mass  { font-size:10px; letter-spacing:2px; color:rgba(167,139,250,0.65); margin-bottom:16px; }
+  #info-fact  { font-size:11px; line-height:1.85; color:var(--dim); border-left:1px solid var(--dimmer); padding-left:14px; }
+
+  /* scale bar */
+  #scale-bar { position:fixed; bottom:52px; left:50%; transform:translateX(-50%); z-index:10; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  #scale-label { font-size:9px; letter-spacing:4px; color:var(--dimmer); text-transform:uppercase; }
+  #scale-track { width:240px; height:1px; background:var(--dimmer); position:relative; }
+  #scale-fill  { height:100%; background:linear-gradient(90deg,var(--accent2),var(--accent)); transition:width 0.5s cubic-bezier(0.4,0,0.2,1); }
+  #scale-ticks { display:flex; justify-content:space-between; width:240px; margin-top:5px; }
+  #scale-ticks span { font-size:8px; color:rgba(232,228,240,0.12); letter-spacing:1px; }
+
+  /* zoom buttons */
+  #zoom-btns { position:fixed; bottom:48px; right:32px; z-index:10; display:flex; flex-direction:column; gap:8px; }
+  .zoom-btn {
+    width:36px; height:36px; background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.1); color:var(--dim); font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; border-radius:4px; transition:all 0.15s;
+  }
+  .zoom-btn:hover { background:rgba(255,255,255,0.08); color:var(--fg); border-color:rgba(255,255,255,0.25); }
+  .zoom-btn:active { transform:scale(0.93); }
+  .zoom-btn:disabled { opacity:0.18; cursor:not-allowed; transform:none; }
+
+  /* hint */
+  #hint { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); font-size:9px; letter-spacing:3px; color:rgba(232,228,240,0.1); text-transform:uppercase; z-index:10; white-space:nowrap; }
+
+  /* info popup */
+  #btn-info { position:fixed; bottom:48px; left:32px; z-index:1000; background:transparent; border:1px solid rgba(232,228,240,0.1); color:rgba(232,228,240,0.3); font-family:'DM Mono',monospace; font-size:14px; padding:6px 12px; cursor:pointer; transition:all 0.2s; }
+  #btn-info:hover { color:var(--fg); border-color:rgba(232,228,240,0.3); }
+  .info-overlay { position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.22s; }
+  .info-overlay.open { opacity:1; pointer-events:auto; }
+  .info-box { background:rgba(2,2,10,0.96); border:1px solid rgba(167,139,250,0.2); padding:28px 32px 24px; min-width:300px; position:relative; box-shadow:0 0 60px rgba(167,139,250,0.07); transform:translateY(8px) scale(0.97); transition:transform 0.22s; }
+  .info-overlay.open .info-box { transform:translateY(0) scale(1); }
+  .info-brand { display:block; font-family:'Unbounded',sans-serif; font-weight:200; font-size:20px; letter-spacing:5px; color:var(--fg); text-transform:uppercase; margin-bottom:20px; text-decoration:none; transition:opacity 0.15s; }
+  .info-brand:hover { opacity:0.6; }
+  .info-close { position:absolute; top:12px; right:14px; background:transparent; border:1px solid rgba(232,228,240,0.1); color:var(--dim); font-family:'DM Mono',monospace; font-size:12px; padding:3px 8px; cursor:pointer; transition:all 0.15s; }
+  .info-close:hover { color:var(--fg); }
+  .popup-line { font-family:'DM Mono',monospace; font-size:12px; letter-spacing:2px; color:var(--dim); line-height:2.4; }
+  .popup-line span { color:var(--fg); }
+  .info-nova { color:#4a90d9; text-decoration:none; }
+  .info-nova:hover { color:#6aaaf0; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="topbar">
+  <div id="topbar-title">Scale of the Universe</div>
+  <div id="topbar-nav">— / —</div>
+</div>
+
+<div id="info">
+  <div class="info-row"><div class="info-row-inner enter" id="info-scale">—</div></div>
+  <div class="info-row"><div class="info-row-inner enter" id="info-name">—</div></div>
+  <div class="info-row"><div class="info-row-inner enter" id="info-size">—</div></div>
+  <div class="info-row"><div class="info-row-inner enter" id="info-mass">—</div></div>
+  <div class="info-row"><div class="info-row-inner enter" id="info-fact">—</div></div>
+</div>
+
+<div id="scale-bar">
+  <div id="scale-label">scale</div>
+  <div id="scale-track"><div id="scale-fill" style="width:0%"></div></div>
+  <div id="scale-ticks">
+    <span>quantum</span><span>atomic</span><span>human</span><span>planet</span><span>cosmic</span>
+  </div>
+</div>
+
+<div id="zoom-btns">
+  <button class="zoom-btn" id="btn-zoom-in"  onclick="zoom(-1)">−</button>
+  <button class="zoom-btn" id="btn-zoom-out" onclick="zoom(+1)">+</button>
+</div>
+
+<div id="hint">scroll · arrow keys · buttons to traverse scales</div>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="popup-line">// <span id="info-title">Scale of the Universe</span></div>
+    <div class="popup-line">// Tool <span id="info-id">—</span></div>
+    <div class="popup-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<script>
+// ── Objects ───────────────────────────────────────────────────────────────────
+// logSize: log10 of size in metres — drives the visual zoom scale
+const OBJECTS = [
+  { name:"Planck Length",        logSize:-34.8, size:"1.6 × 10⁻³⁵ m",           fact:"The smallest meaningful distance in physics. Below this, our concepts of space and time break down entirely.",                                                      color:[167,139,250], glowR:0.08 , mass:"mass: ~2.2 × 10⁻⁸ kg (Planck mass)"},
+  { name:"String (theoretical)", logSize:-34.0, size:"~10⁻³⁴ m",                 fact:"In string theory, fundamental particles are tiny vibrating strings at this scale. No experiment has ever confirmed their existence.",                                  color:[192,132,252], glowR:0.09 , mass:"mass: theoretically massless in isolation"},
+  { name:"Quark",                logSize:-18.0, size:"< 10⁻¹⁸ m",                fact:"Quarks have never been observed alone — the force between them grows stronger the further they're pulled apart.",                                                     color:[216,180,254], glowR:0.10 , mass:"mass: ~2–5 MeV/c² (up quark)"},
+  { name:"Electron",             logSize:-17.0, size:"< 10⁻¹⁷ m",                fact:"Has no known internal structure. It behaves as both particle and wave simultaneously, and its charge perfectly mirrors a proton's.",                                   color:[196,181,253], glowR:0.11 , mass:"mass: 9.1 × 10⁻³¹ kg — lightest stable particle"},
+  { name:"Proton",               logSize:-15.1, size:"8.5 × 10⁻¹⁶ m",            fact:"Nearly 1,836× heavier than an electron. It has existed essentially unchanged for 13.8 billion years.",                                                               color:[129,140,248], glowR:0.14 , mass:"mass: 1.67 × 10⁻²⁷ kg — 1,836× an electron"},
+  { name:"Atomic Nucleus",       logSize:-14.5, size:"~10⁻¹⁴ m",                 fact:"Contains nearly all of an atom's mass in 1/100,000th of its volume. If an atom were a stadium, the nucleus would be a pea at the centre.",                            color:[99,102,241],  glowR:0.15 , mass:"mass: ~almost all of the atom's total mass"},
+  { name:"Hydrogen Atom",        logSize:-10.0, size:"~1 Å (10⁻¹⁰ m)",           fact:"The most abundant atom in the universe. A single human hair is about 1 million hydrogen atoms wide.",                                                                color:[96,165,250],  glowR:0.16 , mass:"mass: 1.67 × 10⁻²⁷ kg"},
+  { name:"Water Molecule",       logSize:-9.6,  size:"~0.28 nm",                  fact:"Two hydrogen atoms bonded to oxygen at a 104.5° angle. That precise angle gives water almost all its unusual properties.",                                           color:[125,211,252], glowR:0.15 , mass:"mass: 2.99 × 10⁻²⁶ kg"},
+  { name:"DNA Double Helix",     logSize:-8.7,  size:"2 nm wide",                 fact:"The DNA in a single human cell, uncoiled, would stretch 2 metres — folded into a nucleus just 6 micrometres wide.",                                                   color:[56,189,248],  glowR:0.16 , mass:"mass: ~10⁻²¹ kg per metre of strand"},
+  { name:"Ribosome",             logSize:-8.0,  size:"~25 nm",                    fact:"Molecular machines that read genetic code and assemble proteins. A single cell runs thousands of them simultaneously.",                                                color:[52,211,153],  glowR:0.15 , mass:"mass: ~4.5 × 10⁻¹⁸ kg"},
+  { name:"Virus",                logSize:-7.0,  size:"~100 nm",                   fact:"Not technically alive — viruses hijack a host cell's machinery to replicate. Some are smaller than a ribosome.",                                                       color:[34,197,94],   glowR:0.16 , mass:"mass: ~10⁻¹⁸ – 10⁻¹⁵ kg"},
+  { name:"Bacterium",            logSize:-5.7,  size:"~2 μm",                     fact:"The human gut contains ~38 trillion bacteria — roughly equal to the number of human cells. Many are essential to digestion.",                                          color:[74,222,128],  glowR:0.16 , mass:"mass: ~10⁻¹⁵ kg (1 picogram)"},
+  { name:"Red Blood Cell",       logSize:-5.1,  size:"~8 μm",                     fact:"Has no nucleus — sacrificed for extra haemoglobin space. Makes a full circuit of your body in about 20 seconds.",                                                      color:[248,113,113], glowR:0.18 , mass:"mass: ~2.7 × 10⁻¹³ kg"},
+  { name:"Human Cell",           logSize:-4.7,  size:"~20 μm",                    fact:"You have ~37 trillion of them. Each contains about 2 metres of DNA and runs thousands of biochemical reactions simultaneously.",                                       color:[251,146,60],  glowR:0.17 , mass:"mass: ~10⁻¹² kg (1 nanogram)"},
+  { name:"Human Hair",           logSize:-3.9,  size:"~70 μm wide",               fact:"Grows roughly 15 cm per year. Each strand has three concentric layers and can withstand up to 100 grams of force.",                                                    color:[251,191,36],  glowR:0.16 , mass:"mass: ~0.06 mg per cm of length"},
+  { name:"Ant",                  logSize:-2.8,  size:"~1.5 mm",                   fact:"Can carry 10–50× its own bodyweight. All ants on Earth combined weigh roughly as much as all humans combined.",                                                        color:[163,230,53],  glowR:0.16 , mass:"mass: ~1–2 mg"},
+  { name:"Bumblebee",            logSize:-2.0,  size:"~15 mm",                    fact:"Flies using a short, fast stroke that generates tiny lift vortices — classic aerodynamics said it couldn't be done.",                                                  color:[250,204,21],  glowR:0.16 , mass:"mass: ~0.2 g"},
+  { name:"Human Hand",           logSize:-1.1,  size:"~18 cm",                    fact:"Contains 27 bones, 29 joints, and over 120 ligaments. Has more sensory receptors per cm² than almost anywhere else on the body.",                                      color:[232,228,240], glowR:0.17 , mass:"mass: ~0.4 kg"},
+  { name:"Human",                logSize:0.23,  size:"~1.7 m",                    fact:"Made of ~37 trillion cells, yet 99% of your atoms are hydrogen, oxygen, or carbon — all forged in stars.",                                                             color:[232,228,240], glowR:0.20 , mass:"mass: ~70 kg"},
+  { name:"Blue Whale",           logSize:1.15,  size:"~30 m",                     fact:"The largest animal ever to live on Earth. Its heart is the size of a small car and beats just 4–8 times per minute when diving.",                                      color:[96,165,250],  glowR:0.18 , mass:"mass: ~150,000 kg (150 tonnes)"},
+  { name:"Eiffel Tower",         logSize:2.52,  size:"330 m",                     fact:"Can grow 15 cm taller in summer from thermal expansion. It was designed to be demolished after 20 years.",                                                              color:[148,163,184], glowR:0.16 , mass:"mass: ~7,300 tonnes"},
+  { name:"Mount Everest",        logSize:3.95,  size:"8,849 m",                   fact:"Still growing ~4 mm per year. The summit has only ⅓ of sea-level oxygen — every step above 8,000 m is in the death zone.",                                            color:[203,213,225], glowR:0.18 , mass:"mass: ~8.1 × 10¹⁴ kg"},
+  { name:"Neutron Star",         logSize:4.30,  size:"~20 km diameter",           fact:"The collapsed core of a supergiant. A teaspoon of its matter would weigh about 4 billion tonnes. Some spin 700 times per second.",                                     color:[180,210,255], glowR:0.28 , mass:"mass: ~1.4× the Sun — outweighs the entire Solar System"},
+  { name:"Amazon River",         logSize:6.46,  size:"~6,400 km long",            fact:"Discharges 20% of all freshwater entering the world's oceans. Its basin holds 10% of all species on Earth.",                                                          color:[52,211,153],  glowR:0.20 , mass:"mass of water: ~2 × 10¹⁷ kg at any moment"},
+  { name:"Moon",                 logSize:6.54,  size:"3,474 km diameter",         fact:"Drifting 3.8 cm further from Earth each year. Without it, Earth's axial tilt would wobble wildly, destabilising the seasons.",                                         color:[148,163,184], glowR:0.22 , mass:"mass: 7.3 × 10²² kg (1.2% of Earth)"},
+  { name:"Earth",                logSize:7.10,  size:"12,742 km diameter",        fact:"The densest planet in the solar system. Its inner core rotates slightly faster than the rest of the planet.",                                                          color:[59,130,246],  glowR:0.28 , mass:"mass: 5.97 × 10²⁴ kg"},
+  { name:"Jupiter",              logSize:8.07,  size:"139,820 km diameter",       fact:"Its Great Red Spot is a storm larger than Earth that has raged for at least 350 years. It has 95 known moons.",                                                        color:[251,146,60],  glowR:0.28 , mass:"mass: 1.9 × 10²⁷ kg — 318× Earth"},
+  { name:"Sun",                  logSize:9.14,  size:"1.39 million km",           fact:"Contains 99.86% of the solar system's mass. Its core fuses 620 million tonnes of hydrogen into helium every second.",                                                  color:[251,191,36],  glowR:0.35 , mass:"mass: 2 × 10³⁰ kg — 99.86% of Solar System"},
+  { name:"Betelgeuse",           logSize:11.18, size:"~1.4 billion km diameter",  fact:"A red supergiant in Orion so large it would engulf Jupiter's orbit if placed at our Sun. It will explode as a supernova — possibly within 100,000 years.",             color:[255,100,50],  glowR:0.38 , mass:"mass: ~11–21× the Sun"},
+  { name:"Stephenson 2-18",      logSize:12.32, size:"~2.15 billion km diameter", fact:"One of the largest known stars. If placed at the Sun's position, its surface would extend beyond Saturn's orbit. Its volume is ~10 billion times the Sun's.",           color:[255,80,30],   glowR:0.42 , mass:"mass: ~12–15× the Sun"},
+  { name:"Solar System",         logSize:12.95, size:"~60 AU across",             fact:"Voyager 1, launched in 1977 at 17 km/s, is only just leaving it now. Light takes over 4 hours just to reach Pluto.",                                                   color:[167,139,250], glowR:0.30 , mass:"mass: ~2 × 10³⁰ kg (99.86% is the Sun)"},
+  { name:"TON 618",              logSize:14.15, size:"~66 billion km diameter",   fact:"One of the most massive black holes known — 66 billion solar masses. Its event horizon is wider than our entire solar system.",                                         color:[120,60,200],  glowR:0.45 , mass:"mass: 6.6 × 10¹⁰ solar masses"},
+  { name:"Phoenix A*",           logSize:14.68, size:"~590 billion km diameter",  fact:"Possibly the most massive black hole ever found — ~100 billion solar masses. Located in the Phoenix cluster, one of the most massive galaxy clusters known.",           color:[80,20,160],   glowR:0.50 , mass:"mass: ~1 × 10¹¹ solar masses"},
+  { name:"Light Year",           logSize:15.98, size:"9.46 × 10¹⁵ m",            fact:"The distance light travels in one year. The nearest star system, Alpha Centauri, is 4.2 of these away.",                                                              color:[96,165,250],  glowR:0.20 , mass:"mass: n/a — this is a unit of distance"},
+  { name:"Orion Nebula",         logSize:17.58, size:"~24 light-years across",    fact:"A stellar nursery 1,344 light-years away where stars are actively forming right now. Visible to the naked eye as the fuzzy middle star of Orion's sword.",             color:[249,168,212], glowR:0.32 , mass:"mass: ~2,000× the Sun in gas & dust"},
+  { name:"Globular Cluster",     logSize:18.48, size:"~100 light-years across",   fact:"Tightly packed spheres of hundreds of thousands of ancient stars, some nearly as old as the universe itself.",                                                         color:[253,224,71],  glowR:0.30 , mass:"mass: ~10⁵–10⁶ solar masses"},
+  { name:"Milky Way",            logSize:20.98, size:"~100,000 light-years",      fact:"Contains 100–400 billion stars. We're 26,000 light-years from the centre, completing one orbit every 225 million years.",                                              color:[129,140,248], glowR:0.40 , mass:"mass: ~1.5 × 10¹² solar masses"},
+  { name:"Local Group",          logSize:22.68, size:"~10 million light-years",   fact:"Our galaxy cluster — ~80 galaxies including the Milky Way and Andromeda. The two are on a collision course in ~4.5 billion years.",                                     color:[167,139,250], glowR:0.38 , mass:"mass: ~2 × 10¹² solar masses"},
+  { name:"Laniakea Supercluster",logSize:24.88, size:"~520 million light-years",  fact:"Our home supercluster, discovered in 2014. Contains 100,000 galaxies and a mass of 100 quadrillion suns, all flowing toward the Great Attractor.",                     color:[192,132,252], glowR:0.45 , mass:"mass: ~10¹⁷ solar masses"},
+  { name:"Observable Universe",  logSize:26.94, size:"~93 billion light-years",   fact:"Not the whole universe — just the part whose light has reached us in 13.8 billion years. The full universe may be infinite.",                                          color:[216,180,254], glowR:0.50 , mass:"mass: ~10⁵³ kg (ordinary matter only)"},
+];
+
+const SCALE_NAMES = ['Quantum','Quantum','Subatomic','Subatomic','Subatomic','Nuclear','Atomic','Molecular','Molecular','Nanoscale','Nanoscale','Microscopic','Microscopic','Microscopic','Macro','Macro','Macro','Macro','Human','Biological','Architectural','Geological','Geological','Geographical','Geographical','Planetary','Planetary','Planetary','Stellar','Stellar','Stellar','Stellar','Stellar','Interstellar','Interstellar','Interstellar','Galactic','Galactic','Cosmic','Cosmic','Cosmic'];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentIdx = 0;
+let displayScale = 0;
+let targetScale  = 0;
+let animFrame;
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  drawScene(displayScale);
+}
+window.addEventListener('resize', resize);
+
+// ── Draw ──────────────────────────────────────────────────────────────────────
+// At each scale value t (continuous), we show the current object scaled so that
+// moving from t=N to t=N+1 looks like zooming out (object grows, then the next
+// object is revealed). We show one "main" object and cross-fade to the next.
+
+function drawScene(t) {
+  ctx.clearRect(0, 0, W, H);
+
+  const iA = Math.floor(t);
+  const iB = Math.min(iA + 1, OBJECTS.length - 1);
+  const frac = t - iA; // 0..1 blend between A and B
+
+  drawObject(iA, 1 - frac, t, false);
+  if (frac > 0.01 && iB !== iA) drawObject(iB, frac, t, true);
+}
+
+function drawObject(idx, alpha, t, incoming) {
+  if (alpha <= 0) return;
+  const obj  = OBJECTS[idx];
+  const cx   = W * 0.62;
+  const cy   = H * 0.5;
+
+  // The visual radius: object at its "home" index has a comfortable base radius.
+  // As we zoom away from it (t moves), it shrinks or grows.
+  const baseR = Math.min(W, H) * 0.18;
+  // Each step in index = 1 unit of t. The object scales by 1.6× per step.
+  const scaleFactor = Math.pow(1.6, idx - t);
+  const r = Math.max(2, Math.min(baseR * scaleFactor, Math.min(W, H) * 0.46));
+
+  ctx.globalAlpha = alpha;
+  drawShape(obj, cx, cy, r);
+  ctx.globalAlpha = 1;
+}
+
+function drawShape(obj, cx, cy, r) {
+  const [cr, cg, cb] = obj.color;
+
+  // glow halo
+  const gr = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r * (2.5 + obj.glowR * 4));
+  gr.addColorStop(0,   `rgba(${cr},${cg},${cb},${obj.glowR})`);
+  gr.addColorStop(0.5, `rgba(${cr},${cg},${cb},${obj.glowR * 0.3})`);
+  gr.addColorStop(1,   `rgba(${cr},${cg},${cb},0)`);
+  ctx.fillStyle = gr;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * (2.5 + obj.glowR * 4), 0, Math.PI * 2);
+  ctx.fill();
+
+  const name = obj.name;
+
+  if (name === "Planck Length" || name === "Quark") {
+    // tiny bright dot with quantum fuzz rings
+    for (let i = 3; i >= 1; i--) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * i * 0.55, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${0.06 * i})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(2, r * 0.3), 0, Math.PI * 2);
+    ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(1, r * 0.12), 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+  }
+
+  else if (name === "Proton") {
+    const pr = Math.max(16, r*0.55);
+    // glow fill
+    const pg = ctx.createRadialGradient(cx,cy,0,cx,cy,pr);
+    pg.addColorStop(0,`rgba(${cr},${cg},${cb},0.18)`);
+    pg.addColorStop(1,`rgba(${cr},${cg},${cb},0)`);
+    ctx.beginPath(); ctx.arc(cx,cy,pr,0,Math.PI*2); ctx.fillStyle=pg; ctx.fill();
+    // circle
+    ctx.beginPath(); ctx.arc(cx,cy,pr,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.85)`; ctx.lineWidth=Math.max(1.5,pr*0.06); ctx.stroke();
+    // + symbol
+    ctx.fillStyle=`rgb(${cr},${cg},${cb})`;
+    ctx.font=`bold ${Math.max(14,pr*0.72)}px 'DM Mono', monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('+', cx, cy);
+  }
+
+  else if (name === "DNA Double Helix") {
+    ctx.lineWidth = Math.max(1, r * 0.05);
+    for (let strand = 0; strand < 2; strand++) {
+      ctx.beginPath();
+      ctx.strokeStyle = strand === 0 ? `rgb(${cr},${cg},${cb})` : `rgba(167,139,250,0.8)`;
+      for (let i = 0; i <= 60; i++) {
+        const tt = i / 60;
+        const px = cx + Math.cos(tt * Math.PI * 4 + strand * Math.PI) * r * 0.55;
+        const py = cy - r + tt * r * 2;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+    for (let i = 0; i <= 7; i++) {
+      const tt = i / 7;
+      const py = cy - r + tt * r * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(tt * Math.PI * 4) * r * 0.55, py);
+      ctx.lineTo(cx + Math.cos(tt * Math.PI * 4 + Math.PI) * r * 0.55, py);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1; ctx.stroke();
+    }
+  }
+
+  else if (name === "Virus") {
+    const spikes = 16;
+    ctx.beginPath();
+    for (let i = 0; i < spikes * 2; i++) {
+      const a   = (i / (spikes * 2)) * Math.PI * 2;
+      const rad = i % 2 === 0 ? r : r * 0.58;
+      i === 0 ? ctx.moveTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad)
+              : ctx.lineTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
+    }
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${cr},${cg},${cb},0.18)`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.8)`;
+    ctx.lineWidth = Math.max(1, r * 0.04); ctx.stroke();
+  }
+
+  else if (name === "Red Blood Cell") {
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(1, 0.42);
+    const rg = ctx.createRadialGradient(0, 0, r * 0.18, 0, 0, r);
+    rg.addColorStop(0,   `rgba(${cr},${cg},${cb},0.3)`);
+    rg.addColorStop(0.55, `rgb(${cr},${cg},${cb})`);
+    rg.addColorStop(1,   `rgba(${cr},${cg},${cb},0.55)`);
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = rg; ctx.fill(); ctx.restore();
+  }
+
+  else if (name === "Human Hair") {
+    const grd = ctx.createLinearGradient(cx, cy - r * 1.8, cx, cy + r * 1.8);
+    grd.addColorStop(0, 'transparent');
+    grd.addColorStop(0.1, `rgb(${cr},${cg},${cb})`);
+    grd.addColorStop(0.9, `rgb(${cr},${cg},${cb})`);
+    grd.addColorStop(1, 'transparent');
+    const sw = Math.max(2, r * 0.12);
+    for (const dx of [-sw, 0, sw]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + dx, cy - r * 1.8); ctx.lineTo(cx + dx, cy + r * 1.8);
+      ctx.strokeStyle = dx === 0 ? grd : `rgba(${cr},${cg},${cb},0.2)`;
+      ctx.lineWidth = dx === 0 ? sw : sw * 0.5;
+      ctx.stroke();
+    }
+  }
+
+  else if (name === "Ant") {
+    ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+    // head
+    ctx.beginPath(); ctx.arc(cx, cy - r*0.72, r*0.26, 0, Math.PI*2); ctx.fill();
+    // thorax
+    ctx.beginPath(); ctx.arc(cx, cy + r*0.04, r*0.22, 0, Math.PI*2); ctx.fill();
+    // abdomen
+    ctx.beginPath(); ctx.ellipse(cx, cy + r*0.85, r*0.30, r*0.44, 0, 0, Math.PI*2); ctx.fill();
+    // legs — 3 pairs from thorax, bent at knee
+    ctx.strokeStyle=`rgb(${cr},${cg},${cb})`; ctx.lineWidth=Math.max(1,r*0.045); ctx.lineCap='round';
+    const legs = [
+      // [knee x, knee y, tip x, tip y]  — left side
+      [-r*.32, r*.0,  -r*.75, -r*.18],
+      [-r*.34, r*.1,  -r*.78,  r*.22],
+      [-r*.30, r*.22, -r*.68,  r*.55],
+    ];
+    legs.forEach(([kx,ky,tx,ty]) => {
+      // left
+      ctx.beginPath(); ctx.moveTo(cx,cy+r*.04); ctx.lineTo(cx+kx,cy+ky); ctx.lineTo(cx+tx,cy+ty); ctx.stroke();
+      // right (mirror)
+      ctx.beginPath(); ctx.moveTo(cx,cy+r*.04); ctx.lineTo(cx-kx,cy+ky); ctx.lineTo(cx-tx,cy+ty); ctx.stroke();
+    });
+    ctx.lineCap='butt';
+    // antennae — from head, with ball tips
+    ctx.lineWidth=Math.max(1,r*0.035);
+    ctx.beginPath(); ctx.moveTo(cx,cy-r*.72); ctx.quadraticCurveTo(cx-r*.25,cy-r*1.05,cx-r*.45,cy-r*1.28); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy-r*.72); ctx.quadraticCurveTo(cx+r*.25,cy-r*1.05,cx+r*.45,cy-r*1.28); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx-r*.45,cy-r*1.28,Math.max(2,r*.055),0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+r*.45,cy-r*1.28,Math.max(2,r*.055),0,Math.PI*2); ctx.fill();
+  }
+
+  else if (name === "Human") {
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.85)`; ctx.lineWidth = Math.max(1, r * 0.045);
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.68, r * 0.2, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - r * 0.48); ctx.lineTo(cx, cy + r * 0.28); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.38, cy - r * 0.12); ctx.lineTo(cx, cy - r * 0.25); ctx.lineTo(cx + r * 0.38, cy - r * 0.12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy + r * 0.28); ctx.lineTo(cx - r * 0.24, cy + r * 0.78); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy + r * 0.28); ctx.lineTo(cx + r * 0.24, cy + r * 0.78); ctx.stroke();
+  }
+
+  else if (name === "Eiffel Tower") {
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.8)`; ctx.lineWidth = Math.max(1, r * 0.04);
+    const b = r * 0.45;
+    ctx.beginPath(); ctx.moveTo(cx-b,cy+r); ctx.lineTo(cx-b*.45,cy); ctx.lineTo(cx,cy-r); ctx.lineTo(cx+b*.45,cy); ctx.lineTo(cx+b,cy+r); ctx.stroke();
+    for (const yf of [0.25, 0.55, 0.78]) {
+      const yy = cy + r - yf * r * 2; const xw = b * (1 - yf * 0.7);
+      ctx.beginPath(); ctx.moveTo(cx-xw,yy); ctx.lineTo(cx+xw,yy);
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.3)`; ctx.stroke();
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.8)`;
+    }
+  }
+
+  else if (name === "Mount Everest") {
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.85)`; ctx.lineWidth = Math.max(1, r * 0.04);
+    ctx.beginPath();
+    ctx.moveTo(cx - r*1.1, cy + r*0.55);
+    ctx.lineTo(cx - r*0.35, cy - r*0.45);
+    ctx.lineTo(cx, cy - r);
+    ctx.lineTo(cx + r*0.35, cy - r*0.45);
+    ctx.lineTo(cx + r*1.3, cy + r*0.55);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - r*0.22, cy - r*0.58); ctx.lineTo(cx, cy - r); ctx.lineTo(cx + r*0.22, cy - r*0.58);
+    ctx.fillStyle = `rgba(255,255,255,0.35)`; ctx.fill();
+  }
+
+  else if (name === "Earth") {
+    const eg = ctx.createRadialGradient(cx - r*.28, cy - r*.28, r*.05, cx, cy, r);
+    eg.addColorStop(0, `rgb(${Math.min(255,cr+55)},${Math.min(255,cg+55)},${Math.min(255,cb+55)})`);
+    eg.addColorStop(1, `rgb(${Math.max(0,cr-35)},${Math.max(0,cg-35)},${Math.max(0,cb-35)})`);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = eg; ctx.fill();
+    ctx.fillStyle = 'rgba(34,197,94,0.45)';
+    ctx.beginPath(); ctx.ellipse(cx-r*.18,cy-r*.08,r*.22,r*.32,0.4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+r*.22,cy+r*.08,r*.18,r*.25,-0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r+5, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(96,165,250,0.18)'; ctx.lineWidth = 5; ctx.stroke();
+  }
+
+  else if (name === "Moon") {
+    const mg = ctx.createRadialGradient(cx - r*.28, cy - r*.28, r*.05, cx, cy, r);
+    mg.addColorStop(0, `rgb(${Math.min(255,cr+50)},${Math.min(255,cg+50)},${Math.min(255,cb+50)})`);
+    mg.addColorStop(1, `rgb(${Math.max(0,cr-45)},${Math.max(0,cg-45)},${Math.max(0,cb-45)})`);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = mg; ctx.fill();
+    // many craters with rim highlights
+    const moonCraters = [
+      [-.18,-.12,.12],[.28,.18,.09],[-.08,.28,.08],[.08,-.32,.07],
+      [-.38,.05,.07],[.18,-.10,.05],[-.25,.38,.06],[.38,-.22,.05],
+      [.02,.08,.04],[-.15,-.40,.05],[.32,.40,.04],[-.42,-.28,.04],
+      [.22,.30,.035],[-.30,-.18,.03],[.12,-.18,.03],[-.08,.48,.03],
+    ];
+    moonCraters.forEach(([dx,dy,cr2]) => {
+      ctx.beginPath(); ctx.arc(cx+dx*r, cy+dy*r, cr2*r, 0, Math.PI*2);
+      ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+(dx-.04)*r, cy+(dy-.04)*r, cr2*r, Math.PI*1.1, Math.PI*1.95);
+      ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=Math.max(0.5,cr2*r*0.2); ctx.stroke();
+    });
+  }
+
+  else if (name === "Sun") {
+    const sg = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    sg.addColorStop(0,   '#fff');
+    sg.addColorStop(0.25,'#fef9c3');
+    sg.addColorStop(0.65,`rgb(${cr},${cg},${cb})`);
+    sg.addColorStop(1,   `rgba(${Math.max(0,cr-40)},${Math.max(0,cg-50)},0,1)`);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = sg; ctx.fill();
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.25)`; ctx.lineWidth = 1;
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a)*r*1.08, cy + Math.sin(a)*r*1.08);
+      ctx.lineTo(cx + Math.cos(a)*r*1.55, cy + Math.sin(a)*r*1.55);
+      ctx.stroke();
+    }
+  }
+
+  else if (name === "Solar System") {
+    // Sun at centre
+    const sg2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, 10);
+    sg2.addColorStop(0,'#fff'); sg2.addColorStop(1,`rgb(${cr},${cg},${cb})`);
+    ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI*2); ctx.fillStyle = sg2; ctx.fill();
+
+    // All 8 planets + Pluto, spaced logarithmically within r
+    // name, color, planet dot radius multiplier, ring tilt offset for visual variety
+    const planets = [
+      { name:'Mercury', col:'#b5b5b5', pr:0.04 },
+      { name:'Venus',   col:'#e8c97e', pr:0.06 },
+      { name:'Earth',   col:'#3b82f6', pr:0.065 },
+      { name:'Mars',    col:'#f87171', pr:0.05 },
+      { name:'Jupiter', col:'#f97316', pr:0.10 },
+      { name:'Saturn',  col:'#e8d5a0', pr:0.085 },
+      { name:'Uranus',  col:'#7de8e8', pr:0.075 },
+      { name:'Neptune', col:'#4169e1', pr:0.07 },
+      { name:'Pluto',   col:'#c8a882', pr:0.035 },
+    ];
+    // log spacing: Mercury ~0.39 AU, Pluto ~39 AU — span across r
+    const auLog = [Math.log(0.39), Math.log(1.0), Math.log(1.52), Math.log(5.2),
+                   Math.log(9.58), Math.log(19.2), Math.log(30.1), Math.log(39.5)];
+    const minL = Math.log(0.3), maxL = Math.log(42);
+    const orbitRadii = [0.39,0.72,1.0,1.52,5.2,9.58,19.2,30.1,39.5]
+      .map(au => 14 + ((Math.log(au) - minL) / (maxL - minL)) * (r - 18));
+
+    // fixed orbital angles — spread planets naturally around their orbits
+    const angles = [0.8, 2.1, 3.8, 1.2, 4.9, 0.4, 2.7, 5.3, 3.1]; // radians
+    planets.forEach((p, i) => {
+      const rad = orbitRadii[i];
+      const a   = angles[i];
+      const px  = cx + Math.cos(a) * rad;
+      const py  = cy + Math.sin(a) * rad;
+      const pSize = Math.max(2, rad * p.pr);
+      // orbit ring
+      ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI*2);
+      ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1; ctx.stroke();
+      // Saturn ring
+      if (p.name === 'Saturn') {
+        ctx.save(); ctx.translate(px, py);
+        ctx.scale(1, 0.35);
+        ctx.beginPath(); ctx.arc(0, 0, pSize*2.4, 0, Math.PI*2);
+        ctx.strokeStyle='rgba(232,213,160,0.45)'; ctx.lineWidth=pSize*0.65; ctx.stroke();
+        ctx.restore();
+      }
+      // planet dot
+      ctx.beginPath(); ctx.arc(px, py, pSize, 0, Math.PI*2);
+      ctx.fillStyle = p.col; ctx.fill();
+    });
+  }
+
+  else if (name === "Light Year") {
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.5)`; ctx.lineWidth = 1;
+    for (let i = 0; i < 8; i++) {
+      const a = i/8*Math.PI*2;
+      const len = Math.min(W,H) * 0.55;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(a)*len,cy+Math.sin(a)*len); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fillStyle=`rgb(${cr},${cg},${cb})`; ctx.fill();
+  }
+
+  else if (name === "Milky Way") {
+    ctx.save(); ctx.translate(cx,cy);
+    for (let arm = 0; arm < 4; arm++) {
+      const offset = arm/4*Math.PI*2;
+      for (let i = 1; i < 130; i++) {
+        const tt = i/130;
+        const a = tt*Math.PI*3.2 + offset;
+        const d = tt*r;
+        const px = Math.cos(a)*d; const py = Math.sin(a)*d*0.38;
+        const alpha = (1-tt)*0.55;
+        ctx.beginPath(); ctx.arc(px,py,Math.max(0.5,1.8-tt*1.5),0,Math.PI*2);
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`; ctx.fill();
+      }
+    }
+    const cg2 = ctx.createRadialGradient(0,0,0,0,0,r*.18);
+    cg2.addColorStop(0,'rgba(255,255,255,0.9)'); cg2.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(0,0,r*.18,0,Math.PI*2); ctx.fillStyle=cg2; ctx.fill();
+    ctx.restore();
+  }
+
+
+  else if (name === "String (theoretical)") {
+    // wiggly string
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.7)`; ctx.lineWidth = Math.max(1, r*0.05);
+    ctx.beginPath();
+    const pts = 40; const amp = r*0.4;
+    for (let i=0;i<=pts;i++) {
+      const t2=i/pts; const px=cx-r+t2*r*2; const py=cy+Math.sin(t2*Math.PI*4)*amp;
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    // fuzz rings
+    for (let i=1;i<=3;i++) {
+      ctx.beginPath(); ctx.arc(cx,cy,r*i*0.5,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(${cr},${cg},${cb},${0.05*i})`; ctx.lineWidth=1; ctx.stroke();
+    }
+  }
+
+  else if (name === "Electron") {
+    // faint probability cloud rings
+    for (let i=5;i>=1;i--) {
+      ctx.beginPath(); ctx.arc(cx,cy,r*i*0.22,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(${cr},${cg},${cb},${0.06*i})`; ctx.lineWidth=1; ctx.stroke();
+    }
+    // main circle
+    const er = Math.max(16, r*0.55);
+    ctx.beginPath(); ctx.arc(cx,cy,er,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.85)`; ctx.lineWidth=Math.max(1.5,er*0.06); ctx.stroke();
+    // e⁻ label inside
+    ctx.fillStyle=`rgb(${cr},${cg},${cb})`;
+    ctx.font=`${Math.max(10,er*0.55)}px 'DM Mono', monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('e⁻', cx, cy);
+  }
+
+  else if (name === "Atomic Nucleus") {
+    // cluster of nucleons
+    const nucs=[[0,0],[r*.28,0],[-.2,r*.22],[.22,-.2],[-.25,-.15],[.1,.28]];
+    nucs.forEach(([dx,dy],i)=>{
+      const nc=i%2===0?[cr,cg,cb]:[Math.min(255,cr+60),Math.min(255,cg+40),Math.min(255,cb-20)];
+      ctx.beginPath(); ctx.arc(cx+dx,cy+dy,Math.max(3,r*0.3),0,Math.PI*2);
+      ctx.fillStyle=`rgb(${nc[0]},${nc[1]},${nc[2]})`; ctx.fill();
+    });
+  }
+
+  else if (name === "Hydrogen Atom") {
+    const tilt = Math.PI / 5;
+    const ra = r;        // semi-major axis
+    const rb = r * 0.45; // semi-minor axis
+    // angle along the ellipse where the electron sits
+    const eAngle = Math.PI * 0.72;
+    // point on the ellipse (before rotation)
+    const ex0 = ra * Math.cos(eAngle);
+    const ey0 = rb * Math.sin(eAngle);
+    // apply the same tilt rotation as the ellipse
+    const ex = cx + ex0 * Math.cos(tilt) - ey0 * Math.sin(tilt);
+    const ey = cy + ex0 * Math.sin(tilt) + ey0 * Math.cos(tilt);
+    // nucleus
+    ctx.beginPath(); ctx.arc(cx, cy, Math.max(3, r*0.12), 0, Math.PI*2);
+    ctx.fillStyle=`rgb(${cr},${cg},${cb})`; ctx.fill();
+    // elliptical orbital
+    ctx.beginPath(); ctx.ellipse(cx, cy, ra, rb, tilt, 0, Math.PI*2);
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.45)`; ctx.lineWidth=1.5; ctx.stroke();
+    // electron dot — correctly on the ellipse
+    const eSize = Math.max(2, r*0.1);
+    // glow
+    const eg = ctx.createRadialGradient(ex,ey,0,ex,ey,eSize*3);
+    eg.addColorStop(0,'rgba(255,255,255,0.6)'); eg.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(ex,ey,eSize*3,0,Math.PI*2); ctx.fillStyle=eg; ctx.fill();
+    // dot
+    ctx.beginPath(); ctx.arc(ex, ey, eSize, 0, Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+  }
+
+  else if (name === "Water Molecule") {
+    const br=Math.max(6,r*0.32);
+    // oxygen
+    ctx.beginPath(); ctx.arc(cx,cy,br,0,Math.PI*2);
+    ctx.fillStyle=`rgb(${cr},${cg},${cb})`; ctx.fill();
+    // two hydrogens at 104.5°
+    const ang=104.5*Math.PI/180/2; const bd=r*0.85;
+    for(const a of [-ang, ang]) {
+      const hx=cx+Math.sin(a)*bd; const hy=cy-Math.cos(a)*bd;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(hx,hy);
+      ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.5)`; ctx.lineWidth=Math.max(1,r*0.06); ctx.stroke();
+      ctx.beginPath(); ctx.arc(hx,hy,Math.max(3,br*0.6),0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.fill();
+    }
+  }
+
+  else if (name === "Ribosome") {
+    // two subunits — large + small
+    const lr=r*0.7; const sr=r*0.45;
+    ctx.beginPath(); ctx.arc(cx,cy+lr*0.3,lr,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.7)`; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx,cy-sr*0.9,sr,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.5)`; ctx.fill();
+    // groove
+    ctx.beginPath(); ctx.arc(cx,cy,r*0.12,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fill();
+  }
+
+  else if (name === "Bacterium") {
+    ctx.save(); ctx.translate(cx, cy);
+    const bw = r*0.38; const bh = r*0.88;
+    // body fill with subtle gradient
+    const bg2 = ctx.createLinearGradient(-bw,0,bw,0);
+    bg2.addColorStop(0, `rgba(${cr},${cg},${cb},0.4)`);
+    bg2.addColorStop(0.5, `rgba(${cr},${cg},${cb},0.75)`);
+    bg2.addColorStop(1, `rgba(${cr},${cg},${cb},0.4)`);
+    ctx.beginPath(); ctx.roundRect(-bw,-bh,bw*2,bh*2,bw);
+    ctx.fillStyle=bg2; ctx.fill();
+    ctx.strokeStyle=`rgb(${cr},${cg},${cb})`; ctx.lineWidth=Math.max(1.5,r*0.04); ctx.stroke();
+    // flagella — wavy lines trailing from the bottom
+    ctx.lineWidth=Math.max(1,r*0.025);
+    const flagPositions = [-bw*0.5, 0, bw*0.5];
+    flagPositions.forEach((fx, f) => {
+      ctx.beginPath(); ctx.moveTo(fx, bh);
+      for(let i=1;i<=24;i++){
+        const ft=i/24;
+        const fx2 = fx + Math.sin(ft*Math.PI*3.5 + f*1.1)*r*0.22;
+        const fy2 = bh + ft*r*0.95;
+        ctx.lineTo(fx2, fy2);
+      }
+      ctx.strokeStyle=`rgba(${cr},${cg},${cb},${0.5-f*0.08})`; ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  else if (name === "Human Cell") {
+    // cell with nucleus
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.18)`; ctx.fill();
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.7)`; ctx.lineWidth=Math.max(1,r*0.04); ctx.stroke();
+    // nucleus
+    ctx.beginPath(); ctx.ellipse(cx-r*0.1,cy+r*0.05,r*0.42,r*0.35,0.3,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.45)`; ctx.fill();
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.6)`; ctx.lineWidth=1; ctx.stroke();
+    // organelles
+    [[r*.4,r*.2,r*.1,r*.07],[--r*.35,--r*.25,r*.08,r*.05],[-r*.1,r*.42,r*.09,r*.06]].forEach(([ox,oy,ow,oh])=>{
+      ctx.beginPath(); ctx.ellipse(cx+ox,cy+oy,ow,oh,Math.random()*Math.PI,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${cr},${cg},${cb},0.3)`; ctx.fill();
+    });
+  }
+
+  else if (name === "Bumblebee") {
+    ctx.save(); ctx.translate(cx, cy);
+    const bh = r; const bw = r*0.42;
+    // body stripes clipped to ellipse
+    const stripeData = [
+      [bh*0.05,  bh*0.32, '#1a1a1a'],
+      [bh*0.35,  bh*0.28, `rgb(${cr},${cg},${cb})`],
+      [bh*0.6,   bh*0.25, '#1a1a1a'],
+      [bh*0.82,  bh*0.22, `rgb(${cr},${cg},${cb})`],
+    ];
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(0, bh*0.18, bw, bh*0.78, 0, 0, Math.PI*2); ctx.clip();
+    ctx.fillStyle='#111';
+    ctx.fillRect(-bw,-bh,bw*2,bh*2.5);
+    stripeData.forEach(([cy2,h,col]) => {
+      ctx.beginPath(); ctx.rect(-bw, cy2-h*0.5, bw*2, h);
+      ctx.fillStyle=col; ctx.fill();
+    });
+    ctx.restore();
+    // body outline
+    ctx.beginPath(); ctx.ellipse(0, bh*0.18, bw, bh*0.78, 0, 0, Math.PI*2);
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.4)`; ctx.lineWidth=1.5; ctx.stroke();
+    // head
+    ctx.beginPath(); ctx.arc(0, -bh*0.62, bw*0.7, 0, Math.PI*2);
+    ctx.fillStyle='#111'; ctx.fill();
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.3)`; ctx.lineWidth=1; ctx.stroke();
+    // wings left and right
+    ctx.fillStyle='rgba(210,235,255,0.2)'; ctx.strokeStyle='rgba(180,210,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.ellipse(-bw*1.4, -bh*0.12, bw*1.0, bh*0.36, -0.22, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse( bw*1.4, -bh*0.12, bw*1.0, bh*0.36,  0.22, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    // antennae
+    ctx.strokeStyle='rgba(180,180,180,0.7)'; ctx.lineWidth=Math.max(1,r*0.03);
+    ctx.beginPath(); ctx.moveTo(-bw*0.3,-bh*0.62); ctx.lineTo(-bw*0.65,-bh*1.08); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( bw*0.3,-bh*0.62); ctx.lineTo( bw*0.65,-bh*1.08); ctx.stroke();
+    ctx.beginPath(); ctx.arc(-bw*0.65,-bh*1.08,Math.max(2,r*0.05),0,Math.PI*2); ctx.fillStyle='rgba(180,180,180,0.7)'; ctx.fill();
+    ctx.beginPath(); ctx.arc( bw*0.65,-bh*1.08,Math.max(2,r*0.05),0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  else if (name === "Human Hand") {
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.75)`; ctx.lineWidth=Math.max(1.5,r*0.05);
+    ctx.lineCap='round';
+    // palm
+    ctx.beginPath(); ctx.roundRect(cx-r*.38,cy-r*.18,r*.76,r*.72,r*.1);
+    ctx.stroke();
+    // 4 fingers
+    const fpos=[-r*.28,-r*.1,r*.1,r*.28];
+    fpos.forEach(fx=>{
+      ctx.beginPath(); ctx.moveTo(cx+fx,cy-r*.18);
+      ctx.lineTo(cx+fx,cy-r*.85); ctx.stroke();
+    });
+    // thumb
+    ctx.beginPath(); ctx.moveTo(cx-r*.38,cy+r*.1);
+    ctx.lineTo(cx-r*.75,cy-r*.3); ctx.stroke();
+    ctx.lineCap='butt';
+  }
+
+  else if (name === "Blue Whale") {
+    ctx.save(); ctx.translate(cx, cy);
+    const wc = `rgba(${cr},${cg},${cb}`;
+    // body — tapered ellipse
+    const wg = ctx.createLinearGradient(-r,0,r,0);
+    wg.addColorStop(0, `rgba(${cr},${cg},${cb},0.5)`);
+    wg.addColorStop(0.3, `rgba(${cr},${cg},${cb},0.85)`);
+    wg.addColorStop(1, `rgba(${cr},${cg},${cb},0.3)`);
+    ctx.beginPath(); ctx.ellipse(-r*0.05, 0, r*0.9, r*0.26, 0, 0, Math.PI*2);
+    ctx.fillStyle=wg; ctx.fill();
+    // tail stock (narrows toward tail)
+    ctx.beginPath();
+    ctx.moveTo(r*0.65, -r*0.1);
+    ctx.lineTo(r*0.88,  r*0.02);
+    ctx.lineTo(r*0.65,  r*0.1);
+    ctx.closePath();
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.6)`; ctx.fill();
+    // tail flukes — two lobes pointing back
+    ctx.beginPath();
+    ctx.moveTo(r*0.88, r*0.02);
+    ctx.bezierCurveTo(r*1.0, -r*0.05, r*1.18, -r*0.32, r*1.08, -r*0.38);
+    ctx.bezierCurveTo(r*0.98, -r*0.44, r*0.9,  -r*0.22, r*0.88,  r*0.02);
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.7)`; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r*0.88, r*0.02);
+    ctx.bezierCurveTo(r*1.0,  r*0.09, r*1.18,  r*0.36, r*1.08,  r*0.42);
+    ctx.bezierCurveTo(r*0.98,  r*0.48, r*0.9,   r*0.26, r*0.88,  r*0.02);
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.7)`; ctx.fill();
+    // pectoral flipper
+    ctx.beginPath();
+    ctx.moveTo(-r*0.12, r*0.12);
+    ctx.bezierCurveTo(-r*0.05, r*0.38, r*0.18, r*0.46, r*0.25, r*0.34);
+    ctx.bezierCurveTo(r*0.18, r*0.22, r*0.05, r*0.18, -r*0.12, r*0.12);
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.65)`; ctx.fill();
+    // mouth line
+    ctx.beginPath();
+    ctx.moveTo(-r*0.85, r*0.06);
+    ctx.quadraticCurveTo(-r*0.6, r*0.02, -r*0.38, -r*0.02);
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.35)`; ctx.lineWidth=Math.max(1,r*0.03); ctx.stroke();
+    // eye
+    ctx.beginPath(); ctx.arc(-r*0.42, -r*0.06, Math.max(2,r*0.04), 0, Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(-r*0.41, -r*0.07, Math.max(1,r*0.015), 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill();
+    ctx.restore();
+  }
+
+  else if (name === "Jupiter") {
+    // banded gas giant
+    const jr=ctx.createRadialGradient(cx-r*.25,cy-r*.25,r*.05,cx,cy,r);
+    jr.addColorStop(0,`rgb(${Math.min(255,cr+50)},${Math.min(255,cg+30)},${Math.min(255,cb+20)})`);
+    jr.addColorStop(1,`rgb(${Math.max(0,cr-40)},${Math.max(0,cg-40)},${Math.max(0,cb-20)})`);
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fillStyle=jr; ctx.fill();
+    // bands
+    const bands=[-.6,-.35,-.1,.15,.4,.65];
+    bands.forEach((bf,i)=>{
+      ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
+      ctx.beginPath(); ctx.rect(cx-r,cy+bf*r,r*2,r*0.18);
+      ctx.fillStyle=`rgba(${i%2?180:120},${i%2?100:80},${i%2?60:40},0.25)`; ctx.fill();
+      ctx.restore();
+    });
+    // Great Red Spot
+    ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
+    ctx.beginPath(); ctx.ellipse(cx+r*.28,cy+r*.1,r*.22,r*.14,0,0,Math.PI*2);
+    ctx.fillStyle='rgba(180,60,40,0.55)'; ctx.fill();
+    ctx.restore();
+  }
+
+  else if (name === "Local Group") {
+    // scatter of small galaxies
+    const galaxies=[
+      [0,0,r*.38,0.9,'Milky Way'],[r*.55,-r*.3,r*.28,0.7,'Andromeda'],
+      [-r*.4,r*.35,r*.14,0.4,''],[r*.3,r*.5,r*.1,0.35,''],[--r*.6,--r*.2,r*.08,0.3,''],
+      [-r*.2,--r*.55,r*.09,0.3,''],[r*.65,r*.25,r*.06,0.25,''],[--r*.5,r*.55,r*.07,0.25,''],
+    ];
+    galaxies.forEach(([gx,gy,gr2,ga])=>{
+      ctx.save(); ctx.translate(cx+gx,cy+gy);
+      for(let arm=0;arm<3;arm++){
+        const off=arm/3*Math.PI*2;
+        for(let i=1;i<40;i++){
+          const t2=i/40; const a=t2*Math.PI*2.5+off; const d=t2*gr2;
+          ctx.beginPath(); ctx.arc(Math.cos(a)*d,Math.sin(a)*d*0.38,Math.max(0.5,1.2-t2),0,Math.PI*2);
+          ctx.fillStyle=`rgba(${cr},${cg},${cb},${(1-t2)*ga*0.6})`; ctx.fill();
+        }
+      }
+      ctx.restore();
+    });
+  }
+
+  else if (name === "Laniakea Supercluster") {
+    // filament web with galaxy nodes
+    const nodes=[];
+    for(let i=0;i<40;i++){
+      const a=i*2.618*Math.PI*2; const d=Math.sqrt(i/40)*r*.88;
+      nodes.push([cx+Math.cos(a)*d, cy+Math.sin(a)*d*0.6]);
+    }
+    // filaments
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.08)`; ctx.lineWidth=1;
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i][0]-nodes[j][0]; const dy=nodes[i][1]-nodes[j][1];
+        if(Math.sqrt(dx*dx+dy*dy)<r*.35){
+          ctx.beginPath(); ctx.moveTo(nodes[i][0],nodes[i][1]); ctx.lineTo(nodes[j][0],nodes[j][1]); ctx.stroke();
+        }
+      }
+    }
+    // nodes
+    nodes.forEach(([nx,ny],i)=>{
+      ctx.beginPath(); ctx.arc(nx,ny,Math.max(1,2.5-i*.04),0,Math.PI*2);
+      ctx.fillStyle=`rgba(${cr},${cg},${cb},${0.5-i*.01})`; ctx.fill();
+    });
+    // bright core attractor
+    const lg=ctx.createRadialGradient(cx,cy,0,cx,cy,r*.2);
+    lg.addColorStop(0,`rgba(${cr},${cg},${cb},0.3)`); lg.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(cx,cy,r*.2,0,Math.PI*2); ctx.fillStyle=lg; ctx.fill();
+  }
+
+
+  else if (name === "Neutron Star") {
+    // Neutron star is ~20km — tiny even vs Sun. Render as a small, intensely bright dot.
+    const nsr = Math.max(5, r * 0.08); // much smaller than a star
+    // wide diffuse glow to show it's extreme
+    const ng = ctx.createRadialGradient(cx,cy,0,cx,cy,nsr*14);
+    ng.addColorStop(0,   `rgba(${cr},${cg},${cb},0.55)`);
+    ng.addColorStop(0.25,`rgba(${cr},${cg},${cb},0.18)`);
+    ng.addColorStop(0.7, `rgba(${cr},${cg},${cb},0.04)`);
+    ng.addColorStop(1,   'transparent');
+    ctx.beginPath(); ctx.arc(cx,cy,nsr*14,0,Math.PI*2); ctx.fillStyle=ng; ctx.fill();
+    // body — small but blinding white-blue
+    const nbg = ctx.createRadialGradient(cx-nsr*.3,cy-nsr*.3,0,cx,cy,nsr);
+    nbg.addColorStop(0,'#ffffff');
+    nbg.addColorStop(0.5,`rgb(${cr},${cg},${cb})`);
+    nbg.addColorStop(1,`rgba(${Math.max(0,cr-40)},${Math.max(0,cg-20)},${Math.min(255,cb+30)},1)`);
+    ctx.beginPath(); ctx.arc(cx,cy,nsr,0,Math.PI*2); ctx.fillStyle=nbg; ctx.fill();
+    // size label hint — tiny text below
+    ctx.fillStyle=`rgba(${cr},${cg},${cb},0.4)`;
+    ctx.font=`${Math.max(9,nsr*1.8)}px 'DM Mono',monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText('~20 km', cx, cy + nsr*2.2);
+  }
+
+  else if (name === "Betelgeuse") {
+    // pulsating red supergiant with turbulent surface
+    const bg2 = ctx.createRadialGradient(cx-r*.2,cy-r*.2,0,cx,cy,r);
+    bg2.addColorStop(0,'#fff5e0');
+    bg2.addColorStop(0.2,'#ffcc88');
+    bg2.addColorStop(0.6,`rgb(${cr},${cg},${cb})`);
+    bg2.addColorStop(1,`rgba(${Math.max(0,cr-40)},${Math.max(0,cg-60)},0,0.9)`);
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fillStyle=bg2; ctx.fill();
+    // surface convection blobs
+    const blobs=[[-.28,-.18,r*.18],[.22,.3,r*.14],[-.15,.32,r*.12],[.35,-.25,r*.1],[-.4,.1,r*.08]];
+    blobs.forEach(([dx,dy,br])=>{
+      const bg3=ctx.createRadialGradient(cx+dx*r,cy+dy*r,0,cx+dx*r,cy+dy*r,br);
+      bg3.addColorStop(0,`rgba(255,220,120,0.45)`);
+      bg3.addColorStop(1,`rgba(255,100,20,0)`);
+      ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
+      ctx.beginPath(); ctx.arc(cx+dx*r,cy+dy*r,br,0,Math.PI*2); ctx.fillStyle=bg3; ctx.fill();
+      ctx.restore();
+    });
+    // corona
+    ctx.beginPath(); ctx.arc(cx,cy,r*1.06,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,80,20,0.12)`; ctx.lineWidth=r*0.08; ctx.stroke();
+  }
+
+  else if (name === "Stephenson 2-18") {
+    // hyper-giant — enormous red star
+    const sg3 = ctx.createRadialGradient(cx-r*.15,cy-r*.15,0,cx,cy,r);
+    sg3.addColorStop(0,'#fff0d0');
+    sg3.addColorStop(0.15,'#ffaa60');
+    sg3.addColorStop(0.55,`rgb(${cr},${cg},${cb})`);
+    sg3.addColorStop(1,`rgba(${Math.max(0,cr-50)},0,0,0.85)`);
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fillStyle=sg3; ctx.fill();
+    // thick glowing atmosphere layers
+    for(let i=1;i<=3;i++){
+      ctx.beginPath(); ctx.arc(cx,cy,r*(1+i*0.06),0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,${80-i*20},0,${0.08/i})`;
+      ctx.lineWidth=r*0.055; ctx.stroke();
+    }
+    // convection cells
+    for(let i=0;i<6;i++){
+      const a=i/6*Math.PI*2; const d=r*0.55;
+      const cg4=ctx.createRadialGradient(cx+Math.cos(a)*d,cy+Math.sin(a)*d,0,cx+Math.cos(a)*d,cy+Math.sin(a)*d,r*0.22);
+      cg4.addColorStop(0,`rgba(255,200,100,0.3)`); cg4.addColorStop(1,'transparent');
+      ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
+      ctx.beginPath(); ctx.arc(cx+Math.cos(a)*d,cy+Math.sin(a)*d,r*0.22,0,Math.PI*2);
+      ctx.fillStyle=cg4; ctx.fill(); ctx.restore();
+    }
+  }
+
+  else if (name === "TON 618") {
+    // supermassive black hole with accretion disk
+    const bhr = Math.max(18, r*0.38);
+    // outer glow
+    const ohg = ctx.createRadialGradient(cx,cy,bhr,cx,cy,bhr*4);
+    ohg.addColorStop(0,`rgba(${cr},${cg},${cb},0.35)`);
+    ohg.addColorStop(0.5,`rgba(${cr},${cg},${cb},0.08)`);
+    ohg.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(cx,cy,bhr*4,0,Math.PI*2); ctx.fillStyle=ohg; ctx.fill();
+    // accretion disk — ellipse behind
+    ctx.save(); ctx.translate(cx,cy);
+    for(let di=3;di>=1;di--){
+      const dr=bhr*(1.4+di*0.35); const dh=dr*0.28;
+      const dg=ctx.createLinearGradient(-dr,0,dr,0);
+      dg.addColorStop(0,`rgba(255,120,${40+di*30},0)`);
+      dg.addColorStop(0.3,`rgba(255,160,60,${0.3*di/3})`);
+      dg.addColorStop(0.5,`rgba(255,200,100,${0.5*di/3})`);
+      dg.addColorStop(0.7,`rgba(255,160,60,${0.3*di/3})`);
+      dg.addColorStop(1,`rgba(255,120,40,0)`);
+      ctx.beginPath(); ctx.ellipse(0,0,dr,dh,0,0,Math.PI*2);
+      ctx.fillStyle=dg; ctx.fill();
+    }
+    // black hole event horizon
+    ctx.beginPath(); ctx.arc(0,0,bhr,0,Math.PI*2);
+    ctx.fillStyle='#000'; ctx.fill();
+    // photon ring
+    ctx.beginPath(); ctx.arc(0,0,bhr*1.12,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,200,80,0.6)`; ctx.lineWidth=Math.max(1.5,bhr*0.07); ctx.stroke();
+    ctx.restore();
+  }
+
+  else if (name === "Phoenix A*") {
+    // ultra-massive black hole
+    const phr = Math.max(20, r*0.42);
+    // deep gravitational glow
+    const phg = ctx.createRadialGradient(cx,cy,phr*0.8,cx,cy,phr*5);
+    phg.addColorStop(0,`rgba(${cr},${cg},${cb},0.4)`);
+    phg.addColorStop(0.4,`rgba(${cr},${cg},${cb},0.1)`);
+    phg.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(cx,cy,phr*5,0,Math.PI*2); ctx.fillStyle=phg; ctx.fill();
+    // accretion disk — wider and brighter
+    ctx.save(); ctx.translate(cx,cy);
+    for(let di=4;di>=1;di--){
+      const dr=phr*(1.5+di*0.4); const dh=dr*0.22;
+      const dg=ctx.createLinearGradient(-dr,0,dr,0);
+      dg.addColorStop(0,`rgba(160,80,255,0)`);
+      dg.addColorStop(0.25,`rgba(200,120,255,${0.25*di/4})`);
+      dg.addColorStop(0.5,`rgba(220,160,255,${0.45*di/4})`);
+      dg.addColorStop(0.75,`rgba(200,120,255,${0.25*di/4})`);
+      dg.addColorStop(1,`rgba(160,80,255,0)`);
+      ctx.beginPath(); ctx.ellipse(0,0,dr,dh,0,0,Math.PI*2); ctx.fillStyle=dg; ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(0,0,phr,0,Math.PI*2);
+    ctx.fillStyle='#000'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0,0,phr*1.1,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(${cr},${cg},${cb},0.7)`; ctx.lineWidth=Math.max(2,phr*0.08); ctx.stroke();
+    ctx.restore();
+  }
+
+  else { // Observable Universe
+    for (let i = 6; i >= 1; i--) {
+      ctx.beginPath(); ctx.arc(cx,cy,r*(i/6),0,Math.PI*2);
+      ctx.strokeStyle=`rgba(${cr},${cg},${cb},${0.05*i})`; ctx.lineWidth=1; ctx.stroke();
+    }
+    for (let i = 0; i < 100; i++) {
+      const a = i*2.399*Math.PI*2; const d = Math.sqrt(i/100)*r*.92;
+      ctx.beginPath(); ctx.arc(cx+Math.cos(a)*d, cy+Math.sin(a)*d, 1.2, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${0.3+0.35*Math.sin(i)})`; ctx.fill();
+    }
+    const ug = ctx.createRadialGradient(cx,cy,0,cx,cy,r*.25);
+    ug.addColorStop(0,`rgba(${cr},${cg},${cb},0.18)`); ug.addColorStop(1,'transparent');
+    ctx.beginPath(); ctx.arc(cx,cy,r*.25,0,Math.PI*2); ctx.fillStyle=ug; ctx.fill();
+  }
+}
+
+// ── Animation ─────────────────────────────────────────────────────────────────
+function animateTo(target) {
+  cancelAnimationFrame(animFrame);
+  function step() {
+    const diff = target - displayScale;
+    if (Math.abs(diff) < 0.001) { displayScale = target; drawScene(displayScale); return; }
+    displayScale += diff * 0.12;
+    drawScene(displayScale);
+    animFrame = requestAnimationFrame(step);
+  }
+  step();
+}
+
+// ── Zoom ──────────────────────────────────────────────────────────────────────
+function zoom(dir) {
+  const next = currentIdx + dir;
+  if (next < 0 || next >= OBJECTS.length) return;
+  currentIdx = next;
+  targetScale = next;
+  animateTo(targetScale);
+  updateUI(currentIdx, dir);
+  document.getElementById('btn-zoom-in').disabled  = currentIdx <= 0;
+  document.getElementById('btn-zoom-out').disabled = currentIdx >= OBJECTS.length - 1;
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+function updateUI(idx, dir) {
+  const obj = OBJECTS[idx];
+  const pct = (idx / (OBJECTS.length - 1)) * 100;
+  document.getElementById('scale-fill').style.width = pct + '%';
+  document.getElementById('topbar-nav').textContent = `${idx + 1} / ${OBJECTS.length}`;
+
+  const ids = ['info-scale','info-name','info-size','info-mass','info-fact'];
+  const vals = [SCALE_NAMES[idx], obj.name, obj.size, obj.mass || '', obj.fact];
+
+  ids.forEach((id, i) => {
+    const el = document.getElementById(id);
+    const exitClass = dir >= 0 ? 'exit-up' : 'exit-down';
+    const enterClass = dir >= 0 ? 'enter-from-down' : 'enter-from-up';
+
+    el.classList.remove('enter');
+    el.classList.add(exitClass);
+    setTimeout(() => {
+      el.textContent = vals[i];
+      el.classList.remove(exitClass);
+      el.classList.add('enter');
+    }, 160 + i * 40);
+  });
+}
+
+// ── Scroll ────────────────────────────────────────────────────────────────────
+let scrollLock = false;
+window.addEventListener('wheel', e => {
+  if (scrollLock) return;
+  scrollLock = true; setTimeout(() => scrollLock = false, 300);
+  zoom(e.deltaY > 0 ? 1 : -1);
+}, { passive: true });
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') zoom(1);
+  if (e.key === 'ArrowUp'   || e.key === 'ArrowLeft')  zoom(-1);
+});
+
+// ── Info popup ────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {
+    document.getElementById('info-title').textContent = 'Scale of the Universe';
+    document.getElementById('info-id').textContent = '#14';
+  }
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+resize();
+updateUI(currentIdx, 1);
+document.getElementById('btn-zoom-in').disabled  = true;
+document.getElementById('btn-zoom-out').disabled = false;
+</script>
+</body>
+</html>

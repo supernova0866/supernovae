@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Long Have You Been Alive?</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500&display=swap');
+
+  :root {
+    --bg: #04060f;
+    --bg2: #070b1a;
+    --fg: #e8e4f0;
+    --dim: #4a4860;
+    --accent: #7c6fff;
+    --accent2: #c084fc;
+    --glow: rgba(124, 111, 255, 0.15);
+    --border: rgba(124, 111, 255, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Instrument Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  /* Star field */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 25% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 40% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 80%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 15% 85%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 90%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 75%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5%  45%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 95% 90%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 48% 50%, rgba(255,255,255,0.15) 0%, transparent 100%),
+      radial-gradient(1px 1px at 73% 65%, rgba(255,255,255,0.35) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Ambient glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(124,111,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; width: 100%; max-width: 700px; }
+
+  /* === ENTRY SCREEN === */
+  #entry-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: rise 0.6s 0.1s forwards;
+  }
+
+  #entry-screen h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(32px, 7vw, 58px);
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 40px;
+    opacity: 0;
+    animation: rise 0.6s 0.2s forwards;
+  }
+
+  #entry-screen h1 em {
+    font-style: italic;
+    color: var(--accent2);
+  }
+
+  .date-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    opacity: 0;
+    animation: rise 0.6s 0.35s forwards;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .date-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+
+  .date-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 22px;
+    padding: 10px 0;
+    outline: none;
+    text-align: center;
+    letter-spacing: 2px;
+    transition: border-color 0.2s;
+    color-scheme: dark;
+  }
+
+  .date-input:focus { border-color: var(--accent); }
+
+  .go-btn {
+    margin-top: 8px;
+    padding: 12px 48px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px rgba(124,111,255,0.1);
+  }
+
+  .go-btn:hover {
+    background: var(--glow);
+    box-shadow: 0 0 30px rgba(124,111,255,0.2);
+    color: var(--fg);
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* === STATS SCREEN === */
+  #stats-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .stats-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .stats-header .age-label {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .stats-header .age-years {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(60px, 15vw, 120px);
+    line-height: 1;
+    letter-spacing: -4px;
+    font-style: italic;
+    background: linear-gradient(135deg, var(--fg) 40%, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .stats-header .age-sub {
+    font-size: 13px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    margin-top: 8px;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--bg);
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--glow), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .stat-card:hover::before { opacity: 1; }
+
+  .stat-card .s-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .stat-card .s-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(22px, 4vw, 34px);
+    line-height: 1;
+    letter-spacing: -1px;
+    color: var(--fg);
+    font-style: italic;
+  }
+
+  .stat-card .s-value.ticking {
+    color: var(--accent2);
+  }
+
+  .stat-card .s-unit {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Wide card */
+  .stat-card.wide {
+    grid-column: span 2;
+  }
+
+  /* Progress bar for % of life */
+  .life-bar-wrap {
+    width: 100%;
+    margin-top: 24px;
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    background: var(--bg);
+  }
+
+  .life-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .life-bar-track {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    position: relative;
+  }
+
+  .life-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--accent), var(--accent2));
+    box-shadow: 0 0 8px var(--accent);
+    transition: width 1s;
+  }
+
+  .life-bar-pct {
+    font-family: 'Instrument Serif', serif;
+    font-size: 13px;
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  .reset-btn {
+    margin-top: 28px;
+    background: none;
+    border: none;
+    color: var(--dim);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 8px;
+  }
+
+  .reset-btn:hover { color: var(--fg); }
+
+  @keyframes stat-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-card { animation: stat-in 0.5s ease both; }
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
+  .stat-card:nth-child(5) { animation-delay: 0.25s; }
+  .stat-card:nth-child(6) { animation-delay: 0.3s; }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: fixed; top: 18px; right: 20px; z-index: 1000;
+    background: transparent; border: 1px solid rgba(232,228,240,0.12);
+    color: #e8e4f0; font-family: 'Instrument Sans', sans-serif; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s;
+    opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #e8e4f0; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(4,6,15,0.85); border: 1px solid rgba(232,228,240,0.12);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'Instrument Serif', serif; font-size: 20px;
+    letter-spacing: 5px; color: #e8e4f0; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(232,228,240,0.12);
+    color: #e8e4f0; font-family: 'Instrument Sans', sans-serif; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'Instrument Sans', sans-serif; font-size: 12px;
+    letter-spacing: 2px; color: #e8e4f0; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #e8e4f0; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Entry screen -->
+  <div id="entry-screen">
+    <h1>How long have you<br>been <em>alive?</em></h1>
+    <div class="date-form">
+      <div class="date-label">Your date of birth</div>
+      <input type="date" class="date-input" id="dob-input">
+      <button class="go-btn" onclick="calculate()">Calculate</button>
+    </div>
+  </div>
+
+  <!-- Stats screen -->
+  <div id="stats-screen">
+    <div class="stats-header">
+      <div class="age-label">You have been alive for</div>
+      <div class="age-years" id="age-years">0</div>
+      <div class="age-sub" id="age-sub">years</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="s-label">Seconds</div>
+        <div class="s-value ticking" id="stat-seconds">0</div>
+        <div class="s-unit">and counting</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Minutes</div>
+        <div class="s-value ticking" id="stat-minutes">0</div>
+        <div class="s-unit">and counting</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Hours</div>
+        <div class="s-value" id="stat-hours">0</div>
+        <div class="s-unit">total</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Days</div>
+        <div class="s-value" id="stat-days">0</div>
+        <div class="s-unit">total</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Heartbeats</div>
+        <div class="s-value ticking" id="stat-heartbeats">0</div>
+        <div class="s-unit">~ 70 bpm</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Breaths</div>
+        <div class="s-value ticking" id="stat-breaths">0</div>
+        <div class="s-unit">~ 15 per min</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Times slept (est.)</div>
+        <div class="s-value" id="stat-sleeps">0</div>
+        <div class="s-unit">nights</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Moon cycles</div>
+        <div class="s-value" id="stat-moons">0</div>
+        <div class="s-unit">full moons</div>
+      </div>
+    </div>
+
+    <div class="life-bar-wrap">
+      <div class="life-bar-label">
+        <span>Born</span>
+        <span class="life-bar-pct" id="life-pct">0%</span>
+        <span>~90 yrs</span>
+      </div>
+      <div class="life-bar-track">
+        <div class="life-bar-fill" id="life-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="reset()">← Enter a different date</button>
+  </div>
+
+</div>
+<script>
+let tickInterval = null;
+let birthTime = null;
+
+function fmt(n) {
+  // Format large numbers with commas
+  return Math.floor(n).toLocaleString();
+}
+
+function calculate() {
+  const input = document.getElementById('dob-input').value;
+  if (!input) return;
+
+  birthTime = new Date(input).getTime();
+  const now = Date.now();
+  if (birthTime > now) { alert('That date is in the future!'); return; }
+
+  document.getElementById('entry-screen').style.display = 'none';
+  const statsScreen = document.getElementById('stats-screen');
+  statsScreen.style.display = 'flex';
+
+  tick();
+  tickInterval = setInterval(tick, 1000);
+}
+
+function tick() {
+  const now = Date.now();
+  const ms = now - birthTime;
+  const seconds = ms / 1000;
+  const minutes = seconds / 60;
+  const hours   = minutes / 60;
+  const days    = hours / 24;
+  const years   = days / 365.25;
+
+  // Age display
+  const wholeYears = Math.floor(years);
+  const remainDays = Math.floor(days - wholeYears * 365.25);
+  document.getElementById('age-years').textContent = wholeYears;
+  document.getElementById('age-sub').textContent =
+    `years, ${remainDays} day${remainDays !== 1 ? 's' : ''}`;
+
+  // Stats
+  document.getElementById('stat-seconds').textContent    = fmt(seconds);
+  document.getElementById('stat-minutes').textContent    = fmt(minutes);
+  document.getElementById('stat-hours').textContent      = fmt(hours);
+  document.getElementById('stat-days').textContent       = fmt(days);
+  document.getElementById('stat-heartbeats').textContent = fmt(seconds * 70 / 60); // 70bpm
+  document.getElementById('stat-breaths').textContent    = fmt(seconds * 15 / 60); // 15/min
+  document.getElementById('stat-sleeps').textContent     = fmt(days);              // ~1 sleep/day
+  document.getElementById('stat-moons').textContent      = fmt(days / 29.53);      // lunar cycle
+
+  // Life bar (out of 90 years)
+  const pct = Math.min((years / 90) * 100, 100);
+  document.getElementById('life-bar').style.width = pct + '%';
+  document.getElementById('life-pct').textContent = pct.toFixed(2) + '%';
+}
+
+function reset() {
+  clearInterval(tickInterval);
+  tickInterval = null;
+  birthTime = null;
+  document.getElementById('dob-input').value = '';
+  document.getElementById('entry-screen').style.display = 'flex';
+  document.getElementById('stats-screen').style.display = 'none';
+}
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>

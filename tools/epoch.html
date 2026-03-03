@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Epoch Clock</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@100;200;300&display=swap');
+
+  :root {
+    --bg: #0e0e0e;
+    --fg: #f2f0eb;
+    --dim: #2a2a2a;
+    --dimmer: #1a1a1a;
+    --accent: #e8e0c8;
+    --sub: #555;
+    --line: #222;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Azeret Mono', monospace;
+    overflow: hidden;
+  }
+
+  /* Subtle grid texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--dimmer) 1px, transparent 1px),
+      linear-gradient(90deg, var(--dimmer) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 24px;
+  }
+
+  /* Top label */
+  .top-label {
+    position: fixed;
+    top: 24px;
+    left: 32px;
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--sub);
+    text-transform: uppercase;
+  }
+
+  .top-right {
+    position: fixed;
+    top: 24px;
+    right: 32px;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--sub);
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  /* The main number */
+  .epoch-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .epoch-label {
+    font-size: 10px;
+    letter-spacing: 6px;
+    color: var(--sub);
+    text-transform: uppercase;
+    font-weight: 200;
+  }
+
+  #epoch {
+    font-size: clamp(36px, 9vw, 96px);
+    font-weight: 100;
+    letter-spacing: -1px;
+    color: var(--fg);
+    line-height: 1;
+    /* Each digit in its own span for individual tick animation */
+    display: flex;
+    gap: 0.04em;
+  }
+
+  .digit {
+    display: inline-block;
+    transition: color 0.08s;
+    min-width: 0.62em;
+    text-align: center;
+  }
+
+  .digit.changed {
+    color: var(--accent);
+  }
+
+  .sep {
+    color: var(--dim);
+    display: inline-block;
+    min-width: 0.3em;
+    text-align: center;
+  }
+
+  /* Milliseconds */
+  .ms-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .ms-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--sub);
+    text-transform: uppercase;
+    font-weight: 200;
+  }
+
+  #ms-display {
+    font-size: clamp(14px, 2.5vw, 22px);
+    font-weight: 200;
+    color: var(--sub);
+    letter-spacing: 2px;
+    min-width: 3.5ch;
+  }
+
+  /* Divider */
+  .divider {
+    width: min(500px, 80vw);
+    height: 1px;
+    background: var(--line);
+    margin: 36px 0 28px;
+  }
+
+  /* Info row */
+  .info-row {
+    display: flex;
+    gap: clamp(20px, 5vw, 60px);
+    align-items: flex-start;
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .info-item .i-label {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--sub);
+    text-transform: uppercase;
+    font-weight: 200;
+  }
+
+  .info-item .i-value {
+    font-size: clamp(13px, 2vw, 17px);
+    font-weight: 200;
+    color: var(--fg);
+    letter-spacing: 1px;
+  }
+
+  /* UTC time */
+  .utc-row {
+    margin-top: 28px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--sub);
+    font-weight: 200;
+  }
+
+  #utc-time { color: var(--fg); }
+
+  /* Bottom fixed */
+  .bottom-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  /* Pulse dot */
+  .pulse {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    background: var(--sub);
+    border-radius: 50%;
+    animation: pulse 1s ease-in-out infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50%       { opacity: 1;   transform: scale(1.2); }
+  }
+
+  /* Click to copy flash */
+  .copy-flash {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--fg);
+    color: var(--bg);
+    font-size: 10px;
+    letter-spacing: 4px;
+    padding: 6px 18px;
+    text-transform: uppercase;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .copy-flash.show { opacity: 1; }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+    background: transparent; border: 1px solid rgba(242,240,235,0.1);
+    color: #f2f0eb; font-family: 'Azeret Mono', monospace; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s;
+    opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #f2f0eb; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(14,14,14,0.85); border: 1px solid rgba(242,240,235,0.1);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'Azeret Mono', monospace; font-size: 20px;
+    letter-spacing: 5px; color: #f2f0eb; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(242,240,235,0.1);
+    color: #f2f0eb; font-family: 'Azeret Mono', monospace; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'Azeret Mono', monospace; font-size: 12px;
+    letter-spacing: 2px; color: #f2f0eb; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #f2f0eb; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+
+<div class="top-label"><span class="pulse"></span>Unix Epoch</div>
+<div class="top-right" id="local-tz">—</div>
+
+<div class="wrap">
+  <div class="epoch-wrap">
+    <div class="epoch-label">seconds since Jan 1, 1970</div>
+    <div id="epoch" title="Click to copy" style="cursor:pointer"></div>
+    <div class="ms-wrap">
+      <div class="ms-label">ms</div>
+      <div id="ms-display">000</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="info-row">
+    <div class="info-item">
+      <div class="i-label">UTC Date</div>
+      <div class="i-value" id="utc-date">—</div>
+    </div>
+    <div class="info-item">
+      <div class="i-label">UTC Time</div>
+      <div class="i-value" id="utc-time-val">—</div>
+    </div>
+    <div class="info-item">
+      <div class="i-label">Day of Year</div>
+      <div class="i-value" id="day-of-year">—</div>
+    </div>
+    <div class="info-item">
+      <div class="i-label">Week</div>
+      <div class="i-value" id="iso-week">—</div>
+    </div>
+  </div>
+
+  <div class="utc-row">
+    Local: <span id="local-time">—</span>
+  </div>
+</div>
+
+<div class="copy-flash" id="copy-flash">Copied</div>
+
+<div class="bottom-bar">
+  <span>epoch.clock</span>
+  <span>//</span>
+  <span>click timestamp to copy</span>
+</div>
+
+<script>
+const epochEl   = document.getElementById('epoch');
+const msEl      = document.getElementById('ms-display');
+const utcDate   = document.getElementById('utc-date');
+const utcTimeV  = document.getElementById('utc-time-val');
+const dayOfYear = document.getElementById('day-of-year');
+const isoWeek   = document.getElementById('iso-week');
+const localTime = document.getElementById('local-time');
+const localTz   = document.getElementById('local-tz');
+const copyFlash = document.getElementById('copy-flash');
+
+// Build digit spans once
+let prevDigits = [];
+function buildDigits(str) {
+  epochEl.innerHTML = '';
+  prevDigits = [];
+  for (let i = 0; i < str.length; i++) {
+    const span = document.createElement('span');
+    span.className = 'digit';
+    span.textContent = str[i];
+    epochEl.appendChild(span);
+    prevDigits.push(str[i]);
+  }
+}
+
+function updateDigits(str) {
+  const spans = epochEl.querySelectorAll('.digit');
+  // If length changed, rebuild
+  if (spans.length !== str.length) {
+    buildDigits(str);
+    return;
+  }
+  for (let i = 0; i < str.length; i++) {
+    if (prevDigits[i] !== str[i]) {
+      spans[i].textContent = str[i];
+      spans[i].classList.add('changed');
+      setTimeout(() => spans[i].classList.remove('changed'), 150);
+      prevDigits[i] = str[i];
+    }
+  }
+}
+
+function pad(n, w = 2) { return String(n).padStart(w, '0'); }
+
+function getDayOfYear(d) {
+  const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 0));
+  const diff = d - start;
+  return Math.floor(diff / 86400000);
+}
+
+function getISOWeek(d) {
+  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
+// Set timezone label
+localTz.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Initial build
+buildDigits('0000000000');
+
+// Copy on click
+epochEl.addEventListener('click', () => {
+  const ts = Math.floor(Date.now() / 1000).toString();
+  navigator.clipboard.writeText(ts).then(() => {
+    copyFlash.classList.add('show');
+    setTimeout(() => copyFlash.classList.remove('show'), 1200);
+  });
+});
+
+function tick() {
+  const now = new Date();
+  const epoch = Math.floor(now.getTime() / 1000);
+  const ms = now.getMilliseconds();
+
+  updateDigits(epoch.toString());
+  msEl.textContent = pad(ms, 3);
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  utcDate.textContent = `${now.getUTCDate()} ${months[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
+  utcTimeV.textContent = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
+  dayOfYear.textContent = `${getDayOfYear(now)} / 365`;
+  isoWeek.textContent = `W${pad(getISOWeek(now))}`;
+
+  localTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+tick();
+setInterval(tick, 50); // 20fps for smooth ms
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>

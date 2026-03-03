@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excuse Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Lato:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --bg: #f5f0d8;
+    --note: #fdf8e1;
+    --note2: #fef9e4;
+    --ink: #2c2416;
+    --ink-dim: #8a7a55;
+    --ink-faint: #c8bc96;
+    --red: #c0392b;
+    --blue: #2471a3;
+    --green: #1e8449;
+    --shadow: rgba(44, 36, 22, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    font-family: 'Lato', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 20px 60px;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 27px,
+        rgba(180,170,130,0.25) 27px,
+        rgba(180,170,130,0.25) 28px
+      );
+  }
+
+  .page {
+    width: 100%;
+    max-width: 580px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Header */
+  h1 {
+    font-family: 'Caveat', cursive;
+    font-size: clamp(36px, 8vw, 56px);
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 6px;
+    line-height: 1;
+  }
+
+  .sub {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  /* Input card */
+  .input-card {
+    width: 100%;
+    background: var(--note);
+    box-shadow: 3px 3px 0 var(--ink-faint), 6px 6px 0 rgba(44,36,22,0.06);
+    padding: 32px 32px 28px;
+    margin-bottom: 28px;
+    position: relative;
+  }
+
+  /* Pin */
+  .input-card::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    background: radial-gradient(circle at 40% 35%, #e74c3c, #922b21);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+
+  .field label {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--ink-faint);
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    color: var(--ink);
+    padding: 4px 2px 6px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-weight: 500;
+  }
+
+  .field input::placeholder { color: var(--ink-faint); }
+  .field input:focus, .field select:focus { border-color: var(--ink-dim); }
+
+  .field select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a7a55' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    padding-right: 24px;
+  }
+
+  /* Escalation selector */
+  .escalation {
+    display: flex;
+    gap: 0;
+    border: 2px solid var(--ink-faint);
+    margin-bottom: 0;
+  }
+
+  .esc-btn {
+    flex: 1;
+    padding: 8px 4px;
+    background: transparent;
+    border: none;
+    border-right: 2px solid var(--ink-faint);
+    font-family: 'Caveat', cursive;
+    font-size: 14px;
+    color: var(--ink-dim);
+    cursor: pointer;
+    transition: all 0.12s;
+    text-align: center;
+  }
+
+  .esc-btn:last-child { border-right: none; }
+  .esc-btn:hover { background: var(--ink-faint); }
+  .esc-btn.active { background: var(--ink); color: var(--note); }
+
+  /* Generate button */
+  .gen-btn {
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    background: var(--ink);
+    border: none;
+    color: var(--note);
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+    box-shadow: 3px 3px 0 var(--ink-faint);
+  }
+
+  .gen-btn:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink-faint); }
+  .gen-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink-faint); }
+
+  /* Output note */
+  .output-note {
+    width: 100%;
+    background: var(--note2);
+    box-shadow: 3px 3px 0 var(--ink-faint), 6px 6px 0 rgba(44,36,22,0.06);
+    padding: 36px 32px 28px;
+    position: relative;
+    display: none;
+    transform: rotate(-0.5deg);
+  }
+
+  .output-note.visible { display: block; }
+
+  /* Tape */
+  .output-note::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+    width: 60px;
+    height: 20px;
+    background: rgba(255,255,180,0.7);
+    border: 1px solid rgba(200,188,120,0.5);
+  }
+
+  .excuse-label {
+    font-family: 'Caveat', cursive;
+    font-size: 13px;
+    color: var(--ink-faint);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .excuse-level {
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+  }
+
+  .excuse-level.mild   { color: var(--green); }
+  .excuse-level.medium { color: var(--blue); }
+  .excuse-level.wild   { color: var(--red); }
+  .excuse-level.unhinged { color: var(--red); font-weight: 700; }
+
+  .excuse-text {
+    font-family: 'Caveat', cursive;
+    font-size: clamp(20px, 3.5vw, 26px);
+    line-height: 1.55;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .excuse-footer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .believability {
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 1px;
+  }
+
+  .believability-bar {
+    display: inline-block;
+    width: 60px;
+    height: 4px;
+    background: var(--ink-faint);
+    vertical-align: middle;
+    margin: 0 6px;
+    position: relative;
+  }
+
+  .believability-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: var(--green);
+    transition: width 0.4s, background 0.4s;
+  }
+
+  .copy-btn {
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+    color: var(--ink-dim);
+    background: none;
+    border: 1px solid var(--ink-faint);
+    padding: 4px 14px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .copy-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+  .esc-btn-void {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    background: transparent;
+    border: 2px dashed var(--ink-faint);
+    color: var(--ink-faint);
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .esc-btn-void:hover {
+    border-color: #7b0000;
+    color: #7b0000;
+    background: rgba(123,0,0,0.04);
+  }
+
+  .esc-btn-void.active {
+    border-color: #7b0000;
+    border-style: solid;
+    background: #7b0000;
+    color: #fdf8e1;
+    animation: voidPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes voidPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(123,0,0,0.4); }
+    50% { box-shadow: 0 0 12px 4px rgba(123,0,0,0.2); }
+  }
+
+  .excuse-level.void {
+    color: #7b0000;
+    font-weight: 700;
+    letter-spacing: 3px;
+  }
+
+  @keyframes notein {
+    from { opacity: 0; transform: rotate(-0.5deg) translateY(12px); }
+    to   { opacity: 1; transform: rotate(-0.5deg) translateY(0); }
+  }
+
+  .output-note.visible { animation: notein 0.3s ease; }
+
+  /* ── info popup ── */
+  #btn-info {
+    position: absolute; top: 16px; right: 16px; z-index: 10;
+    background: transparent; border: 1px solid rgba(44,36,22,0.2);
+    color: #2c2416; font-family: 'Lato', sans-serif; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; transition: all 0.2s; opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: #2c2416; }
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+  .info-box {
+    background: rgba(245,240,216,0.9); border: 1px solid rgba(44,36,22,0.12);
+    padding: 28px 32px 24px; min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97); transition: transform 0.22s ease;
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+  .info-brand {
+    display: block; font-family: 'Caveat', cursive; font-size: 20px;
+    letter-spacing: 5px; color: #2c2416; text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.7; }
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(44,36,22,0.12);
+    color: #2c2416; font-family: 'Lato', sans-serif; font-size: 12px;
+    padding: 3px 8px; cursor: pointer; transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+  .info-line {
+    font-family: 'Lato', sans-serif; font-size: 12px;
+    letter-spacing: 2px; color: #2c2416; opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: #2c2416; }
+  .info-nova { color: #4a90d9; text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { color: #6aaaf0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Excuse Generator</h1>
+  <div class="sub">// for when you need a really good reason</div>
+
+  <div class="input-card">
+    <div class="field">
+      <label>I didn't...</label>
+      <input type="text" id="task" placeholder="do my homework" maxlength="80">
+    </div>
+
+    <div class="field">
+      <label>Because I have to tell...</label>
+      <select id="audience">
+        <option value="teacher">my teacher</option>
+        <option value="boss">my boss</option>
+        <option value="parent">my parents</option>
+        <option value="partner">my partner</option>
+        <option value="friend">my friend</option>
+        <option value="doctor">my doctor</option>
+        <option value="landlord">my landlord</option>
+        <option value="anyone">anyone who'll listen</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Level of desperation</label>
+      <div class="escalation">
+        <button class="esc-btn active" onclick="setLevel('mild', this)">Mild</button>
+        <button class="esc-btn" onclick="setLevel('medium', this)">Medium</button>
+        <button class="esc-btn" onclick="setLevel('wild', this)">Wild</button>
+        <button class="esc-btn" onclick="setLevel('unhinged', this)">Unhinged</button>
+      </div>
+      <button class="esc-btn-void" onclick="setLevel('void', this)" id="void-btn">???</button>
+    </div>
+
+    <button class="gen-btn" onclick="generate()">Generate My Excuse</button>
+  </div>
+
+  <div class="output-note" id="output-note">
+    <div class="excuse-label">
+      <span>Your Excuse</span>
+      <span class="excuse-level" id="excuse-level">mild</span>
+    </div>
+    <div class="excuse-text" id="excuse-text"></div>
+    <div class="excuse-footer">
+      <div class="believability">
+        believability
+        <span class="believability-bar"><span class="believability-fill" id="bel-fill"></span></span>
+        <span id="bel-pct">—</span>
+      </div>
+      <button class="copy-btn" onclick="copyExcuse()">Copy</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let level = 'mild';
+
+function setLevel(l, el) {
+  level = l;
+  document.querySelectorAll('.esc-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('void-btn').classList.remove('active');
+  el.classList.add('active');
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ── Templates ─────────────────────────────────────────────────────────────────
+// {task} = what they didn't do, {audience} = who they're telling
+
+const excuses = {
+  mild: [
+    "I was going to, but I genuinely forgot and then felt too guilty to admit it immediately.",
+    "There was a small but significant miscommunication about whether that was actually due today.",
+    "I had every intention of doing it, but something came up that I'd rather not get into.",
+    "I was dealing with a personal situation that made it very difficult to focus.",
+    "My alarm didn't go off and the whole day just cascaded from there.",
+    "I was in the middle of it and then got pulled away by something urgent.",
+    "I thought I had more time. I know. I know.",
+    "There was a family thing. I can't really say more than that right now.",
+    "I was sick. Not dramatically sick, just enough to derail everything.",
+    "I honestly thought I'd submitted it. Let me check my sent folder.",
+  ],
+  medium: [
+    "My internet went out at a critical moment and by the time it came back it was too late to really do it justice.",
+    "I was actually almost done when my computer restarted itself to install an update and I lost everything.",
+    "There was an incident with my neighbour that took up my entire evening and I'd really rather not elaborate.",
+    "I had a migraine that started right when I was supposed to begin and lasted exactly long enough to ruin everything.",
+    "My dog ate — okay, not literally, but she did destroy my notes in a way that felt spiritually equivalent.",
+    "I was in a very long queue that had no clear end and by the time I escaped, the day was effectively over.",
+    "The power went out in my area for several hours. I have photographic evidence if needed.",
+    "I was helping someone with an emergency and when that was resolved, I genuinely had nothing left in me.",
+    "I got food poisoning. Mild food poisoning. The kind that doesn't hospitalise you but absolutely ruins your productivity.",
+    "My phone was stolen and it had everything I needed on it. I'm still dealing with the aftermath.",
+  ],
+  wild: [
+    "A pigeon flew directly into my window at the exact moment I sat down to start, and I spent three hours trying to help it recover before it suddenly flew away as if nothing had happened.",
+    "I was fully prepared to do it, but I accidentally locked myself out of my flat and the locksmith took six hours to arrive, during which I had nothing to do but think about how I was going to explain this.",
+    "There was a small electrical fire in my kitchen. It was handled quickly and no one was hurt, but the smoke alarm went off for two hours and I couldn't hear myself think, let alone work.",
+    "I got on the wrong bus, ended up in an entirely unfamiliar part of the city, and my phone died before I could navigate back. By the time I got home it was almost midnight.",
+    "My building's WiFi was down, the café I went to had a sign saying their WiFi was 'temporarily spiritual' (I still don't know what that means), and the library was closed for a staff training day.",
+    "I was about to start when I noticed a significant leak under my sink that I couldn't just ignore. Four hours, two YouTube tutorials, and one emergency plumber call later, the apartment was dry but the deadline was not met.",
+    "I witnessed something on my street that I had to give a statement about and the whole thing took most of the afternoon. I'm not allowed to say more.",
+  ],
+  void: [
+    "I technically was doing it, but in a timeline that has since been pruned. The version of me that completed it no longer exists and I am not legally the same entity.",
+    "Time, as I experienced it that day, moved in the wrong direction. I did it. Then I didn't. Both are true. Neither are actionable.",
+    "I was replaced by a duplicate at approximately 11am. The duplicate had different priorities. I have since reclaimed my body but cannot be held responsible for its decisions.",
+    "The task was completed in a dream so vivid that my brain filed it as done and released all associated dopamine. I genuinely believed I had done it until this very moment.",
+    "I exist in a state of quantum superposition with regard to this task. Asking me about it collapses the wave function into the worst possible outcome, which is this conversation.",
+    "I was there. I did it. You received it. This is a you problem, specifically a you-in-this-branch-of-reality problem.",
+    "My body completed the task on autopilot while my consciousness was elsewhere. I have reviewed the footage. My hands did nothing. I cannot explain this.",
+    "I have done this task so many times in adjacent realities that the version of me here, in this one, was simply exhausted by proxy.",
+    "Something in my gut told me not to. It has never been wrong. I am afraid of what would have happened if I had listened to you instead.",
+    "I was in the process of doing it when I became briefly omniscient. The knowledge of all things made the task seem, and I say this with full sincerity, not that important.",
+  ],
+  unhinged: [
+    "I was cursed. Not metaphorically. An elderly woman at the bus stop looked directly at me, said something in a language I didn't recognise, and from that moment forward every attempt I made to work was interrupted by increasingly improbable events.",
+    "I had it completely done and then my cat walked across the keyboard, somehow selected everything, and replaced it with the letter 'f' approximately eight thousand times. I have no explanation for how she managed to save and close the document afterwards.",
+    "I entered some kind of fugue state around 2pm and came to at 9pm in a different room with no memory of the intervening hours and a half-eaten sandwich I have no recollection of making.",
+    "A man knocked on my door claiming to be from the government, asked me several questions about my daily routine, and then left without explaining why. I was too unsettled to do anything productive for the rest of the day.",
+    "I got into an argument with someone online that escalated to the point where I genuinely felt I could not, in good conscience, do anything else until I had resolved it. I have not resolved it. It has been three days.",
+    "I had a dream so vivid and so upsetting that it was functionally indistinguishable from reality until about 3pm, at which point I had already made several decisions based on it being real.",
+    "The building I was working in had to be evacuated due to a smell that no one could identify. We stood outside for two hours. When we were allowed back in, the smell was gone and no one ever explained what it was.",
+    "I sat down, I opened everything I needed, I put my hands on the keyboard, and then I simply didn't. I don't have a better explanation than that. Something in me refused and I couldn't override it.",
+  ],
+};
+
+const audienceOpeners = {
+  teacher:  ["I know this is unacceptable, but —", "I want to be completely transparent with you —", "I have tremendous respect for this class, which is why I'm telling you the truth —"],
+  boss:     ["I want to flag this proactively —", "In the interest of full transparency —", "I take complete ownership of this, however —"],
+  parent:   ["Okay so, hear me out —", "Before you say anything —", "I know how this looks, but —"],
+  partner:  ["You're going to want to sit down for this —", "I love you and that's exactly why I'm telling you —", "Okay so funny story —"],
+  friend:   ["So you know how sometimes things just happen? —", "Okay don't be mad —", "I have a completely reasonable explanation —"],
+  doctor:   ["I understand this reflects poorly on my compliance, however —", "From a purely medical standpoint —", "The symptoms are actually consistent with —"],
+  landlord: ["I want to be a good tenant, which is why I'm telling you directly —", "This is not a pattern of behaviour —", "I have documentation for most of this —"],
+  anyone:   ["Look —", "Here's the thing —", "I'm going to be honest with you —"],
+};
+
+const believability = {
+  mild:     { pct: 82, color: '#1e8449' },
+  medium:   { pct: 54, color: '#d4ac0d' },
+  wild:     { pct: 23, color: '#e67e22' },
+  unhinged: { pct: 4,  color: '#c0392b' },
+  void:     { pct: '-inf', color: '#7b0000' },
+};
+
+function generate() {
+  const task     = document.getElementById('task').value.trim() || 'do that thing';
+  const audience = document.getElementById('audience').value;
+  const pool     = excuses[level];
+  const opener   = pick(audienceOpeners[audience]);
+  const excuse   = pick(pool);
+
+  const full = `${opener} ${excuse}`;
+
+  const note = document.getElementById('output-note');
+  const textEl = document.getElementById('excuse-text');
+  const levelEl = document.getElementById('excuse-level');
+  const belFill = document.getElementById('bel-fill');
+  const belPct  = document.getElementById('bel-pct');
+
+  // Reset animation
+  note.classList.remove('visible');
+  void note.offsetWidth;
+  note.classList.add('visible');
+
+  textEl.textContent = full;
+
+  levelEl.textContent = level === 'void' ? '???' : level;
+  levelEl.className = `excuse-level ${level}`;
+
+  const b = believability[level];
+  if (b.pct === '-inf') {
+    belFill.style.width = '100%';
+    belFill.style.background = '#7b0000';
+    belFill.style.animation = 'none';
+    belPct.textContent = '-∞';
+    belPct.style.color = '#7b0000';
+  } else {
+    belFill.style.width  = b.pct + '%';
+    belFill.style.background = b.color;
+    belPct.textContent   = b.pct + '%';
+    belPct.style.color = '';
+    belFill.style.animation = '';
+  }
+}
+
+function copyExcuse() {
+  const text = document.getElementById('excuse-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+</script>
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>
