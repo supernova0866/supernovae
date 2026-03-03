@@ -23,7 +23,7 @@
       "id": 1,
       "title": "Hack.exe",
       "desc": "Type anything. Look like a hacker.",
-      "src": "hackertype.html",
+      "src": "hackexe.html",
       "tag": "interactive",
       "theme": "dark",
       "emoji": "💻"
