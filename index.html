@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>$UPERNOVÆ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500&family=DM+Mono:wght@400&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body { font-family: 'Instrument Sans', sans-serif; min-height: 100vh; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+
+body.light { --bg: #eeebe4; --fg: #1a1814; --dim: #9a9080; --border: rgba(0,0,0,0.1); --bar: #f4f1ea; --bar-b: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.55); --tile-op: 0.07; --pill-bg: rgba(0,0,0,0.06); --pill-fg: var(--dim); }
+body.dark  { --bg: #0c0b0a; --fg: #f0ece6; --dim: #504840; --border: rgba(255,255,255,0.07); --bar: #100f0e; --bar-b: rgba(255,255,255,0.05); --card-bg: rgba(255,255,255,0.03); --tile-op: 0.06; --pill-bg: rgba(255,255,255,0.07); --pill-fg: var(--dim); }
+body.void  { --bg: #000;    --fg: #f0ece6; --dim: #3a3835; --border: rgba(255,255,255,0.06); --bar: transparent; --bar-b: transparent; --card-bg: rgba(255,255,255,0.02); --tile-op: 0.05; --pill-bg: rgba(255,255,255,0.06); --pill-fg: #444; }
+
+/* ── bar ── */
+.bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 52px;
+  background: var(--bar); border-bottom: 1px solid var(--bar-b);
+  transition: background 0.3s, border-color 0.3s;
+}
+.logo { font-size: 14px; font-weight: 500; letter-spacing: 3px; color: var(--fg); transition: color 0.3s; }
+.btns { display: flex; gap: 2px; }
+.lbtn {
+  width: 34px; height: 34px; background: transparent;
+  border: 1px solid transparent; border-radius: 3px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--dim); transition: all 0.15s;
+}
+.lbtn:hover { color: var(--fg); border-color: var(--border); }
+.lbtn.on    { color: var(--fg); border-color: var(--border); background: var(--pill-bg); }
+.lbtn svg { width: 15px; height: 15px; }
+
+/* ── grid layout ── */
+#gl { display: none; min-height: 100vh; padding: 52px 0 0; background: var(--bg); transition: background 0.3s; }
+#gl.on { display: block; }
+
+.grid-head { text-align: center; padding: 52px 20px 44px; opacity: 0; animation: up 0.5s 0.05s forwards; }
+.grid-head h1 {
+  font-size: clamp(26px, 5.5vw, 48px); font-weight: 500; letter-spacing: 4px;
+  color: var(--fg); margin-bottom: 10px; transition: color 0.3s;
+}
+.grid-head p { font-size: 11px; color: var(--dim); letter-spacing: 2px; transition: color 0.3s; }
+
+.cards {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 16px; padding: 40px 40px 40px;
+  max-width: 1100px; margin: 0 auto;
+}
+@media (max-width: 820px) { .cards { grid-template-columns: repeat(2,1fr); padding: 40px 20px 40px; } }
+@media (max-width: 520px) { .cards { grid-template-columns: 1fr; } }
+
+/* ── card ── */
+.card {
+  border-radius: 12px; overflow: hidden;
+  text-decoration: none; display: flex; flex-direction: column;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  backdrop-filter: blur(4px);
+  opacity: 0; animation: up 0.4s forwards;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.3s, background 0.3s;
+}
+.card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.15); }
+
+/* image tile area */
+.card-img {
+  width: 100%; height: 148px;
+  position: relative; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  transition: border-color 0.3s;
+}
+
+/* slanted emoji grid — drawn on canvas per card */
+.card-img canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+
+/* info section — fully transparent, inherits theme */
+.card-info {
+  padding: 14px 16px 16px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+
+.card-top-row {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 8px;
+}
+
+.card-name {
+  font-family: 'Instrument Serif', serif; font-size: 17px; font-style: italic;
+  color: var(--fg); letter-spacing: -0.2px; line-height: 1.2;
+  transition: color 0.3s; flex: 1;
+}
+
+.theme-pill {
+  font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 20px; font-weight: 500;
+  white-space: nowrap; flex-shrink: 0;
+  background: var(--pill-bg); color: var(--pill-fg);
+  border: 1px solid var(--border);
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.card-desc { font-size: 12px; line-height: 1.55; color: var(--dim); transition: color 0.3s; }
+.card-tag  { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); opacity: 0.45; margin-top: 3px; transition: color 0.3s; }
+
+/* stagger */
+.card:nth-child(1)  { animation-delay:.05s }  .card:nth-child(2)  { animation-delay:.09s }
+.card:nth-child(3)  { animation-delay:.13s }  .card:nth-child(4)  { animation-delay:.17s }
+.card:nth-child(5)  { animation-delay:.21s }  .card:nth-child(6)  { animation-delay:.25s }
+.card:nth-child(7)  { animation-delay:.29s }  .card:nth-child(8)  { animation-delay:.33s }
+.card:nth-child(9)  { animation-delay:.37s }  .card:nth-child(10) { animation-delay:.41s }
+.card:nth-child(11) { animation-delay:.45s }  .card:nth-child(12) { animation-delay:.49s }
+.card:nth-child(13) { animation-delay:.53s }
+
+@keyframes up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── theme switcher ── */
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; transition: background 0.2s; }
+::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+/* clock */
+.bar-clock {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--dim);
+  transition: color 0.3s;
+  white-space: nowrap;
+}
+.bar-sep { opacity: 0.25; }
+.bar-time {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 12px; letter-spacing: 1px;
+  color: var(--dim); cursor: pointer;
+  transition: color 0.15s;
+  user-select: none;
+}
+.bar-time:hover { color: var(--fg); }
+
+.theme-fab {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: transparent; border: 1px solid var(--bar-b);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0; color: var(--fg);
+}
+.theme-fab:hover { background: var(--pill-bg); border-color: var(--border); }
+body.void .theme-fab { border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+body.void .theme-fab:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.22); color: #fff; }
+body.void .theme-fab { border-color: rgba(255,255,255,0.08); box-shadow: 0 0 12px rgba(255,255,255,0.06), 0 0 28px rgba(255,255,255,0.03); }
+body.void .theme-fab:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.18); box-shadow: 0 0 18px rgba(255,255,255,0.1), 0 0 40px rgba(255,255,255,0.05); }
+
+/* fab icon changes per theme */
+
+
+.theme-menu {
+  position: fixed; top: 58px; right: 16px; z-index: 199;
+  background: var(--bar); border: 1px solid var(--bar-b);
+  border-radius: 14px; padding: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  min-width: 160px;
+  opacity: 0; pointer-events: none;
+  transform: translateY(-6px) scale(0.97);
+  transform-origin: top right;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.theme-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+
+.tmenu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 9px; cursor: pointer;
+  font-size: 13px; color: var(--dim);
+  transition: background 0.12s, color 0.12s;
+  border: none; background: transparent; width: 100%;
+  font-family: 'Instrument Sans', sans-serif;
+  text-align: left;
+}
+.tmenu-item:hover { background: var(--pill-bg); color: var(--fg); }
+.tmenu-item.active { background: var(--pill-bg); color: var(--fg); font-weight: 500; }
+.tmenu-item .ticon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; display: flex; align-items: center; }
+.tmenu-item .ticon svg { width: 16px; height: 16px; }
+.tmenu-item.active .ticon { opacity: 1; }
+
+/* ── dividers ── */
+.divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--border) 35%,
+    var(--border) 65%,
+    transparent 100%
+  );
+  transition: background 0.3s;
+  border: none;
+}
+
+/* ── loading text ── */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.tools-middle {
+  position: relative;
+  min-height: 180px;
+}
+
+.tools-middle .cards {
+  /* cards render normally when populated */
+}
+
+/* loading text — absolutely centered within tools-middle */
+.loading-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  pointer-events: none;
+  text-align: center;
+  padding: 0;
+  font-family: 'DM Mono', 'Fira Mono', 'Courier New', monospace;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  background: linear-gradient(
+    90deg,
+    var(--dim) 0%,
+    var(--fg)  25%,
+    var(--dim) 50%,
+    var(--fg)  75%,
+    var(--dim) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 2.4s linear infinite;
+  transition: opacity 0.4s ease;
+}
+
+/* ── void ── */
+#vl { display:none; width:100vw; height:100vh; position:relative; overflow:hidden; background:#000; }
+#vl.on { display:block; }
+
+.stars {
+  position:absolute; inset:0; pointer-events:none;
+  background-image:
+    radial-gradient(1px 1px at  7% 11%,rgba(255,255,255,.55) 0%,transparent 100%),
+    radial-gradient(1px 1px at 21% 54%,rgba(255,255,255,.30) 0%,transparent 100%),
+    radial-gradient(1px 1px at 37% 27%,rgba(255,255,255,.45) 0%,transparent 100%),
+    radial-gradient(1px 1px at 67% 17%,rgba(255,255,255,.40) 0%,transparent 100%),
+    radial-gradient(1px 1px at 79% 61%,rgba(255,255,255,.26) 0%,transparent 100%),
+    radial-gradient(1px 1px at 13% 83%,rgba(255,255,255,.22) 0%,transparent 100%),
+    radial-gradient(1px 1px at 57%  7%,rgba(255,255,255,.40) 0%,transparent 100%),
+    radial-gradient(1px 1px at 83% 71%,rgba(255,255,255,.24) 0%,transparent 100%),
+    radial-gradient(1px 1px at  3% 43%,rgba(255,255,255,.34) 0%,transparent 100%),
+    radial-gradient(1px 1px at 46% 46%,rgba(255,255,255,.14) 0%,transparent 100%),
+    radial-gradient(1px 1px at 71%  4%,rgba(255,255,255,.30) 0%,transparent 100%),
+    radial-gradient(1px 1px at 28% 15%,rgba(255,255,255,.22) 0%,transparent 100%),
+    radial-gradient(1px 1px at 62% 89%,rgba(255,255,255,.28) 0%,transparent 100%),
+    radial-gradient(1px 1px at 90% 37%,rgba(255,255,255,.32) 0%,transparent 100%),
+    radial-gradient(1px 1px at 44% 58%,rgba(255,255,255,.15) 0%,transparent 100%),
+    radial-gradient(1px 1px at 95% 87%,rgba(255,255,255,.19) 0%,transparent 100%),
+    radial-gradient(1px 1px at 15% 42%,rgba(255,255,255,.28) 0%,transparent 100%),
+    radial-gradient(1px 1px at 32% 68%,rgba(255,255,255,.22) 0%,transparent 100%),
+    radial-gradient(1px 1px at 53% 33%,rgba(255,255,255,.35) 0%,transparent 100%),
+    radial-gradient(1px 1px at 76% 85%,rgba(255,255,255,.20) 0%,transparent 100%),
+    radial-gradient(1px 1px at  8% 72%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 48% 92%,rgba(255,255,255,.18) 0%,transparent 100%),
+    radial-gradient(1px 1px at 88%  8%,rgba(255,255,255,.32) 0%,transparent 100%),
+    radial-gradient(1px 1px at 25% 22%,rgba(255,255,255,.20) 0%,transparent 100%),
+    radial-gradient(1px 1px at 64% 52%,rgba(255,255,255,.16) 0%,transparent 100%),
+    radial-gradient(1px 1px at 40% 78%,rgba(255,255,255,.24) 0%,transparent 100%),
+    radial-gradient(1px 1px at 92% 55%,rgba(255,255,255,.28) 0%,transparent 100%),
+    radial-gradient(1px 1px at  5% 28%,rgba(255,255,255,.30) 0%,transparent 100%),
+    radial-gradient(1px 1px at 72% 42%,rgba(255,255,255,.18) 0%,transparent 100%),
+    radial-gradient(1px 1px at 18% 96%,rgba(255,255,255,.22) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 35% 48%,rgba(255,255,255,.40) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 81% 19%,rgba(255,255,255,.45) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 11% 61%,rgba(255,255,255,.35) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 59% 74%,rgba(255,255,255,.38) 0%,transparent 100%),
+    radial-gradient(2px 2px at 50% 20%,rgba(255,255,255,.30) 0%,transparent 100%),
+    radial-gradient(2px 2px at 85% 45%,rgba(255,255,255,.25) 0%,transparent 100%);
+}
+/* twinkling stars canvas */
+#star-canvas { position:absolute; inset:0; pointer-events:none; }
+.oring { position:absolute; top:50%; left:50%; border:1px solid rgba(255,255,255,0.04); border-radius:50%; pointer-events:none; }
+.hole-wrap { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; }
+/* radial glow behind hole */
+.hole-glow {
+  position:absolute; top:50%; left:50%;
+  width:340px; height:340px;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(ellipse at center,
+    rgba(60,20,80,0.22) 0%,
+    rgba(30,10,50,0.12) 30%,
+    transparent 70%);
+  pointer-events:none; z-index:999;
+  border-radius:50%;
+}
+.hole {
+  width:100px; height:100px; border-radius:50%;
+  background:radial-gradient(circle at 32% 32%, #181818 0%, #060606 45%, #000 100%);
+  box-shadow: 0 0 40px rgba(255,255,255,.03), 0 0 100px rgba(255,255,255,.012),
+              inset -6px -6px 18px rgba(255,255,255,.02);
+  position:relative; overflow:hidden;
+}
+/* rotating shimmer ring */
+.hole::after {
+  content:''; position:absolute; top:14%; left:20%; width:26%; height:16%;
+  background:radial-gradient(ellipse,rgba(255,255,255,.04) 0%,transparent 100%);
+  border-radius:50%; transform:rotate(-25deg);
+}
+.oc { display:none; }
+.oi { position:absolute; top:50%; left:50%; will-change:transform; }
+.oc-card {
+  position:absolute; transform:translate(-50%,-50%);
+  width:110px; border-radius:10px; overflow:hidden;
+  cursor:pointer; text-decoration:none;
+  border:1px solid rgba(255,255,255,.07);
+  transition:border-color .2s, box-shadow .2s;
+}
+.oc-card:hover { border-color:rgba(255,255,255,.25); box-shadow:0 0 20px rgba(255,255,255,.06); }
+.oc-thumb { width:100%; height:58px; display:flex; align-items:center; justify-content:center; font-size:22px; background:#0a0a0a; }
+.oc-name {
+  padding:5px 7px; font-family:'Instrument Serif',serif; font-size:10px; font-style:italic;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  background:rgba(8,8,8,.95); color:rgba(255,255,255,.5);
+}
+.void-title {
+  position:absolute; top:68px; left:50%; transform:translateX(-50%);
+  font-size:11px; font-weight:500; letter-spacing:5px; color:rgba(255,255,255,.08);
+  pointer-events:none; z-index:10; white-space:nowrap;
+}
+.zoom-btns {
+  position:absolute; bottom:28px; left:28px; z-index:20;
+  display:flex; flex-direction:column; gap:6px;
+}
+.zoom-btn {
+  width:36px; height:36px; border-radius:10px;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:rgba(255,255,255,0.35); transition:all 0.15s;
+  box-shadow:0 0 10px rgba(255,255,255,0.03);
+}
+.zoom-btn:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.18); color:rgba(255,255,255,0.7); box-shadow:0 0 16px rgba(255,255,255,0.07); }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="bar-clock">
+    <span class="logo">$UPERNOVÆ</span>
+    <span class="bar-sep">|</span>
+    <span class="bar-time" id="bar-time" onclick="cycleTimeFormat()">00:00:00</span>
+  </div>
+  <button class="theme-fab" id="theme-fab" onclick="toggleThemeMenu()" aria-label="Theme"></button>
+</div>
+
+<div id="gl" class="on">
+  <div class="grid-head">
+    <h1>$UPERNOVÆ</h1>
+    <p>a collection of small, strange tools</p>
+  </div>
+  <div class="divider"></div>
+  <div class="tools-middle" id="tools-section">
+    <div class="loading-text" id="loading-text">Initializing tools...</div>
+    <div class="cards" id="cards"></div>
+  </div>
+  <div class="divider"></div>
+  <footer style="text-align:center;padding:40px 20px 40px;font-size:12px;color:var(--dim);letter-spacing:1px;transition:color 0.3s;">
+    made by <a href="https://supernova0866.github.io/Lore" target="_blank" style="color:#4a90d9;text-decoration:none;font-weight:500;">Nova</a>
+  </footer>
+</div>
+
+<div id="vl">
+  <div class="stars"></div>
+  <div class="void-title">$UPERNOVÆ</div>
+
+  <canvas id="star-canvas"></canvas>
+  <div class="hole-glow"></div>
+  <div class="hole-wrap"><div class="hole"></div></div>
+  <div class="oc" id="oc"></div>
+  <div class="zoom-btns">
+    <button class="zoom-btn" onclick="adjustZoom(-1)" title="Zoom in">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><circle cx="9" cy="9" r="6"/><line x1="9" y1="6" x2="9" y2="12"/><line x1="6" y1="9" x2="12" y2="9"/><line x1="14" y1="14" x2="18" y2="18"/></svg>
+    </button>
+    <button class="zoom-btn" onclick="adjustZoom(1)" title="Zoom out">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><circle cx="9" cy="9" r="6"/><line x1="6" y1="9" x2="12" y2="9"/><line x1="14" y1="14" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+async function loadTools() {
+  const r = await fetch('tools.json');
+  const d = await r.json();
+  // normalise field names: support both old (name/file) and new (title/src) schema
+  return d.tools.sort((a, b) => (a.id || 0) - (b.id || 0)).map(t => ({
+    id:    t.id,
+    name:  t.title  || t.name,
+    desc:  t.desc,
+    src:   t.src    || t.file,
+    tag:   t.tag,
+    theme: t.theme,
+    emoji: t.emoji,
+  }));
+}
+
+// ── Draw slanted emoji tile grid onto canvas ──────────────────────────────────
+function drawTile(canvas, emoji, isDark) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth  || 300;
+  const H = canvas.offsetHeight || 148;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // slight tilt
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(-0.22); // ~12.5 degrees
+  ctx.translate(-W / 2, -H / 2);
+
+  const size  = 32;
+  const gap   = 14;
+  const step  = size + gap;
+  // offset rows
+  const cols  = Math.ceil(W / step) + 3;
+  const rows  = Math.ceil(H / step) + 3;
+
+  ctx.font = `${size}px serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha  = isDark ? 0.13 : 0.1;
+
+  for (let row = -2; row < rows; row++) {
+    for (let col = -2; col < cols; col++) {
+      const x = col * step + (row % 2 === 0 ? 0 : step / 2);
+      const y = row * step;
+      ctx.fillText(emoji, x, y);
+    }
+  }
+  ctx.restore();
+}
+
+// ── Build grid ────────────────────────────────────────────────────────────────
+let currentTheme = 'light';
+
+function buildGrid(tools) {
+  const c = document.getElementById('cards');
+  c.innerHTML = '';
+  // id=1 at bottom: reverse sort so highest id renders first (top-left), lowest last (bottom)
+  const sorted = [...tools].sort((a, b) => (b.id || 0) - (a.id || 0));
+  sorted.forEach(t => {
+    // emoji stored on element so redrawTiles doesn't need array index
+    const a = document.createElement('a');
+    a.className = 'card';
+    a.href = t.src;
+    const pillText = t.theme === 'light' ? 'Light' : 'Dark';
+
+    a.innerHTML = `
+      <div class="card-img">
+        <canvas></canvas>
+      </div>
+      <div class="card-info">
+        <div class="card-top-row">
+          <div class="card-name">${t.name}</div>
+          <span class="theme-pill">${pillText}</span>
+        </div>
+        <div class="card-desc">${t.desc}</div>
+        <div class="card-tag">${t.tag}</div>
+      </div>`;
+
+    a.dataset.emoji = t.emoji;
+    c.appendChild(a);
+
+    // draw after appended so offsetWidth is known
+    requestAnimationFrame(() => {
+      const canvas = a.querySelector('canvas');
+      drawTile(canvas, t.emoji, currentTheme === 'dark' || currentTheme === 'void');
+    });
+  });
+}
+
+function redrawTiles() {
+  const isDark = currentTheme === 'dark' || currentTheme === 'void';
+  document.querySelectorAll('.card').forEach(card => {
+    const canvas = card.querySelector('canvas');
+    if (canvas && card.dataset.emoji) drawTile(canvas, card.dataset.emoji, isDark);
+  });
+}
+
+// ── Void orbit ────────────────────────────────────────────────────────────────
+const TILT = 0.44;
+const BASE_RING_R   = 170;
+const RING_SPACING  = 130;
+const BASE_COUNT    = 4; // first ring count
+let zoomLevel = -2;      // -2 (zoomed in) to +2 (zoomed out)
+let angles=[], speeds=[], radii=[], voidOn=false, raf=null;
+let tools = [];
+let shootingStars = [];
+let twinkleStars  = [];
+
+function getRings(n) {
+  // distribute n tools into rings of BASE_COUNT, BASE_COUNT+1, BASE_COUNT+2...
+  const rings = [];
+  let remaining = n, ring = 0, count = BASE_COUNT;
+  while (remaining > 0) {
+    const c = Math.min(count + ring, remaining);
+    const scale = Math.pow(0.88, zoomLevel);
+    rings.push({ r: (BASE_RING_R + ring * RING_SPACING) * scale, speed: 0.00075 / (ring + 1), count: c });
+    remaining -= c; ring++;
+  }
+  return rings;
+}
+
+let ringIndices = []; // ring index per card, stored at build time
+
+function buildVoid(toolList) {
+  const oc = document.getElementById('oc');
+  oc.innerHTML='';
+  // remove old orbit items from vl
+  document.querySelectorAll('#vl .oi').forEach(e => e.remove());
+  angles=[]; speeds=[]; radii=[]; ringIndices=[];
+  let idx=0;
+  const rings = getRings(toolList.length);
+  rings.forEach((ring,ri) => {
+    for (let j=0;j<ring.count&&idx<toolList.length;j++,idx++) {
+      angles.push((j/ring.count)*Math.PI*2+ri*0.5);
+      speeds.push(ring.speed);
+      radii.push(ring.r);
+      ringIndices.push(ri); // store which ring this card is on
+      const t=toolList[idx];
+      const oi=document.createElement('div');
+      oi.className='oi'; oi.id='oi'+idx;
+      const card=document.createElement('a');
+      card.className='oc-card'; card.href=t.src;
+      card.innerHTML=`<div class="oc-thumb">${t.emoji}</div><div class="oc-name">${t.name}</div>`;
+      oi.appendChild(card);
+      document.getElementById('vl').appendChild(oi);
+    }
+  });
+  rebuildRingDivs(rings);
+}
+
+function rebuildRingDivs(rings) {
+  document.querySelectorAll('.oring').forEach(e=>e.remove());
+  const vl = document.getElementById('vl');
+  const insertBefore = document.querySelector('.hole-glow') || null;
+  rings.forEach(ring => {
+    const d = document.createElement('div');
+    d.className = 'oring';
+    const w = ring.r * 2;
+    const h = ring.r * 2 * Math.sin(TILT); // exact same as card y projection
+    d.style.cssText = `width:${w}px;height:${h}px;margin-left:${-w/2}px;margin-top:${-h/2}px;`;
+    vl.insertBefore(d, insertBefore);
+  });
+}
+
+function adjustZoom(dir) {
+  const prev = zoomLevel;
+  zoomLevel = Math.max(-2, Math.min(2, zoomLevel + dir));
+  if (zoomLevel === prev) return;
+  // rebuild rings with new radii but preserve angles
+  const savedAngles = [...angles];
+  buildVoid(tools);
+  // restore angles so cards don't teleport
+  angles = savedAngles.length === angles.length ? savedAngles : angles;
+}
+
+function tickVoid() {
+  if (!voidOn) return;
+
+  // Step 1: advance angles, compute 3D positions
+  const states = tools.map((_, i) => {
+    angles[i] += speeds[i];
+    const r   = radii[i];
+    const ri  = ringIndices[i];
+    const x   = Math.cos(angles[i]) * r;
+    const z3d = Math.sin(angles[i]) * r; // positive = toward viewer
+    const y   = z3d * Math.sin(TILT);
+    const normZ = z3d / r; // -1 back, +1 front
+    return { i, x, y, z3d, normZ, r, ri };
+  });
+
+  // Step 2: sort by correct painter's order
+  // Primary: z3d ascending (back first, front last = painted on top)
+  // Tiebreak front half: outer ring on top (higher ri wins)
+  // Tiebreak back half:  inner ring on top (lower ri wins — closer to hole)
+  const sorted = [...states].sort((a, b) => {
+    if (Math.abs(a.z3d - b.z3d) > 0.5) return a.z3d - b.z3d;
+    // same depth — tiebreak by ring
+    const frontA = a.z3d >= 0, frontB = b.z3d >= 0;
+    if (frontA && frontB) return a.ri - b.ri; // inner ring behind outer on front
+    if (!frontA && !frontB) return b.ri - a.ri; // outer ring behind inner on back
+    return a.z3d - b.z3d;
+  });
+
+  // Step 3: assign z-indexes 1..N from sort order, with hole at its fixed slot
+  // Hole z = 1000. Cards behind hole get z < 1000, cards in front get z > 1000.
+  const n = sorted.length;
+  sorted.forEach((s, rank) => {
+    // map rank 0..n-1 to z-index, keeping hole gap at z3d=0
+    const z = s.z3d >= 0
+      ? 1001 + rank   // front half: all above 1000
+      : rank + 1;     // back half:  1..n, all below 1000
+    sorted[rank]._z = z;
+  });
+
+  // Step 4: apply styles
+  states.forEach(s => {
+    const el = document.getElementById('oi' + s.i);
+    if (!el) return;
+    el.style.transform = `translate(${s.x}px,${s.y}px)`;
+
+    // Scale factors:
+    // 1. depth in orbit: front=1.0, back=0.55
+    // 2. ring: inner ring = full size, each outer ring shrinks by 15%
+    // 3. zoom: zoomLevel -2 (default zoomed in) = full size, +2 = 0.6x
+    const depthFactor = 0.55 + (s.normZ + 1) / 2 * 0.45;
+    const ringFactor  = Math.pow(0.85, s.ri);
+    const zoomFactor  = Math.pow(0.88, zoomLevel + 2); // +2 offsets so default (-2) = 1.0
+    const scale   = depthFactor * ringFactor * zoomFactor;
+    const opacity = 0.18 + (s.normZ + 1) / 2 * 0.82;
+
+    const card = el.querySelector('.oc-card');
+    card.style.transform = `translate(-50%,-50%) scale(${scale})`;
+    card.style.opacity   = opacity;
+    el.style.zIndex      = s._z || 1;
+  });
+
+  tickStarCanvas();
+  raf = requestAnimationFrame(tickVoid);
+}
+
+// ── Star canvas: twinkling + shooting stars ───────────────────────────────────
+function initStarCanvas() {
+  const cv = document.getElementById('star-canvas');
+  if (!cv) return;
+  cv.width  = window.innerWidth;
+  cv.height = window.innerHeight;
+  // init twinkle stars
+  twinkleStars = Array.from({length:60}, () => ({
+    x: Math.random()*cv.width, y: Math.random()*cv.height,
+    r: Math.random()*1.2+0.3,
+    base: Math.random()*0.4+0.1,
+    phase: Math.random()*Math.PI*2,
+    speed: Math.random()*0.02+0.005,
+  }));
+}
+
+function spawnShootingStar(cv) {
+  const side = Math.random() < 0.5;
+  shootingStars.push({
+    x: side ? -10 : cv.width * (0.2 + Math.random()*0.6),
+    y: side ? cv.height * Math.random()*0.5 : -10,
+    vx: (3 + Math.random()*4) * (side ? 1 : (Math.random()-0.3)),
+    vy: (3 + Math.random()*4) * (side ? (Math.random()*0.5+0.3) : 1),
+    len: 60 + Math.random()*80,
+    life: 1.0,
+    decay: 0.018 + Math.random()*0.012,
+  });
+}
+
+let shootingTimer = 0;
+function tickStarCanvas() {
+  const cv = document.getElementById('star-canvas');
+  if (!cv || !voidOn) return;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const t = performance.now()/1000;
+
+  // twinkling
+  twinkleStars.forEach(s => {
+    const a = s.base + Math.sin(t*s.speed*60 + s.phase)*s.base*0.8;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${Math.max(0,a)})`;
+    ctx.fill();
+  });
+
+  // shooting stars — spawn randomly
+  shootingTimer++;
+  if (shootingTimer > 180 + Math.random()*300) {
+    spawnShootingStar(cv);
+    shootingTimer = 0;
+  }
+
+  shootingStars = shootingStars.filter(s => s.life > 0);
+  shootingStars.forEach(s => {
+    const nx = s.x + s.vx, ny = s.y + s.vy;
+    const grad = ctx.createLinearGradient(s.x, s.y, s.x - s.vx*(s.len/5), s.y - s.vy*(s.len/5));
+    grad.addColorStop(0, `rgba(255,255,255,${s.life*0.9})`);
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.beginPath();
+    ctx.moveTo(nx, ny);
+    ctx.lineTo(s.x - s.vx*(s.len/Math.sqrt(s.vx*s.vx+s.vy*s.vy)), s.y - s.vy*(s.len/Math.sqrt(s.vx*s.vx+s.vy*s.vy)));
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 1.5 * s.life;
+    ctx.stroke();
+    s.x = nx; s.y = ny;
+    s.life -= s.decay;
+  });
+}
+
+window.addEventListener('resize', () => {
+  const cv = document.getElementById('star-canvas');
+  if (cv) { cv.width=window.innerWidth; cv.height=window.innerHeight; }
+});
+
+// ── Layout switching ──────────────────────────────────────────────────────────
+function setLayout(m) {
+  currentTheme = m;
+  document.body.className = m;
+  updateFabIcon(m);
+  ['tm-light','tm-dark','tm-void'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(m==='light'?'tm-light':m==='dark'?'tm-dark':'tm-void').classList.add('active');
+  document.getElementById('gl').classList.toggle('on', m!=='void');
+  document.getElementById('vl').classList.toggle('on', m==='void');
+  if (m==='void') { voidOn=true; initStarCanvas(); raf=requestAnimationFrame(tickVoid); }
+  else { voidOn=false; cancelAnimationFrame(raf); }
+  redrawTiles();
+  closeThemeMenu();
+}
+
+const FAB_ICONS = {
+  light: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" width="18" height="18"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>`,
+  dark:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
+  void:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" width="18" height="18"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/></svg>`,
+};
+
+function updateFabIcon(m) {
+  document.getElementById('theme-fab').innerHTML = FAB_ICONS[m] || FAB_ICONS.light;
+}
+
+function toggleThemeMenu() {
+  document.getElementById('theme-menu').classList.toggle('open');
+}
+
+function closeThemeMenu() {
+  document.getElementById('theme-menu').classList.remove('open');
+}
+
+// close on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.theme-menu') && !e.target.closest('.theme-fab')) closeThemeMenu();
+});
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+const TIME_FORMATS = ['HH:MM:SS', 'hh:MM:SS', 'HH:MM', 'hh:MM'];
+let timeFormatIdx = 0;
+
+function cycleTimeFormat() {
+  timeFormatIdx = (timeFormatIdx + 1) % TIME_FORMATS.length;
+}
+
+function formatTime(d, fmt) {
+  let h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  if (fmt.startsWith('hh')) h = h % 12 || 12;
+  const hh = String(h).padStart(2, '0');
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  if (fmt === 'HH:MM:SS') return `${hh}:${mm}:${ss}`;
+  if (fmt === 'hh:MM:SS') return `${hh}:${mm}:${ss} ${ampm}`;
+  if (fmt === 'HH:MM')    return `${hh}:${mm}`;
+  if (fmt === 'hh:MM')    return `${hh}:${mm} ${ampm}`;
+  return `${hh}:${mm}:${ss}`;
+}
+
+function startClock() {
+  const el = document.getElementById('bar-time');
+  if (!el) return;
+  function tick() {
+    el.textContent = formatTime(new Date(), TIME_FORMATS[timeFormatIdx]);
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+// auto theme based on time — light 6am-7pm, dark 7pm-6am
+function getAutoTheme() {
+  const h = new Date().getHours();
+  return (h >= 6 && h < 19) ? 'light' : 'dark';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  const autoTheme = getAutoTheme();
+  setLayout(autoTheme);
+  updateFabIcon(autoTheme);
+  startClock();
+  loadTools().then(t => {
+    tools = t;
+    buildGrid(tools);
+    buildVoid(tools);
+    const lt = document.getElementById('loading-text');
+
+    if (lt) { lt.style.opacity = '0'; setTimeout(() => lt.remove(), 400); }
+  });
+});
+</script>
+<!-- theme menu -->
+<div class="theme-menu" id="theme-menu">
+  <button class="tmenu-item active" id="tm-light" onclick="setLayout('light')">
+    <span class="ticon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+      </svg>
+    </span>
+    Light
+  </button>
+  <button class="tmenu-item" id="tm-dark" onclick="setLayout('dark')">
+    <span class="ticon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </span>
+    Dark
+  </button>
+  <button class="tmenu-item" id="tm-void" onclick="setLayout('void')">
+    <span class="ticon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3"/>
+        <circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/>
+      </svg>
+    </span>
+    Void
+  </button>
+</div>
+</body>
+</html>
