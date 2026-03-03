@@ -144,6 +144,15 @@
       "tag": "visual",
       "theme": "dark",
       "emoji": "🔭"
+    },
+    {
+      "id": 15,
+      "title": "Translator +++",
+      "desc": "13 languages. Past, present, and whatever this is.",
+      "src": "tools/translator.html",
+      "tag": "utility",
+      "theme": "dark",
+       "emoji": "📡"
     }
   ]
 }
