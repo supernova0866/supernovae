@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reaction Time Test</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+  --bg: #f0ece3;
+  --surface: #e8e2d6;
+  --surface2: #ddd7c8;
+  --ink: #1a1714;
+  --ink-dim: #7a7060;
+  --ink-faint: #b8b0a0;
+  --accent: #2d5a27;
+  --accent-light: #e8f0e6;
+  --warn: #8b4513;
+  --warn-light: #f5ede4;
+  --red: #8b1a1a;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Instrument Serif', Georgia, serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* subtle grid */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(26,23,20,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,23,20,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* Header */
+.header {
+  width: 100%;
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.header-eyebrow {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--ink-faint);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(36px, 7vw, 58px);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+h1 em {
+  font-style: normal;
+  color: var(--ink-dim);
+}
+
+/* Arena */
+.arena {
+  width: 100%;
+  aspect-ratio: 4/3;
+  max-height: 380px;
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s;
+}
+
+.arena::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* States */
+.arena.state-idle     { background: var(--surface); }
+.arena.state-waiting  { background: var(--warn-light); }
+.arena.state-go       { background: var(--accent-light); }
+.arena.state-early    { background: #fce4e4; }
+.arena.state-done     { background: var(--surface); }
+
+/* Arena text */
+.arena-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.arena-main {
+  font-family: var(--serif);
+  font-size: clamp(28px, 5vw, 48px);
+  font-style: italic;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 24px;
+}
+
+.arena-sub {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+/* Big time display */
+.time-display {
+  font-family: var(--serif);
+  font-size: clamp(52px, 12vw, 96px);
+  font-style: italic;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.time-unit {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--ink-dim);
+  margin-top: 4px;
+}
+
+/* Verdict */
+.verdict {
+  font-family: var(--serif);
+  font-size: clamp(18px, 3vw, 26px);
+  font-style: italic;
+  text-align: center;
+  padding: 0 24px;
+  line-height: 1.3;
+}
+
+/* Corner label */
+.arena-corner {
+  position: absolute;
+  top: 14px; right: 14px;
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+/* Stats row */
+.stats {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid var(--surface2);
+  border-top: none;
+  background: white;
+}
+
+.stat {
+  padding: 16px 14px;
+  border-right: 1px solid var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stat:last-child { border-right: none; }
+
+.stat-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: var(--serif);
+  font-size: clamp(18px, 3vw, 26px);
+  font-style: italic;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.stat-value.good  { color: var(--accent); }
+.stat-value.bad   { color: var(--red); }
+
+/* Rounds row */
+.rounds {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border: 1px solid var(--surface2);
+  border-top: none;
+  background: var(--bg);
+}
+
+.round-cell {
+  padding: 12px 10px;
+  border-right: 1px solid var(--surface2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.round-cell:last-child { border-right: none; }
+
+.round-num {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--ink-faint);
+}
+
+.round-val {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-style: italic;
+  color: var(--ink-dim);
+  line-height: 1;
+}
+
+.round-val.done  { color: var(--ink); }
+.round-val.best  { color: var(--accent); }
+.round-val.early { color: var(--red); font-size: 13px; font-style: normal; font-family: var(--mono); letter-spacing: 1px; }
+.round-cell.active .round-num { color: var(--accent); }
+
+/* History strip */
+.history {
+  width: 100%;
+  margin-top: 20px;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  min-height: 28px;
+  align-items: flex-end;
+}
+
+.history-bar {
+  width: 18px;
+  background: var(--surface2);
+  border-radius: 2px 2px 0 0;
+  position: relative;
+  transition: background 0.2s;
+  min-height: 4px;
+}
+
+.history-bar:hover::after {
+  content: attr(data-ms);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 9px;
+  padding: 3px 6px;
+  white-space: nowrap;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+
+.history-bar.best  { background: var(--accent); }
+.history-bar.worst { background: var(--red); opacity: 0.5; }
+.history-bar.early { background: var(--warn); opacity: 0.4; }
+
+/* Footnote */
+.footnote {
+  margin-top: 28px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--ink-faint);
+  text-align: center;
+  line-height: 2;
+}
+
+/* Info button */
+#btn-info {
+  position: fixed;
+  top: 12px; right: 12px;
+  background: white;
+  border: 1px solid var(--surface2);
+  color: var(--ink-dim);
+  font-size: 14px;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 100;
+  font-family: var(--mono);
+}
+#btn-info:hover { border-color: var(--ink-dim); color: var(--ink); }
+
+/* Info overlay */
+.info-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(240,236,227,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.info-overlay.open { display: flex; }
+
+.info-box {
+  background: white;
+  border: 1px solid var(--surface2);
+  padding: 28px 32px 24px;
+  position: relative;
+  min-width: 280px;
+  box-shadow: 6px 6px 0 var(--surface2);
+}
+
+.info-brand {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--ink);
+  text-decoration: none;
+  display: block;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+.info-brand:hover { opacity: 0.6; }
+
+.info-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: none;
+  border: 1px solid var(--surface2);
+  color: var(--ink-dim);
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: var(--mono);
+  transition: all 0.15s;
+}
+.info-close:hover { border-color: var(--ink); color: var(--ink); }
+
+.info-line {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--ink-dim);
+  line-height: 2.2;
+}
+
+.info-nova {
+  color: var(--accent);
+  text-decoration: none;
+}
+.info-nova:hover { opacity: 0.7; }
+
+/* Animations */
+@keyframes pulse-go {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.arena.state-go .arena-main {
+  animation: pulse-go 0.6s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.arena.state-early {
+  animation: shake 0.35s ease;
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.time-display { animation: fadein 0.2s ease; }
+.verdict      { animation: fadein 0.25s ease 0.05s both; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="header">
+      <h1>Reaction<br><em>Time</em> Test</h1>
+  </div>
+
+  <div class="arena state-idle" id="arena" onclick="handleClick()">
+    <div class="arena-corner" id="arena-corner">CLICK TO BEGIN</div>
+    <div class="arena-text" id="arena-text">
+      <div class="arena-main" id="arena-main">Click anywhere<br>to start</div>
+      <div class="arena-sub" id="arena-sub">WAIT FOR GREEN</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Best</div>
+      <div class="stat-value good" id="stat-best">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Average</div>
+      <div class="stat-value" id="stat-avg">—</div>
+    </div>
+  </div>
+  <div class="rounds" id="rounds">
+    <div class="round-cell" id="r1"><span class="round-num">1</span><span class="round-val">—</span></div>
+    <div class="round-cell" id="r2"><span class="round-num">2</span><span class="round-val">—</span></div>
+    <div class="round-cell" id="r3"><span class="round-num">3</span><span class="round-val">—</span></div>
+    <div class="round-cell" id="r4"><span class="round-num">4</span><span class="round-val">—</span></div>
+    <div class="round-cell" id="r5"><span class="round-num">5</span><span class="round-val">—</span></div>
+  </div>
+
+  <div class="history" id="history"></div>
+
+  <div class="footnote">
+    CLICK TOO EARLY — THAT'S A FAULT &nbsp;·&nbsp; 5 ROUNDS PER SESSION<br>
+    AVERAGE HUMAN: 200–250ms &nbsp;·&nbsp; YOU WOULD NOT HAVE SURVIVED THE CRETACEOUS
+  </div>
+</div>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="#" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const ROUNDS = 5;
+let state    = 'idle';   // idle | waiting | go | early | done
+let timer    = null;
+let startMs  = null;
+let results  = [];       // ms values, or 'early'
+
+// ── DOM ───────────────────────────────────────────────────────────────────
+const arena     = document.getElementById('arena');
+const arenaMain = document.getElementById('arena-main');
+const arenaSub  = document.getElementById('arena-sub');
+const arenaCorner = document.getElementById('arena-corner');
+const statBest  = document.getElementById('stat-best');
+const statAvg   = document.getElementById('stat-avg');
+const historyEl = document.getElementById('history');
+const roundCells = [1,2,3,4,5].map(i => document.getElementById('r' + i));
+
+// ── Verdicts ──────────────────────────────────────────────────────────────
+function getVerdict(ms) {
+  if (ms < 100) return "Physically impossible. We're logging your IP.";
+  if (ms < 120) return "The equipment is probably lying. So are you.";
+  if (ms < 135) return "Hummingbirds have slower reflexes. This is not a compliment.";
+  if (ms < 150) return "Suspicious. Are you a robot?";
+  if (ms < 165) return "Your nervous system is doing something the textbooks don't cover.";
+  if (ms < 180) return "Genuinely alarming. Go outside.";
+  if (ms < 195) return "Fighter pilot territory. What are you running from?";
+  if (ms < 210) return "You would have survived the Cretaceous.";
+  if (ms < 225) return "Sharper than most. Duller than a dragonfly.";
+  if (ms < 240) return "Respectable. A house cat would still beat you.";
+  if (ms < 255) return "Solidly in the 'not dead yet' percentile.";
+  if (ms < 270) return "Average, which is fine. The average person is also gone.";
+  if (ms < 280) return "Solidly average. The asteroid got people like you.";
+  if (ms < 295) return "You hesitated. Just for a moment. It was enough.";
+  if (ms < 310) return "The lion has already made its decision. You're still thinking.";
+  if (ms < 330) return "A little slow. Nothing fatal. Probably.";
+  if (ms < 355) return "Your brain received the signal. It filed it for later.";
+  if (ms < 380) return "You'll be fine as long as nothing ever needs to happen quickly.";
+  if (ms < 400) return "You blinked, didn't you.";
+  if (ms < 430) return "There was a gap between seeing and doing. Things lived in that gap.";
+  if (ms < 460) return "Half a second is a long time to be a wildebeest.";
+  if (ms < 500) return "The predator has already eaten.";
+  if (ms < 540) return "By the time you react, the moment has moved on without you.";
+  if (ms < 580) return "Your ancestors survived on luck. Tremendous, unearned luck.";
+  if (ms < 620) return "You are operating on a slight delay from reality. Like bad satellite TV.";
+  if (ms < 670) return "This is fine. You were never going to be a surgeon anyway.";
+  if (ms < 720) return "The click arrived. Eventually. Like a very tired messenger.";
+  if (ms < 780) return "Geologically speaking, you eventually responded.";
+  if (ms < 850) return "A snail, in the right circumstances, could have beaten you.";
+  if (ms < 920) return "Your reaction time has its own reaction time.";
+  if (ms < 1000) return "Are you okay? Genuinely asking.";
+  return "The test ended. You were still considering your options.";
+}
+
+// ── Click handler ─────────────────────────────────────────────────────────
+function handleClick() {
+  if (state === 'idle' || state === 'done') {
+    beginWaiting();
+  } else if (state === 'waiting') {
+    tooEarly();
+  } else if (state === 'go') {
+    recordResult();
+  }
+}
+
+function beginWaiting() {
+  state = 'waiting';
+  arena.className = 'arena state-waiting';
+  arenaMain.innerHTML = 'Wait for it…';
+  arenaSub.textContent = 'NOT YET';
+  arenaCorner.textContent = `ROUND ${results.length + 1} / ${ROUNDS}`;
+
+  const delay = 1500 + Math.random() * 3000;
+  timer = setTimeout(showGo, delay);
+}
+
+function showGo() {
+  state = 'go';
+  startMs = performance.now();
+  arena.className = 'arena state-go';
+  arenaMain.innerHTML = 'NOW';
+  arenaSub.textContent = 'CLICK';
+  arenaCorner.textContent = `ROUND ${results.length + 1} / ${ROUNDS}`;
+}
+
+function tooEarly() {
+  clearTimeout(timer);
+  state = 'early';
+  arena.className = 'arena state-early';
+  arenaMain.innerHTML = 'Too early.';
+  arenaSub.textContent = 'CLICK TO TRY AGAIN';
+  arenaCorner.textContent = 'FAULT';
+  results.push('early');
+  updateHistory();
+  updateRounds();
+
+  setTimeout(() => {
+    if (results.length >= ROUNDS) {
+      showDone();
+    } else {
+      state = 'idle';
+      arena.className = 'arena state-idle';
+      arenaMain.innerHTML = 'Click to continue';
+      arenaSub.textContent = `ROUND ${results.length + 1} OF ${ROUNDS}`;
+      arenaCorner.textContent = 'CLICK TO CONTINUE';
+    }
+  }, 900);
+}
+
+function recordResult() {
+  const ms = Math.round(performance.now() - startMs);
+  results.push(ms);
+  state = 'done';
+
+  updateStats(ms);
+  updateHistory();
+  updateRounds();
+
+  const numericResults = results.filter(r => r !== 'early');
+
+  if (results.length >= ROUNDS) {
+    showDone();
+    return;
+  }
+
+  // Show result briefly then prompt next round
+  arena.className = 'arena state-done';
+  arenaMain.innerHTML = `<div class="time-display">${ms}</div><div class="time-unit">MILLISECONDS</div>`;
+  arenaSub.textContent = '';
+  arenaCorner.textContent = `ROUND ${results.length} DONE`;
+
+  setTimeout(() => {
+    state = 'idle';
+    arena.className = 'arena state-idle';
+    arenaMain.innerHTML = 'Click to continue';
+    arenaSub.textContent = `ROUND ${results.length + 1} OF ${ROUNDS}`;
+    arenaCorner.textContent = 'CLICK TO CONTINUE';
+  }, 1200);
+}
+
+function showDone() {
+  state = 'done';
+  arena.className = 'arena state-done';
+  arenaCorner.textContent = 'SESSION COMPLETE';
+
+  const numeric = results.filter(r => r !== 'early');
+  const earlyCount = results.filter(r => r === 'early').length;
+
+  if (numeric.length === 0) {
+    arenaMain.innerHTML = `<div class="verdict">All faults. Impressive in its own way.</div>`;
+    arenaSub.textContent = 'CLICK TO RESTART';
+  } else {
+    const best = Math.min(...numeric);
+    const avg  = Math.round(numeric.reduce((a, b) => a + b, 0) / numeric.length);
+    const verdict = getVerdict(avg);
+    const earlyNote = earlyCount > 0 ? `<div class="time-unit">${earlyCount} FAULT${earlyCount > 1 ? 'S' : ''}</div>` : '';
+
+    arenaMain.innerHTML = `
+      <div class="time-display">${avg}</div>
+      <div class="time-unit">MS AVERAGE</div>
+      ${earlyNote}
+      <div class="verdict">${verdict}</div>
+    `;
+    arenaSub.textContent = 'CLICK TO PLAY AGAIN';
+  }
+
+  // Reset for next session
+  setTimeout(() => {
+    results = [];
+    updateHistory();
+    updateRounds();
+    statBest.textContent = '—';
+    statBest.className = 'stat-value good';
+    statAvg.textContent = '—';
+    statAvg.className = 'stat-value';
+  }, 100);
+}
+
+function updateStats(ms) {
+  const numeric = results.filter(r => r !== 'early');
+
+  const best = Math.min(...numeric);
+  statBest.textContent = best + 'ms';
+  statBest.className = 'stat-value good';
+
+  const avg = Math.round(numeric.reduce((a, b) => a + b, 0) / numeric.length);
+  statAvg.textContent = avg + 'ms';
+  statAvg.className = avg < 250 ? 'stat-value good' : 'stat-value';
+}
+
+function updateRounds() {
+  const numeric = results.filter(r => r !== 'early');
+  const best = numeric.length ? Math.min(...numeric) : null;
+
+  results.forEach((r, i) => {
+    if (i >= 5) return;
+    const valEl = roundCells[i].querySelector('.round-val');
+    roundCells[i].classList.remove('active');
+    if (r === 'early') {
+      valEl.textContent = 'FAULT';
+      valEl.className = 'round-val early';
+    } else {
+      valEl.textContent = r + 'ms';
+      valEl.className = 'round-val done' + (r === best && numeric.length > 1 ? ' best' : '');
+    }
+  });
+
+  // Highlight current round
+  if (results.length < 5) {
+    roundCells[results.length].classList.add('active');
+  }
+
+  // Reset future cells
+  for (let i = results.length; i < 5; i++) {
+    const valEl = roundCells[i].querySelector('.round-val');
+    valEl.textContent = '—';
+    valEl.className = 'round-val';
+    roundCells[i].classList.remove('active');
+  }
+}
+
+function updateHistory() {
+  const numeric = results.filter(r => r !== 'early');
+  if (numeric.length === 0 && results.every(r => r === 'early')) {
+    // all early
+  }
+
+  const maxVal = numeric.length ? Math.max(...numeric) : 500;
+  const minVal = numeric.length ? Math.min(...numeric) : 0;
+
+  historyEl.innerHTML = '';
+  results.forEach(r => {
+    const bar = document.createElement('div');
+    bar.className = 'history-bar';
+    if (r === 'early') {
+      bar.classList.add('early');
+      bar.style.height = '12px';
+      bar.setAttribute('data-ms', 'EARLY');
+    } else {
+      const pct = numeric.length > 1
+        ? 10 + ((r - minVal) / (maxVal - minVal + 1)) * 90
+        : 50;
+      bar.style.height = Math.round(pct * 0.28) + 'px';
+      if (r === minVal && numeric.length > 1) bar.classList.add('best');
+      if (r === maxVal && numeric.length > 1) bar.classList.add('worst');
+      bar.setAttribute('data-ms', r + 'ms');
+    }
+    historyEl.appendChild(bar);
+  });
+}
+
+// Highlight first round on load
+updateRounds();
+
+// ── Info popup ────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>
