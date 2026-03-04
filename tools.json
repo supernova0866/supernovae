@@ -148,11 +148,29 @@
     {
       "id": 15,
       "title": "Translator +++",
-      "desc": "13 languages. Past, present, and whatever this is.",
+      "desc": "14 languages. Past, present, and whatever this is.",
       "src": "tools/translator.html",
       "tag": "utility",
       "theme": "dark",
        "emoji": "📡"
+    },
+    {
+      "id": 16,
+      "title": "Solar.sys",
+      "desc": "Our solar system. From an alien perspective.",
+      "src": "tools/solar-sys.html",
+      "tag": "visual",
+      "theme": "dark",
+      "emoji": "🪐"
+    },
+    {
+      "id": 17,
+      "title": "Life Advice by The Lifeless",
+      "desc": "Life advice from people who didn't take their own.",
+      "src": "tools/life-advice.html",
+      "tag": "existential",
+      "theme": "dark",
+      "emoji": "💡"
     }
   ]
 }
