@@ -171,6 +171,15 @@
       "tag": "existential",
       "theme": "dark",
       "emoji": "💡"
+    },
+    {
+      "id": 18,
+      "title": "Reaction Time Test",
+      "desc": "How fast are you? Slower than a dragonfly. Probably.",
+      "src": "tools/reaction-time.html",
+      "tag": "game",
+      "theme": "light",
+      "emoji": "⚡"
     }
   ]
 }
