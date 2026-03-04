@@ -1,0 +1,25 @@
+name: Fix info popup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run fix script
+        run: node fix-info-popup.mjs
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add tools/*.html
+          git diff --staged --quiet || git commit -m "fix: info popup fetch path and tool match"
+          git push
