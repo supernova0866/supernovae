@@ -380,10 +380,10 @@ async function runDeath() {
 <script>
 (async () => {
   try {
-    const res  = await fetch('tools.json');
+    const res  = await fetch('../tools.json');
     const data = await res.json();
     const file = window.location.pathname.split('/').pop() || '';
-    const tool = data.tools.find(t => (t.src || t.file) === file);
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
     if (tool) {
       document.getElementById('info-title').textContent = tool.title || tool.name;
       document.getElementById('info-id').textContent    = '#' + tool.id;
