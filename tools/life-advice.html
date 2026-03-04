@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life Advice by The Lifeless</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Orbitron:wght@400;700&display=swap');
+
+:root {
+  --bg: #0a0806;
+  --paper: #110e0b;
+  --ink: #e8ddd0;
+  --ink-dim: rgba(232,221,208,0.4);
+  --ink-faint: rgba(232,221,208,0.12);
+  --gold: #c9a84c;
+  --gold-dim: rgba(201,168,76,0.3);
+  --red: #8b2020;
+  --red-bright: #c0392b;
+  --mono: 'Share Tech Mono', monospace;
+  --serif: 'Playfair Display', Georgia, serif;
+  --hud: 'Orbitron', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 999; opacity: 0.6;
+}
+
+header {
+  padding: 48px 60px 32px;
+  border-bottom: 1px solid var(--ink-faint);
+  position: relative;
+}
+
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(32px, 5vw, 64px);
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  color: var(--ink);
+}
+
+h1 span { color: var(--gold); }
+
+.header-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--ink-dim);
+  margin-top: 14px;
+}
+
+.header-rule {
+  position: absolute;
+  bottom: -1px; left: 60px;
+  width: 80px; height: 2px;
+  background: var(--gold);
+}
+
+#btn-info {
+  position: fixed;
+  top: 12px; right: 12px;
+  background: var(--paper);
+  border: 1px solid var(--ink-faint);
+  color: var(--ink-dim);
+  font-size: 15px;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  z-index: 100;
+}
+#btn-info:hover {
+  background: #1a1612;
+  color: var(--gold);
+  border-color: var(--gold-dim);
+}
+
+.info-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(10,8,6,0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.info-overlay.open { display: flex; }
+
+.info-box {
+  background: var(--paper);
+  border: 1px solid var(--ink-faint);
+  padding: 32px 36px 28px;
+  position: relative;
+  min-width: 280px;
+}
+
+.info-brand {
+  font-family: var(--hud);
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-decoration: none;
+  display: block;
+  margin-bottom: 20px;
+}
+.info-brand:hover { opacity: 0.8; }
+
+.info-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.info-close:hover { color: var(--ink); }
+
+.info-line {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-dim);
+  line-height: 2;
+}
+
+.info-nova {
+  color: var(--gold);
+  text-decoration: none;
+  opacity: 0.8;
+}
+.info-nova:hover { opacity: 1; }
+
+nav {
+  display: flex;
+  gap: 0;
+  padding: 0 60px;
+  border-bottom: 1px solid var(--ink-faint);
+  overflow-x: auto;
+}
+
+.tab {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: var(--ink-dim);
+  padding: 18px 24px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.section-header {
+  padding: 52px 60px 36px;
+  border-bottom: 1px solid var(--ink-faint);
+}
+
+.section-num {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--gold);
+  opacity: 0.6;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: clamp(22px, 3.5vw, 40px);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.section-desc {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--ink-dim);
+  margin-top: 12px;
+  max-width: 480px;
+  line-height: 1.8;
+}
+
+.cards {
+  padding: 40px 60px 60px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1px;
+  background: var(--ink-faint);
+}
+
+.card {
+  background: var(--paper);
+  padding: 36px 32px 32px;
+  position: relative;
+  transition: background 0.2s;
+  cursor: default;
+}
+
+.card:hover { background: #161210; }
+
+.card-person {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--gold);
+  opacity: 0.8;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-years {
+  color: var(--ink-dim);
+  opacity: 0.6;
+}
+
+.card-quote {
+  font-size: clamp(15px, 1.6vw, 18px);
+  font-style: italic;
+  line-height: 1.65;
+  color: var(--ink);
+  margin-bottom: 28px;
+  position: relative;
+  padding-left: 20px;
+}
+
+.card-quote::before {
+  content: '"';
+  position: absolute;
+  left: 0; top: -4px;
+  font-size: 36px;
+  color: var(--gold);
+  opacity: 0.4;
+  line-height: 1;
+  font-style: normal;
+}
+
+.card-quote .original {
+  display: block;
+  text-decoration: line-through;
+  color: var(--ink-dim);
+  font-size: 0.85em;
+  margin-bottom: 8px;
+}
+
+.card-quote .twisted { color: var(--ink); }
+
+.card-death {
+  border-top: 1px solid var(--ink-faint);
+  padding-top: 20px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.death-skull {
+  font-size: 18px;
+  opacity: 0.5;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.death-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--red-bright);
+  opacity: 0.8;
+  margin-bottom: 5px;
+}
+
+.death-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--ink-dim);
+  letter-spacing: 0.3px;
+}
+
+.irony-badge {
+  position: absolute;
+  top: 16px; right: 16px;
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 2px;
+  padding: 4px 8px;
+  border: 1px solid var(--red);
+  color: var(--red-bright);
+  opacity: 0.7;
+}
+
+.section-content { display: none; }
+.section-content.active { display: block; }
+
+footer {
+  padding: 24px 60px;
+  border-top: 1px solid var(--ink-faint);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-brand {
+  font-family: var(--hud);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--ink-dim);
+  text-decoration: none;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.footer-brand:hover { opacity: 0.8; }
+
+.footer-note {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--ink-dim);
+  opacity: 0.3;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card { animation: fadeUp 0.4s ease both; }
+
+.cards .card:nth-child(1)  { animation-delay: 0.05s; }
+.cards .card:nth-child(2)  { animation-delay: 0.10s; }
+.cards .card:nth-child(3)  { animation-delay: 0.15s; }
+.cards .card:nth-child(4)  { animation-delay: 0.20s; }
+.cards .card:nth-child(5)  { animation-delay: 0.25s; }
+.cards .card:nth-child(6)  { animation-delay: 0.30s; }
+.cards .card:nth-child(7)  { animation-delay: 0.35s; }
+.cards .card:nth-child(8)  { animation-delay: 0.40s; }
+.cards .card:nth-child(9)  { animation-delay: 0.45s; }
+.cards .card:nth-child(10) { animation-delay: 0.50s; }
+.cards .card:nth-child(11) { animation-delay: 0.55s; }
+.cards .card:nth-child(12) { animation-delay: 0.60s; }
+.cards .card:nth-child(13) { animation-delay: 0.65s; }
+.cards .card:nth-child(14) { animation-delay: 0.70s; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Life Advice<br>by <span>The Lifeless</span></h1>
+  <div class="header-sub">WISDOM FROM THOSE WHO NO LONGER NEED IT</div>
+  <div class="header-rule"></div>
+  <button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+</header>
+
+<!-- info popup -->
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="../index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<nav>
+  <button class="tab active" onclick="showSection(0)">IRONY, SWEET IRONY</button>
+  <button class="tab" onclick="showSection(1)">BECAUSE THE DEAD CAN'T BE MAD AT ME</button>
+  <button class="tab" onclick="showSection(2)">LIVE BY THE WORDS, DIE BY THE WORDS</button>
+</nav>
+
+<!-- Section 1: Irony -->
+<div class="section-content active" id="section-0">
+  <div class="section-header">
+    <div class="section-num">01 / 03</div>
+    <div class="section-title">Irony, Sweet Irony</div>
+    <div class="section-desc">They said one thing. The universe did the opposite. We call this comedy.</div>
+  </div>
+  <div class="cards">
+
+    <div class="card">
+      <div class="card-person"><span>STEVE IRWIN</span><span class="card-years">1962 – 2006</span></div>
+      <div class="card-quote">I have no fear of losing my life — if I have to save a koala or a crocodile, I will do it.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Pierced through the heart by a stingray barb while snorkelling on the Great Barrier Reef. Not a crocodile. Not a koala. A stingray.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>AESCHYLUS</span><span class="card-years">525 BC – 456 BC</span></div>
+      <div class="card-quote">God lends a helping hand to the man who tries hard.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">An eagle, seeking a rock to crack open a tortoise, mistook his bald head for one. Dropped it on him from altitude. God's aim, apparently, was off.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>FRANCIS BACON</span><span class="card-years">1561 – 1626</span></div>
+      <div class="card-quote">Knowledge is power.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died testing his theory that snow could preserve meat, stuffing a chicken with it in freezing temperatures. Pneumonia followed. The chicken survived. Bacon did not.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>TYCHO BRAHE</span><span class="card-years">1546 – 1601</span></div>
+      <div class="card-quote">It would be shameful if, having lived for so great a purpose, I were to die for so small a one.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Refused to leave a royal banquet to relieve himself — considered it rude. His bladder either burst or became fatally infected. He died eleven days later. The etiquette held. He didn't.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>TENNESSEE WILLIAMS</span><span class="card-years">1911 – 1983</span></div>
+      <div class="card-quote">I don't want realism. I want magic.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Choked to death on a bottle cap in his New York hotel room. He apparently used his mouth to open bottles. The most realistic death imaginable. No magic.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>ALLAN PINKERTON</span><span class="card-years">1819 – 1884</span></div>
+      <div class="card-quote">We Never Sleep.<span style="font-size:0.75em; display:block; margin-top:6px; font-style:normal; opacity:0.5; font-family:'Share Tech Mono',monospace; letter-spacing:1px;">(Pinkerton National Detective Agency motto)</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Bit his own tongue while walking and developed gangrene from the wound. The man who never slept died because he couldn't watch where he was going.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>DRACO</span><span class="card-years">650 BC – 600 BC</span></div>
+      <div class="card-quote">Most crimes deserve death. I cannot find a harsher penalty for worse ones.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Smothered to death by cloaks. His admirers at the theatre, expressing love in the Athenian custom of throwing hats and garments at those they admired, buried him alive in fabric. The harshest lawgiver in history was killed by appreciation.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>HARRY HOUDINI</span><span class="card-years">1874 – 1926</span></div>
+      <div class="card-quote">My brain is the key that sets me free.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">A student asked if he could really take any punch to the stomach. Houdini had not tensed his muscles before the blows landed. He died nine days later of peritonitis from a ruptured appendix. The world's greatest escape artist could not escape his own abdomen.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>MARK TWAIN</span><span class="card-years">1835 – 1910</span></div>
+      <div class="card-quote">I came in with Halley's Comet in 1835. It is coming again next year, and I expect to go out with it.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Heart attack on April 21, 1910 — one day after Halley's Comet made its closest pass to Earth. He said it in 1909, when no one expected him to die. He was right to the day. Even his death was good writing.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>JAMES DEAN</span><span class="card-years">1931 – 1955</span></div>
+      <div class="card-quote">Take it easy driving — the life you save may be mine.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Killed in a high-speed collision in his Porsche Spyder on Route 466 in California, weeks after filming a highway safety PSA with exactly those words. He was 24. He was on his way to a race.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>ATTILA THE HUN</span><span class="card-years">406 – 453</span></div>
+      <div class="card-quote">Trample the weak. Hurdle the dead.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">The man who terrorised two Roman empires and razed half of Europe choked to death on his own blood at his wedding feast. He got a nosebleed, passed out drunk, and drowned in it. No battlefield. No enemy. Just wine, a bride, and poor sleeping position.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>WILLIAM HENRY HARRISON</span><span class="card-years">1773 – 1841</span></div>
+      <div class="card-quote">The strongest of all governments is that which is most free.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Delivered the longest inaugural address in US presidential history — 8,445 words, hatless, coatless, in freezing rain, for nearly two hours — to prove he was too vigorous to be dismissed as old. Died of pneumonia 31 days later. Shortest presidency in American history. The speech outlived the man by centuries.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>CHRYSIPPUS</span><span class="card-years">279 BC – 206 BC</span></div>
+      <div class="card-quote">The wise man does nothing he has cause to regret.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">The Stoic philosopher watched his donkey eat figs, told his servant to give it wine to wash them down, found this so funny that he died laughing. The founder of systematic logic and one of antiquity's most prolific thinkers was undone by a donkey having a drink. He reportedly had no regrets.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>CLEMENT VALLANDIGHAM</span><span class="card-years">1820 – 1871</span></div>
+      <div class="card-quote">The facts will speak for themselves. I am here to prove them.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">A defense attorney arguing that his client couldn't have shot himself, he decided to demonstrate. In his hotel room, he picked up a pistol he believed to be unloaded and re-enacted the scene. It was loaded. He shot himself through the head. His client was acquitted.</div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Section 2: Twisted -->
+<div class="section-content" id="section-1">
+  <div class="section-header">
+    <div class="section-num">02 / 03</div>
+    <div class="section-title">Because the Dead Can't Be Mad at Me</div>
+    <div class="section-desc">Real quotes. Lightly adjusted. Their estates may send letters.</div>
+  </div>
+  <div class="cards">
+
+    <div class="card">
+      <div class="card-person"><span>MARIE CURIE</span><span class="card-years">1867 – 1934</span></div>
+      <div class="card-quote"><span class="original">Nothing in life is to be feared, only to be understood.</span><span class="twisted">Nothing in life is to be feared — certainly not a little radiation. Carry on.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Aplastic anaemia from decades of radiation exposure. Her notebooks are still too radioactive to handle safely. They're kept in lead-lined boxes in Paris.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>ELVIS PRESLEY</span><span class="card-years">1935 – 1977</span></div>
+      <div class="card-quote"><span class="original">Ambition is a dream with a V8 engine.</span><span class="twisted">Ambition is a dream with a V8 engine, a fully stocked medicine cabinet, and a reinforced toilet seat.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Found unresponsive on his bathroom floor at Graceland. Cardiac arrhythmia, significantly linked to prescription drug use. The King left the building.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>SIGMUND FREUD</span><span class="card-years">1856 – 1939</span></div>
+      <div class="card-quote"><span class="original">Dreams are the royal road to the unconscious.</span><span class="twisted">Dreams are the royal road to the unconscious. Cigars are the royal road to jaw cancer. I have tried both extensively.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Oral cancer after smoking up to 20 cigars a day for most of his adult life. Had 30+ surgeries on his jaw. When asked if a cigar was a phallic symbol, he reportedly said "sometimes a cigar is just a cigar." Not this time.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>ISADORA DUNCAN</span><span class="card-years">1877 – 1927</span></div>
+      <div class="card-quote"><span class="original">You were once wild here. Don't let them tame you.</span><span class="twisted">You were once wild here. Don't let them tame you. Do, however, tuck in your scarf before getting into a convertible.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Her long silk scarf tangled in the rear wheel of a Bugatti Type 35, breaking her neck instantly. Her last words were reportedly "Farewell, my friends, I go to glory."</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>OSCAR WILDE</span><span class="card-years">1854 – 1900</span></div>
+      <div class="card-quote"><span class="original">I can resist anything except temptation.</span><span class="twisted">I can resist anything except temptation. The wallpaper in this room, however, is putting up a fair fight.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Cerebral meningitis, dying in a dingy Paris hotel. He reportedly said "My wallpaper and I are fighting a duel to the death. One or other of us has to go." The wallpaper won.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>NAPOLEON BONAPARTE</span><span class="card-years">1769 – 1821</span></div>
+      <div class="card-quote"><span class="original">Impossible is a word found only in the dictionary of fools.</span><span class="twisted">Impossible is a word found only in the dictionary of fools. "Exile" and "island" are found in everyone's.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died in exile on Saint Helena, a remote island in the South Atlantic. Stomach cancer — or possibly arsenic poisoning from his green wallpaper. Conquered Europe. Could not conquer an island.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>EDGAR ALLAN POE</span><span class="card-years">1809 – 1849</span></div>
+      <div class="card-quote"><span class="original">The boundaries which divide life from death are at best shadowy and vague.</span><span class="twisted">The boundaries which divide life from death are at best shadowy and vague. This may explain why I was found delirious in someone else's clothes outside a polling station in Baltimore.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Found semi-conscious in a gutter in Baltimore, wearing clothes not his own. Died four days later raving in a hospital. Cause unknown — leading theories include rabies, cooping (a voter fraud scheme), or cholera. Even his death reads like one of his stories.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>VOLTAIRE</span><span class="card-years">1694 – 1778</span></div>
+      <div class="card-quote"><span class="original">God is a comedian playing to an audience that is too afraid to laugh.</span><span class="twisted">God is a comedian playing to an audience too afraid to laugh. On reflection, I may have been too specific about the bit where I die.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Returned to Paris in triumph at 83 after 28 years in exile, attended six standing ovations, and was crowned with a laurel wreath at the theatre. The excitement proved fatal. He was dead within weeks. Even his death was a performance — just a final one.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>JACK DANIEL</span><span class="card-years">1850 – 1911</span></div>
+      <div class="card-quote"><span class="original">Every day we make it, we make it the best we can.</span><span class="twisted">Every day we make it, we make it the best we can. Some days are harder than others. Especially when you've kicked the safe.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Kicked his office safe in frustration after forgetting the combination. The resulting injury to his toe became infected, spread through his body, and killed him six years later. The man behind the world's most famous whiskey was brought down not by drink, but by arithmetic.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>MARCUS AURELIUS</span><span class="card-years">121 AD – 180 AD</span></div>
+      <div class="card-quote"><span class="original">You have power over your mind, not outside events. Realize this and you will find strength.</span><span class="twisted">You have power over your mind, not outside events. Realize this and you will find strength. The plague, however, is outside events.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died of the Antonine Plague — the same pandemic he'd spent much of his reign managing, writing stoically about the acceptance of death, and watching kill five million of his subjects. He had ample time to make peace with it. He apparently did.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>PLINY THE ELDER</span><span class="card-years">23 AD – 79 AD</span></div>
+      <div class="card-quote"><span class="original">The only certainty is that nothing is certain.</span><span class="twisted">The only certainty is that nothing is certain. Except Vesuvius. Vesuvius was quite certain.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Sailed toward Vesuvius during its eruption — to investigate it. He was the most prolific natural historian of the ancient world and could not resist a closer look. He died on the beach at Stabiae, likely from toxic fumes. Curiosity killed the naturalist.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>LEON TROTSKY</span><span class="card-years">1879 – 1940</span></div>
+      <div class="card-quote"><span class="original">The end may justify the means as long as there is something that justifies the end.</span><span class="twisted">The end may justify the means as long as there is something that justifies the end. An ice axe to the skull, it turns out, is quite a definitive end.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Assassinated in his Mexican exile by a Stalinist agent who drove an ice axe into his skull. He had spent his life theorising about revolutionary violence as a political tool. Stalin, a keen student, had simply applied the lesson. Trotsky survived the initial blow long enough to fight his attacker. He died the next day.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>RASPUTIN</span><span class="card-years">1869 – 1916</span></div>
+      <div class="card-quote"><span class="original">Love life and it will love you back.</span><span class="twisted">Love life and it will love you back. Though in my experience, some noblemen will try very hard to change this arrangement.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Poisoned, shot twice, beaten, and thrown into a frozen river by Russian aristocrats who were alarmed by his influence over the Tsar. Each method was expected to be sufficient. None were enough on their own. He drowned in the end. The cause of death on his autopsy: drowning. History found this unsatisfying and added the rest anyway.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-person"><span>VINCENT VAN GOGH</span><span class="card-years">1853 – 1890</span></div>
+      <div class="card-quote"><span class="original">I dream of painting and then I paint my dream.</span><span class="twisted">I dream of painting and then I paint my dream. The ear was a miscalculation. The rest I stand by.</span></div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died of a gunshot wound in a wheat field in Auvers-sur-Oise at 37. He sold one painting in his lifetime. Within a decade of his death, his work was worth fortunes. He never knew. His brother Theo, who had funded his entire career, died six months later. The dream was painted. Nobody was watching.</div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Section 3: Live by the Words -->
+<div class="section-content" id="section-2">
+  <div class="section-header">
+    <div class="section-num">03 / 03</div>
+    <div class="section-title">Live by the Words, Die by the Words</div>
+    <div class="section-desc">They meant it. The universe took notes.</div>
+  </div>
+  <div class="cards">
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>JIM FIXX</span><span class="card-years">1932 – 1984</span></div>
+      <div class="card-quote">Running has given me a glimpse of the greatest freedom a man can ever know.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died of a massive heart attack mid-run on a Vermont road. The man who wrote <em>The Complete Book of Running</em> and popularised jogging in America died doing exactly that.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>HUNTER S. THOMPSON</span><span class="card-years">1937 – 2005</span></div>
+      <div class="card-quote">Buy the ticket, take the ride.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died by self-inflicted gunshot at his compound in Colorado, at 67. He had written: "I would feel real trapped in this life if I didn't know I could commit suicide at any time." He bought the ticket. He took the ride.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>ANDRÉ THE GIANT</span><span class="card-years">1946 – 1993</span></div>
+      <div class="card-quote">I'm not a giant. I'm just very, very large.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Congestive heart failure — a direct complication of acromegaly, the condition that made him 7'4" and over 500 lbs. His heart, like the rest of him, simply grew too large for the world.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>HEATH LEDGER</span><span class="card-years">1979 – 2008</span></div>
+      <div class="card-quote">I don't have a technique. I've never been able to repeat anything I've done. I'm always searching.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Accidental prescription drug overdose. He had thrown himself entirely into the Joker — sleeping two hours a night, keeping a diary of the character's psychology. He never stopped searching. He never stopped.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>KARL MARX</span><span class="card-years">1818 – 1883</span></div>
+      <div class="card-quote">The philosophers have only interpreted the world. The point is to change it.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Pleurisy and bronchitis, dying in poverty in London, stateless. His ideas went on to reshape entire continents, topple empires, and kill millions. He changed the world. He just didn't live to see it — and probably wouldn't have recognised it.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>ALEXANDER THE GREAT</span><span class="card-years">356 BC – 323 BC</span></div>
+      <div class="card-quote">There is nothing impossible to him who will try.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died in Babylon at 32, after conquering most of the known world. Cause unknown — typhoid, poisoning, excessive drinking, or grief after Hephaestion's death. He tried everything. Even dying young, he made it legendary.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>AYRTON SENNA</span><span class="card-years">1960 – 1994</span></div>
+      <div class="card-quote">If you no longer go for a gap that exists, you are no longer a racing driver.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died at the San Marino Grand Prix at Imola when his Williams hit the concrete wall at Tamburello corner at 190 mph. He had won three world championships. He had always gone for the gap. That day, the gap wasn't there.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>GENERAL JOHN SEDGWICK</span><span class="card-years">1813 – 1864</span></div>
+      <div class="card-quote">They couldn't hit an elephant at this dist—</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Shot through the head by a Confederate sniper at the Battle of Spotsylvania Court House, mid-sentence. He had been mocking his troops for ducking enemy fire. These were his final, unfinished words. History completed the quote for him.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>STEVE JOBS</span><span class="card-years">1955 – 2011</span></div>
+      <div class="card-quote">Believing that the dots will connect down the road will give you the confidence to follow your heart.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Pancreatic cancer, after reportedly delaying surgery for nine months in favour of alternative treatments — fruit diets, acupuncture, herbal remedies. The man who trusted his instincts above all others trusted them here too. The dots did not connect in time.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>DENNIS WILSON</span><span class="card-years">1944 – 1983</span></div>
+      <div class="card-quote">The ocean is my only friend.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">The only actual surfer in the Beach Boys drowned in Marina Del Rey, diving drunk off a friend's boat trying to retrieve belongings he'd thrown overboard years earlier. He was buried at sea by special presidential waiver. His only friend kept him.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>KURT COBAIN</span><span class="card-years">1967 – 1994</span></div>
+      <div class="card-quote">It's better to burn out than to fade away.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">He left this Neil Young line in his suicide note. He was 27. Nirvana had sold 75 million records. He burned. He did not fade. Whether that was the point or the tragedy depends entirely on which generation you ask.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>JEAN-BAPTISTE LULLY</span><span class="card-years">1632 – 1687</span></div>
+      <div class="card-quote">Music is the arithmetic of sounds as optics is the geometry of light.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">The Baroque composer was conducting a performance for Louis XIV using a long staff to beat time on the floor — the custom before the baton — when he drove it through his own foot. Gangrene set in. Doctors recommended amputation. He refused, unwilling to stop performing. The music went on. He did not.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>GEORGE GORDON BYRON</span><span class="card-years">1788 – 1824</span></div>
+      <div class="card-quote">I only go out too much to get out of the way when people are talking nonsense.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">Died in Greece at 36, where he had gone to fight for Greek independence — the most romantic war available. He never saw battle. He caught a fever riding in the rain, and his doctors bled him repeatedly despite his protests. He died of the treatment, not the illness. The most dramatic poet in England got a very undramatic death.</div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="irony-badge">POETIC</div>
+      <div class="card-person"><span>SIGURD THE MIGHTY</span><span class="card-years">? – 892</span></div>
+      <div class="card-quote">Victory is its own reward.</div>
+      <div class="card-death"><div class="death-skull">☠</div><div><div class="death-label">CAUSE OF DEATH</div><div class="death-text">The Viking Earl of Orkney defeated his enemy Mael Brigte in battle, beheaded him, and tied the head to his saddle as a trophy. Riding home in triumph, the dead man's protruding tooth grazed Sigurd's leg. The wound became infected. He died shortly after. He was killed by a man he had already killed. The head had the last word.</div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <a href="../index.html" class="footer-brand">$UPERNOVÆ</a>
+  <div class="footer-note">THE DEAD HAVE SPOKEN. RESULTS MAY VARY.</div>
+</footer>
+
+<script>
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => (t.src || t.file) === file || (t.src || t.file) === 'tools/' + file);
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+
+function showSection(idx) {
+  document.querySelectorAll('.section-content').forEach((s, i) => {
+    s.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', i === idx);
+  });
+  const cards = document.querySelectorAll(`#section-${idx} .card`);
+  cards.forEach(c => {
+    c.style.animation = 'none';
+    c.offsetHeight;
+    c.style.animation = '';
+  });
+}
+</script>
+</body>
+</html>
