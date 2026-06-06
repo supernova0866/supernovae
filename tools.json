@@ -2,21 +2,11 @@
   "main": "https://supernova0866.github.io/supernovae",
   "lore": "https://supernova0866.github.io/Lore",
   "tags": [
-    "existential",
-    "interactive",
-    "utility",
-    "toy",
-    "clock",
-    "visual",
-    "generator",
-    "productivity",
     "game",
-    "simulation",
-    "creative",
-    "dark",
-    "absurd",
-    "tool",
-    "art"
+    "generator",
+    "existential",
+    "visual",
+    "utility"
   ],
   "tools": [
     {
@@ -24,7 +14,7 @@
       "title": "Hack.exe",
       "desc": "Type anything. Look like a hacker.",
       "src": "tools/hackexe.html",
-      "tag": "interactive",
+      "tag": "game",
       "theme": "dark",
       "emoji": "💻"
     },
@@ -42,7 +32,7 @@
       "title": "Useless Machine",
       "desc": "A machine with one job. It refuses.",
       "src": "tools/useless-machine.html",
-      "tag": "toy",
+      "tag": "game",
       "theme": "light",
       "emoji": "🤖"
     },
@@ -60,7 +50,7 @@
       "title": "Epoch Clock",
       "desc": "The Unix timestamp. Ticking.",
       "src": "tools/epoch.html",
-      "tag": "clock",
+      "tag": "utility",
       "theme": "dark",
       "emoji": "🕰️"
     },
@@ -87,7 +77,7 @@
       "title": "Pomodoro but Mean",
       "desc": "A timer that judges you.",
       "src": "tools/pomodoro-mean.html",
-      "tag": "productivity",
+      "tag": "existential",
       "theme": "dark",
       "emoji": "🍅"
     },
@@ -130,7 +120,7 @@
     {
       "id": 13,
       "title": "Memento Mori",
-      "desc": "Spend your days. Then lose them.",
+      "desc": "Days given. Days spent. Days gone.",
       "src": "tools/memento-mori.html",
       "tag": "game",
       "theme": "dark",
@@ -139,7 +129,7 @@
     {
       "id": 14,
       "title": "Scale of the Universe",
-      "desc": "From quarks to the observable universe.",
+      "desc": "From quarks to the cosmic edge. All to scale.",
       "src": "tools/scale-universe.html",
       "tag": "visual",
       "theme": "dark",
@@ -180,6 +170,69 @@
       "tag": "game",
       "theme": "light",
       "emoji": "⚡"
+    },
+    {
+      "id": 19,
+      "title": "Type or Die",
+      "desc": "A predator is closing in. Type faster.",
+      "src": "tools/type-or-die.html",
+      "tag": "game",
+      "theme": "light",
+      "emoji": "🐆"
+    },
+    {
+      "id": 20,
+      "title": "Number Scale",
+      "desc": "100,000 to a googol. Every magnitude earns its place.",
+      "src": "tools/scale.html",
+      "tag": "visual",
+      "theme": "dark",
+      "emoji": "🔭"
+    },
+    {
+      "id": 21,
+      "title": "Number Celebs",
+      "desc": "50 famous integers. Every one of them earned it.",
+      "src": "tools/number-celebs.html",
+      "tag": "visual",
+      "theme": "dark",
+      "emoji": "🔢"
+    },
+    {
+      "id": 22,
+      "title": "Meme Hall of Fame",
+      "desc": "The internet's greatest hits. Ranked, annotated, preserved.",
+      "src": "tools/meme-hall.html",
+      "tag": "visual",
+      "theme": "dark",
+      "emoji": "📟"
+    },
+    {
+      "id": 23,
+      "title": "Void Run",
+      "desc": "Avoid the void. Or don't. It's your life.",
+      "src": "tools/void-run.html",
+      "tag": "game",
+      "theme": "dark",
+      "emoji": "🕳️"
+    },
+    {
+      "id": 24,
+      "title": "Infinite Loader",
+      "desc": "It's been loading. It will keep loading.",
+      "src": "tools/infinite-loader.html",
+      "tag": "visual",
+      "theme": "light",
+      "emoji": "🔄"
+    },
+    {
+      "id": 25,
+      "title": "CalcPro™",
+      "desc": "It does math. The math costs extra.",
+      "src": "tools/calcpro.html",
+      "tag": "utility",
+      "theme": "dark",
+      "emoji": "🧮"
     }
   ]
 }
