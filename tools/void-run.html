@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>??? — Type or Die</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Caveat:wght@600&family=Special+Elite&display=swap');
+
+:root {
+  --glow: #e8ddd0;
+  --glow-dim: rgba(232,221,208,0.4);
+  --glow-faint: rgba(232,221,208,0.12);
+  --red: #c0392b;
+  --mono: 'Share Tech Mono', monospace;
+  --display: 'Special Elite', cursive;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; width: 100vw; height: 100vh; font-family: var(--mono); }
+canvas { display: block; }
+
+/* ── HUD ── */
+#hud {
+  position: fixed; top: 16px; left: 24px; right: 24px;
+  display: flex; justify-content: space-between;
+  pointer-events: none; z-index: 10;
+}
+.hud-block { display: flex; flex-direction: column; gap: 3px; }
+.hud-block.right { text-align: right; align-items: flex-end; }
+.hud-label { font-size: 8px; letter-spacing: 3px; color: var(--glow-dim); }
+.hud-val {
+  font-family: var(--display); font-size: 26px;
+  color: var(--glow); line-height: 1;
+  text-shadow: 0 0 10px rgba(232,221,208,0.4);
+}
+.hud-val.red { color: var(--red); text-shadow: 0 0 10px rgba(192,57,43,0.5); }
+
+/* ── Combo display — fighting game style ── */
+#combo-display {
+  position: fixed;
+  bottom: 22%;
+  right: 6%;
+  pointer-events: none; z-index: 15;
+  text-align: right;
+  opacity: 0;
+  transform: scale(0.7) translateX(20px);
+  transition: opacity 0.08s, transform 0.08s;
+}
+#combo-display.show {
+  opacity: 1;
+  transform: scale(1) translateX(0);
+}
+#combo-count {
+  font-family: var(--display);
+  font-size: clamp(64px, 13vw, 120px);
+  line-height: 0.9;
+  color: var(--glow);
+  text-shadow:
+    0 0 40px rgba(232,221,208,0.5),
+    0 0 80px rgba(232,221,208,0.2),
+    4px 4px 0 rgba(0,0,0,0.8);
+  letter-spacing: -2px;
+}
+#combo-count.red {
+  color: var(--red);
+  text-shadow:
+    0 0 40px rgba(192,57,43,0.7),
+    0 0 80px rgba(192,57,43,0.3),
+    4px 4px 0 rgba(0,0,0,0.8);
+}
+#combo-label {
+  font-family: var(--display);
+  font-size: clamp(14px, 2.5vw, 22px);
+  letter-spacing: 6px;
+  color: var(--glow-dim);
+  margin-top: 4px;
+  text-shadow: 0 0 12px rgba(232,221,208,0.3);
+}
+#combo-label.red { color: rgba(192,57,43,0.7); }
+
+/* ── Screens ── */
+.screen {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.94); z-index: 20;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 18px;
+  text-align: center; padding: 40px;
+}
+.screen.visible { display: flex; }
+
+.screen-title {
+  font-family: 'Special Elite', cursive;
+  font-size: clamp(72px, 16vw, 120px);
+  letter-spacing: 6px; line-height: 1;
+  color: var(--glow);
+  text-shadow: 0 0 60px rgba(232,221,208,0.15);
+}
+.screen-title.dead {
+  color: var(--red);
+  text-shadow: 0 0 60px rgba(192,57,43,0.4);
+}
+.screen-sub {
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--glow-dim); line-height: 2.4; max-width: 380px;
+}
+.screen-stats {
+  font-size: 11px; letter-spacing: 2px;
+  color: var(--glow-dim); line-height: 2.4;
+  border-top: 1px solid var(--glow-faint);
+  padding-top: 16px; width: 100%; max-width: 320px;
+}
+
+
+
+.btn-row { display: flex; gap: 8px; margin-top: 4px; }
+.btn {
+  padding: 10px 28px; font-family: var(--display);
+  font-size: 18px; letter-spacing: 3px;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.btn-primary { background: var(--glow); color: #000; }
+.btn-primary:hover { background: #fff; }
+.btn-secondary {
+  background: transparent; color: var(--glow-dim);
+  border: 1px solid var(--glow-faint);
+}
+.btn-secondary:hover { border-color: var(--glow-dim); color: var(--glow); }
+
+/* ── Mode select — handwritten, containerless ── */
+.mode-row {
+  display: flex; gap: 60px; margin-top: 4px;
+}
+.mode-btn {
+  background: none; border: none;
+  font-family: 'Caveat', cursive;
+  font-size: clamp(32px, 6vw, 52px);
+  font-weight: 600;
+  color: rgba(232,221,208,0.3);
+  cursor: pointer; transition: all 0.2s;
+  padding: 8px 0; letter-spacing: 1px;
+  position: relative;
+}
+.mode-btn::after {
+  content: '';
+  position: absolute; bottom: 2px; left: 0; right: 0;
+  height: 2px; background: currentColor;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.2s;
+}
+.mode-btn:hover { color: rgba(232,221,208,0.65); }
+.mode-btn:hover::after { transform: scaleX(1); }
+.mode-btn.hell.active  {
+  color: #e67e22;
+  text-shadow: 0 0 30px rgba(230,126,34,0.5);
+}
+.mode-btn.hell.active::after { transform: scaleX(1); }
+.mode-btn.hard.active  {
+  color: var(--red);
+  text-shadow: 0 0 30px rgba(192,57,43,0.6);
+}
+.mode-btn.hard.active::after { transform: scaleX(1); }
+
+/* ── Red vignette overlay ── */
+#vignette {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 8;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(192,57,43,0) 100%);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+/* ── Info ── */
+#btn-info {
+  position: fixed; top: 12px; right: 12px;
+  background: transparent; border: 1px solid var(--glow-faint);
+  color: var(--glow-dim); font-size: 14px; font-family: var(--mono);
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; z-index: 30;
+}
+#btn-info:hover { border-color: var(--glow-dim); color: var(--glow); }
+.info-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88); backdrop-filter: blur(6px);
+  z-index: 40; align-items: center; justify-content: center;
+}
+.info-overlay.open { display: flex; }
+.info-box {
+  background: #0d0d0d; border: 1px solid var(--glow-faint);
+  padding: 28px 32px 24px; position: relative; min-width: 280px;
+}
+.info-brand {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 4px;
+  color: var(--glow); text-decoration: none; display: block; margin-bottom: 20px;
+}
+.info-brand:hover { opacity: 0.6; }
+.info-close {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: 1px solid var(--glow-faint);
+  color: var(--glow-dim); font-size: 11px; font-family: var(--mono);
+  padding: 3px 8px; cursor: pointer;
+}
+.info-close:hover { border-color: var(--glow); color: var(--glow); }
+.info-line { font-size: 10px; letter-spacing: 2px; color: var(--glow-dim); line-height: 2.2; }
+.info-nova { color: var(--glow); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="vignette"></div>
+
+<div id="hud">
+  <div style="display:flex;gap:32px">
+    <div class="hud-block">
+      <div class="hud-label">SURVIVED</div>
+      <div class="hud-val" id="h-time">0.0s</div>
+    </div>
+    <div class="hud-block">
+      <div class="hud-label">LETTERS</div>
+      <div class="hud-val" id="h-letters">0</div>
+    </div>
+    <div class="hud-block">
+      <div class="hud-label">TYPOS</div>
+      <div class="hud-val red" id="h-typos">0</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:32px">
+    <div class="hud-block right">
+      <div class="hud-label">BEST</div>
+      <div class="hud-val" id="h-best">—</div>
+    </div>
+    <div class="hud-block right">
+      <div class="hud-label">MODE</div>
+      <div class="hud-val" id="h-mode">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Combo display -->
+<div id="combo-display">
+  <div id="combo-count">0</div>
+  <div id="combo-label">COMBO</div>
+</div>
+
+<!-- Idle screen -->
+<div class="screen visible" id="screen-idle">
+  <div class="screen-title" style="margin-bottom:20px">???</div>
+  <div class="mode-row">
+    <button class="mode-btn hell" id="btn-hell" onclick="selectAndStart('hell')">Hell</button>
+    <button class="mode-btn hard" id="btn-hard" onclick="selectAndStart('hardcore')">Hardcore</button>
+  </div>
+</div>
+
+<!-- Dead screen -->
+<div class="screen" id="screen-dead">
+  <div class="screen-title dead">CONSUMED</div>
+  <div class="screen-sub" id="dead-sub">The void was patient.</div>
+  <div class="screen-stats" id="dead-stats"></div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="startGame()">AGAIN</button>
+    <button class="btn btn-secondary" onclick="goMenu()">MAIN MENU</button>
+  </div>
+</div>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="#" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+// ── Layout ────────────────────────────────────────────────────────────────
+const TILE_W    = 38;
+const TILE_H    = 36;
+const FLOOR_PCT = 0.60;
+const VOID_PCT  = 0.30;
+const BALL_R    = 7;
+const GRAVITY   = 1.8;
+const JUMP_VY   = -14;
+
+// ── Modes ─────────────────────────────────────────────────────────────────
+const MODES = {
+  hell: {
+    baseSpeed:       1.5,
+    speedStep:       0.04,   // added every 30s
+    speedInterval:   30,
+    voidLunge:       false,
+  },
+  hardcore: {
+    baseSpeed:       2.0,
+    speedStep:       0.07,
+    speedInterval:   30,
+    voidLunge:       true,
+    lungeAmount:     100,    // px the void snaps forward
+    lungeDuration:   40,     // frames before settling
+  },
+};
+
+// ── Prompt pools ──────────────────────────────────────────────────────────
+const POOLS_HELL = [
+  // tier 0
+  ["stay alive","type faster","keep going","move now","do not stop"],
+  // tier 1
+  ["something is behind you","do not look","the gap is closing","keep your hands moving"],
+  // tier 2
+  ["it does not get tired","the silence between keystrokes","just keep going forward","eyes ahead"],
+  // tier 3
+  ["you have been here before","keep going keep going keep going","do not stop the narrative collapses","forward only"],
+];
+
+const POOLS_HARDCORE = [
+  // tier 0
+  ["wrong floor","the tile was a lie","you are not here","keep moving anyway"],
+  // tier 1
+  ["teeth in the dark","nothing follows you","everything follows you","the letters know"],
+  // tier 2
+  ["the void has a name","you typed it once","it remembered","do not type it again"],
+  // tier 3
+  ["floor is optional","gravity is a suggestion","the words are load bearing","stop reading this and type"],
+  // tier 4 — outright weird
+  ["the leopard was never real","you invented the danger","that made it worse","it believes in you now"],
+  ["this sentence does not end","this sentence does not end","this sentence does not end","type anyway"],
+  ["somewhere a man is typing calmly","he is wrong","you are right to be afraid","keep going"],
+  ["the void claps","you cannot hear it","it does not matter","it is still clapping"],
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+let mode       = 'hell';
+let cfg        = MODES[mode];
+let tiles      = [];
+let ball       = { x:0, y:0, vy:0, jumping:false };
+let speed      = cfg.baseSpeed;
+let active     = false;
+let t0         = null;
+let timerStarted = false;  // timer only starts on first keypress
+let elapsed    = 0;
+let best       = { hell: 0, hardcore: 0 };
+let typoFlash  = 0;
+let frame      = 0;
+let raf        = null;
+let glowPhase  = 0;
+let started    = false;
+
+// Stats
+let lettersTyped = 0;
+let typoCount    = 0;
+let combo        = 0;
+let bestCombo    = 0;
+let comboTimer   = 0;   // frames to show combo
+let lastMilestone = 0;  // last 30s tier hit
+
+// Void lunge
+let voidLunging  = false;
+let voidLungeAmt = 0;
+let voidLungeFrames = 0;
+
+// Void particles
+let voidParticles = [];
+
+function tileTop()  { return canvas.height * FLOOR_PCT; }
+function voidEdge() { return canvas.width  * VOID_PCT + voidLungeAmt; }
+
+// ── Mode select ───────────────────────────────────────────────────────────
+function selectMode(m) {
+  mode = m;
+  cfg  = MODES[m];
+  document.getElementById('btn-hell').classList.toggle('active', m === 'hell');
+  document.getElementById('btn-hard').classList.toggle('active', m === 'hardcore');
+}
+
+// ── Tiles ─────────────────────────────────────────────────────────────────
+function rightEdge() {
+  if (!tiles.length) return canvas.width * 0.55;
+  return Math.max(...tiles.map(t => t.x));
+}
+
+function spawnStr(str) {
+  let rx = rightEdge() + TILE_W;
+  for (let i = 0; i < str.length; i++) {
+    tiles.push({ x: rx + i * TILE_W, char: str[i],
+      state: 'pending', fallVy: 0, fallY: 0, opacity: 1 });
+  }
+}
+
+function ensureAhead() {
+  const ahead = tiles.filter(t => t.state === 'pending').length;
+  if (ahead < 22) {
+    const pools = mode === 'hardcore' ? POOLS_HARDCORE : POOLS_HELL;
+    const tier  = Math.min(pools.length - 1, Math.floor(elapsed / 13));
+    const pool  = pools[tier];
+    spawnStr(pool[Math.floor(Math.random() * pool.length)] + '  ');
+  }
+}
+
+function curTile() { return tiles.find(t => t.state === 'pending') || null; }
+
+// ── Speed (step every 30s) ────────────────────────────────────────────────
+function computeSpeed() {
+  const milestone = Math.floor(elapsed / cfg.speedInterval);
+  return cfg.baseSpeed + milestone * cfg.speedStep;
+}
+
+// ── Combo display ─────────────────────────────────────────────────────────
+const comboEl      = document.getElementById('combo-display');
+const comboCountEl = document.getElementById('combo-count');
+
+const COMBO_LABELS = [
+  [3,  'COMBO'],
+  [5,  'NICE'],
+  [8,  'GREAT'],
+  [12, 'EXCELLENT'],
+  [18, 'OUTSTANDING'],
+  [25, 'LEGENDARY'],
+  [35, 'GODLIKE'],
+  [50, 'VOID TOUCHED'],
+];
+
+function showCombo(n) {
+  if (n < 3) { comboEl.classList.remove('show'); return; }
+  const label = [...COMBO_LABELS].reverse().find(([min]) => n >= min);
+  document.getElementById('combo-label').textContent = label ? label[1] : 'COMBO';
+  document.getElementById('combo-label').className   = n >= 18 ? 'red' : '';
+  comboCountEl.textContent = n;
+  comboCountEl.className   = n >= 18 ? 'red' : '';
+
+  // Slam punch: reset transform to trigger re-animation
+  comboEl.classList.remove('show');
+  comboEl.style.transform = 'scale(1.35) translateX(10px)';
+  comboEl.style.opacity   = '1';
+  void comboEl.offsetWidth;
+  comboEl.style.transform = '';
+  comboEl.style.opacity   = '';
+  comboEl.classList.add('show');
+  comboTimer = 90;
+}
+
+// ── Main loop ─────────────────────────────────────────────────────────────
+function loop() {
+  if (!active) return;
+  raf = requestAnimationFrame(loop);
+  frame++;
+  elapsed    = timerStarted ? (Date.now() - t0) / 1000 : 0;
+  speed      = computeSpeed();
+  glowPhase += 0.09;
+
+  // Combo fade
+  if (comboTimer > 0) {
+    comboTimer--;
+    if (comboTimer === 0) comboEl.classList.remove('show');
+  }
+
+  // Void lunge settle
+  if (voidLunging) {
+    voidLungeFrames--;
+    if (voidLungeFrames <= 0) {
+      voidLunging = false;
+      // retreat void back
+      voidLungeAmt = Math.max(0, voidLungeAmt - 2);
+    }
+  } else if (voidLungeAmt > 0) {
+    voidLungeAmt = Math.max(0, voidLungeAmt - 2);
+  }
+
+  update();
+  render();
+  updateHUD();
+}
+
+function update() {
+  ensureAhead();
+
+  const ve = voidEdge();
+  const tt = tileTop();
+
+  for (const t of tiles) {
+    if (t.state !== 'falling') {
+      if (started) t.x -= speed;
+    } else {
+      t.fallVy  += 0.6;
+      t.fallY   += t.fallVy;
+      t.opacity -= 0.008;
+    }
+  }
+
+  for (const t of tiles) {
+    if (t.state !== 'falling' && t.x + TILE_W < ve) {
+      t.state  = 'falling';
+      t.fallVy = 2;
+      t.fallY  = 0;
+      t.fallX  = t.x;
+    }
+  }
+
+  tiles = tiles.filter(t => t.opacity > 0 && (t.fallY || 0) < canvas.height);
+
+  const cur    = tiles.find(t => t.state === 'pending');
+  ball.vy += GRAVITY;
+  ball.y  += ball.vy;
+
+  if (cur) {
+    const landY = tt - TILE_H - BALL_R - 1;
+    if (ball.vy > 0 && ball.y >= landY) {
+      ball.y       = landY;
+      ball.vy      = 0;
+      ball.jumping = false;
+    }
+    if (!ball.jumping) ball.x = cur.x + TILE_W / 2;
+    if (!ball.jumping && cur.x + TILE_W / 2 < ve) { die(); return; }
+  } else {
+    if (ball.y > canvas.height + 60) { die(); return; }
+  }
+
+  if (typoFlash > 0) typoFlash--;
+}
+
+function render() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  // Scan lines
+  for (let y = 0; y < H; y += 4) {
+    ctx.fillStyle = 'rgba(255,255,255,0.006)';
+    ctx.fillRect(0, y, W, 1);
+  }
+
+  // Typo flash
+  if (typoFlash > 0) {
+    ctx.fillStyle = `rgba(192,57,43,${(typoFlash / 16) * 0.22})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Hardcore void lunge red edge flash
+  if (mode === 'hardcore' && voidLunging) {
+    const alpha = (voidLungeFrames / cfg.lungeDuration) * 0.35;
+    ctx.fillStyle = `rgba(192,57,43,${alpha})`;
+    ctx.fillRect(0, 0, voidEdge() + 80, H);
+  }
+
+  const tt  = tileTop();
+  const ve  = voidEdge();
+  const cur = curTile();
+
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold 22px 'Share Tech Mono', monospace`;
+
+  for (let i = 0; i < tiles.length; i++) {
+    const t      = tiles[i];
+    const isNext = t === cur;
+    const cx2    = (t.state === 'falling' && t.fallX !== undefined ? t.fallX : t.x) + TILE_W / 2;
+
+    ctx.save();
+    ctx.globalAlpha = t.opacity;
+
+    if (t.state === 'falling') {
+      const fcx     = (t.fallX !== undefined ? t.fallX : t.x) + TILE_W / 2;
+      const drawY   = (tt - TILE_H / 2) + (t.fallY || 0);
+      const fallPct = Math.min(1, (t.fallY || 0) / (canvas.height * 0.35));
+      const r = 255, g = Math.round(255*(1-fallPct)), b = Math.round(232*(1-fallPct));
+      const col      = `rgba(${r},${g},${b},${t.opacity})`;
+      const colBlock = `rgba(${r},${g},${b},${t.opacity * 0.12})`;
+      ctx.fillStyle = colBlock;
+      ctx.fillRect((t.fallX !== undefined ? t.fallX : t.x) + 1, (tt - TILE_H) + (t.fallY || 0), TILE_W - 2, TILE_H);
+      ctx.shadowColor = col; ctx.shadowBlur = 8*(1-fallPct)+4;
+      ctx.fillStyle = col;
+      ctx.fillText(t.char, fcx, drawY);
+      ctx.shadowBlur = 0;
+
+    } else if (t.state === 'typed') {
+      ctx.fillStyle = 'rgba(232,221,208,0.08)';
+      ctx.fillText(t.char, cx2, tt - TILE_H / 2);
+
+    } else if (isNext) {
+      ctx.fillStyle = 'rgba(232,221,208,0.10)';
+      ctx.fillRect(t.x + 1, tt - TILE_H, TILE_W - 2, TILE_H);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillRect(t.x + 1, tt - TILE_H, TILE_W - 2, 2);
+      ctx.shadowColor = 'rgba(255,255,255,0.9)'; ctx.shadowBlur = 14;
+      ctx.fillStyle   = '#ffffff';
+      ctx.fillText(t.char, cx2, tt - TILE_H / 2);
+      ctx.shadowBlur  = 0;
+
+    } else {
+      const pendingArr = tiles.filter(t2 => t2.state === 'pending');
+      const dist  = pendingArr.indexOf(t);
+      const alpha = Math.max(0.05, 0.48 - dist * 0.033);
+
+      // Red tint based on how close this tile is to the void edge
+      const tileDistFromVoid = t.x - ve;
+      const redTint = Math.max(0, Math.min(1, 1 - tileDistFromVoid / (canvas.width * 0.5)));
+
+      // Blend toward red as tile approaches void
+      const rr = Math.round(232 + (192 - 232) * redTint);
+      const rg = Math.round(221 + (57  - 221) * redTint);
+      const rb = Math.round(208 + (43  - 208) * redTint);
+
+      ctx.fillStyle = `rgba(${rr},${rg},${rb},${alpha * 0.2})`;
+      ctx.fillRect(t.x + 1, tt - TILE_H, TILE_W - 2, TILE_H);
+      ctx.fillStyle = `rgba(${rr},${rg},${rb},${alpha * 0.15})`;
+      ctx.fillRect(t.x + 1, tt - TILE_H, TILE_W - 2, 2);
+      ctx.fillStyle = `rgba(${rr},${rg},${rb},${alpha})`;
+      ctx.fillText(t.char, cx2, tt - TILE_H / 2);
+    }
+
+    ctx.restore();
+  }
+
+  // Ball
+  const bx = ball.x, by = ball.y;
+  const g  = Math.abs(Math.sin(glowPhase));
+  const grad = ctx.createRadialGradient(bx, by, 0, bx, by, BALL_R * 5);
+  grad.addColorStop(0,   `rgba(232,221,208,${0.18 + 0.1 * g})`);
+  grad.addColorStop(0.4, `rgba(232,221,208,${0.06 * g})`);
+  grad.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(bx, by, BALL_R * 5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx, by, BALL_R, 0, Math.PI * 2);
+  ctx.shadowColor = `rgba(255,255,255,${0.7 + 0.3*g})`;
+  ctx.shadowBlur  = 14 + 8*g;
+  ctx.fillStyle   = `rgba(255,255,255,${0.82 + 0.18*g})`;
+  ctx.fill(); ctx.shadowBlur = 0;
+
+  // ── Void overlay (gradient fill left of edge) ──────────────────────────
+  const vg = ctx.createLinearGradient(0, 0, ve + 60, 0);
+  vg.addColorStop(0,    'rgba(0,0,0,1)');
+  vg.addColorStop(0.65, 'rgba(0,0,0,0.97)');
+  vg.addColorStop(1,    'rgba(0,0,0,0)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, ve + 60, H);
+
+  // ── Void edge line ──────────────────────────────────────────────────────
+  const isHard    = mode === 'hardcore';
+  const lineAlpha = voidLunging ? 1.0 : 0.75;
+  const edgePulse = 0.5 + 0.5 * Math.sin(glowPhase * 1.4);
+
+  // Hard glow behind the line
+  const edgeGrad = ctx.createLinearGradient(ve - 18, 0, ve + 8, 0);
+  if (isHard) {
+    edgeGrad.addColorStop(0, `rgba(192,57,43,0)`);
+    edgeGrad.addColorStop(0.5, `rgba(192,57,43,${0.18 + edgePulse * 0.12})`);
+    edgeGrad.addColorStop(1, `rgba(0,0,0,0)`);
+  } else {
+    edgeGrad.addColorStop(0, `rgba(60,60,60,0)`);
+    edgeGrad.addColorStop(0.5, `rgba(80,80,80,${0.12 + edgePulse * 0.06})`);
+    edgeGrad.addColorStop(1, `rgba(0,0,0,0)`);
+  }
+  ctx.fillStyle = edgeGrad;
+  ctx.fillRect(ve - 18, 0, 26, H);
+
+  // The edge line itself
+  ctx.beginPath();
+  ctx.moveTo(ve, 0);
+  ctx.lineTo(ve, H);
+  if (isHard) {
+    ctx.strokeStyle = `rgba(192,57,43,${lineAlpha})`;
+    ctx.shadowColor = `rgba(192,57,43,0.8)`;
+  } else {
+    ctx.strokeStyle = `rgba(140,130,120,${lineAlpha * 0.7})`;
+    ctx.shadowColor = `rgba(100,90,80,0.5)`;
+  }
+  ctx.lineWidth  = voidLunging ? 2.5 : 1.5;
+  ctx.shadowBlur = voidLunging ? 20 : (8 + edgePulse * 6);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── Void particles ──────────────────────────────────────────────────────
+  const spawnCount = voidLunging ? 5 : 2;
+  for (let i = 0; i < spawnCount; i++) {
+    const isRed = isHard && Math.random() < 0.5;
+    voidParticles.push({
+      x:     ve + Math.random() * 3,
+      y:     Math.random() * H,
+      vx:    Math.random() * 1.4 + 0.4,    // drift RIGHT into the light
+      vy:    (Math.random() - 0.5) * 1.2,
+      size:  Math.random() * 3 + 1,
+      life:  1.0,
+      decay: Math.random() * 0.014 + 0.007,
+      red:   isRed,
+    });
+  }
+
+  // Update + draw particles
+  voidParticles = voidParticles.filter(p => p.life > 0);
+  for (const p of voidParticles) {
+    p.x    += p.vx;
+    p.y    += p.vy;
+    p.life -= p.decay;
+    p.size *= 0.97;
+
+    const a = p.life;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.2, p.size), 0, Math.PI * 2);
+    if (p.red) {
+      ctx.fillStyle = `rgba(192,57,43,${a * 0.9})`;
+    } else {
+      ctx.fillStyle = `rgba(180,165,145,${a * 0.55})`;  // warm ash drifting out
+    }
+    ctx.fill();
+  }
+}
+
+// ── Input ─────────────────────────────────────────────────────────────────
+function onKey(e) {
+  if (!active) return;
+  if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+
+  const cur = curTile();
+  if (!cur) return;
+
+  started = true;
+  if (!timerStarted) { timerStarted = true; t0 = Date.now(); }
+
+  if (e.key === cur.char) {
+    cur.state = 'typed';
+    lettersTyped++;
+    combo++;
+    if (combo > bestCombo) bestCombo = combo;
+    showCombo(combo);
+    if (!ball.jumping) { ball.vy = JUMP_VY; ball.jumping = true; }
+  } else {
+    typoFlash = 16;
+    typoCount++;
+    combo = 0;
+    comboEl.classList.remove('show');
+    if (mode === 'hardcore' && cfg.voidLunge) {
+      voidLungeAmt    = cfg.lungeAmount;
+      voidLunging     = true;
+      voidLungeFrames = cfg.lungeDuration;
+    }
+  }
+}
+
+// ── Game control ──────────────────────────────────────────────────────────
+function startGame() {
+  cfg          = MODES[mode];
+  tiles        = [];
+  frame        = 0;
+  typoFlash    = 0;
+  speed        = cfg.baseSpeed;
+  t0           = Date.now();
+  elapsed      = 0;
+  active       = true;
+  dying        = false;
+  glowPhase    = 0;
+  started      = false;
+  timerStarted = false;
+  t0           = null;
+  lettersTyped = 0;
+  typoCount    = 0;
+  combo        = 0;
+  bestCombo    = 0;
+  comboTimer   = 0;
+  voidLungeAmt    = 0;
+  voidLunging     = false;
+  voidLungeFrames = 0;
+  comboEl.classList.remove('show');
+
+  const tt     = canvas.height * FLOOR_PCT;
+  const ve     = canvas.width  * VOID_PCT;
+  const startX = ve + canvas.width * 0.22;
+
+  const seed = 'stay alive type now  ';
+  for (let i = 0; i < seed.length; i++) {
+    tiles.push({ x: startX + i * TILE_W, char: seed[i],
+      state: 'pending', fallVy: 0, fallY: 0, opacity: 1 });
+  }
+
+  ball = { x: tiles[0].x + TILE_W/2, y: tt - TILE_H - BALL_R - 1, vy: 0, jumping: false };
+
+  hideScreens();
+  document.addEventListener('keydown', onKey);
+  if (raf) cancelAnimationFrame(raf);
+  loop();
+}
+
+// ── Death state ───────────────────────────────────────────────────────────
+let dying        = false;
+let deathCamY    = 0;    // vertical camera offset (follows ball down)
+let deathBallY   = 0;    // ball's absolute y during death fall
+let deathBallVy  = 0;
+let deathAlpha   = 1;    // ball opacity fading out
+let deathFadeOut = 0;    // screen fade to black (0→1)
+let deathPhase   = 0;    // 0=falling, 1=fading screen, 2=done
+
+function die() {
+  if (dying) return;
+  dying       = true;
+  active      = false;
+  document.removeEventListener('keydown', onKey);
+  if (elapsed > (best[mode] || 0)) best[mode] = elapsed;
+  comboEl.classList.remove('show');
+
+  // Prepare death stats for later
+  const msgs = [
+    "The void was patient.",
+    "You ran out of letters.",
+    "Silence.",
+    "It was always going to end here.",
+    "The words stopped. So did you.",
+  ];
+  document.getElementById('dead-sub').textContent = msgs[Math.floor(Math.random() * msgs.length)];
+  const acc = lettersTyped + typoCount > 0
+    ? Math.round((lettersTyped / (lettersTyped + typoCount)) * 100) : 100;
+  document.getElementById('dead-stats').innerHTML =
+    `SURVIVED &nbsp;·&nbsp; ${elapsed.toFixed(1)}s` +
+    `<br>LETTERS &nbsp;·&nbsp; ${lettersTyped} &nbsp;·&nbsp; TYPOS &nbsp;·&nbsp; ${typoCount}` +
+    `<br>ACCURACY &nbsp;·&nbsp; ${acc}%` +
+    `<br>BEST COMBO &nbsp;·&nbsp; ${bestCombo} HIT` +
+    `<br>BEST &nbsp;·&nbsp; ${(best[mode]||0).toFixed(1)}s`;
+
+  // Kick off death fall — ball keeps physics from where it was
+  deathBallY  = ball.y;
+  deathBallVy = Math.max(ball.vy, 2); // ensure it's falling
+  deathCamY   = 0;
+  deathAlpha  = 1;
+  deathFadeOut = 0;
+  deathPhase  = 0;
+
+  if (raf) cancelAnimationFrame(raf);
+  deathLoop();
+}
+
+function deathLoop() {
+  raf = requestAnimationFrame(deathLoop);
+
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  // Scan lines
+  for (let y = 0; y < H; y += 4) {
+    ctx.fillStyle = 'rgba(255,255,255,0.006)';
+    ctx.fillRect(0, y, W, 1);
+  }
+
+  // Phase 0: ball falls, camera follows
+  if (deathPhase === 0) {
+    deathBallVy += GRAVITY * 0.9;
+    deathBallY  += deathBallVy;
+
+    // Camera eases toward ball
+    const targetCamY = Math.max(0, deathBallY - H * 0.42);
+    deathCamY += (targetCamY - deathCamY) * 0.07;
+
+    // Draw tiles shifted by camera
+    ctx.save();
+    ctx.translate(0, -deathCamY);
+    const tt = tileTop();
+    const ve = voidEdge();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `bold 22px 'Share Tech Mono', monospace`;
+    for (const t of tiles) {
+      if (t.state === 'typed' || t.state === 'pending') {
+        const tx = (t.state === 'falling' && t.fallX !== undefined ? t.fallX : t.x) + TILE_W / 2;
+        ctx.fillStyle = 'rgba(232,221,208,0.06)';
+        ctx.fillText(t.char, tx, tt - TILE_H / 2);
+      }
+    }
+    ctx.restore();
+
+    // Void overlay still present
+    ctx.save();
+    const vg = ctx.createLinearGradient(0, 0, ve + 60, 0);
+    vg.addColorStop(0,    'rgba(0,0,0,1)');
+    vg.addColorStop(0.65, 'rgba(0,0,0,0.97)');
+    vg.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, ve + 60, H);
+    ctx.restore();
+
+    // Ball — drawn in screen space (camera-adjusted y)
+    const screenBallY = deathBallY - deathCamY;
+    deathAlpha = Math.max(0, deathAlpha - 0.008);
+
+    const g2 = Math.abs(Math.sin(glowPhase));
+    glowPhase += 0.09;
+    const grad = ctx.createRadialGradient(ball.x, screenBallY, 0, ball.x, screenBallY, BALL_R * 5);
+    grad.addColorStop(0,   `rgba(232,57,43,${(0.25 + 0.1*g2) * deathAlpha})`);
+    grad.addColorStop(0.4, `rgba(192,57,43,${0.08 * deathAlpha})`);
+    grad.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.globalAlpha = deathAlpha;
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(ball.x, screenBallY, BALL_R * 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ball.x, screenBallY, BALL_R, 0, Math.PI * 2);
+    ctx.shadowColor = `rgba(255,80,60,${0.9 * deathAlpha})`;
+    ctx.shadowBlur  = 18 + 8*g2;
+    ctx.fillStyle   = `rgba(255,100,80,${deathAlpha})`;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+    ctx.globalAlpha = 1;
+
+    // Transition: when ball is well off screen, start fade
+    if (deathBallY - deathCamY > H + 80) {
+      deathPhase = 1;
+    }
+
+  // Phase 1: fade screen to black
+  } else if (deathPhase === 1) {
+    deathFadeOut = Math.min(1, deathFadeOut + 0.025);
+    ctx.fillStyle = `rgba(0,0,0,${deathFadeOut})`;
+    ctx.fillRect(0, 0, W, H);
+
+    if (deathFadeOut >= 1) {
+      deathPhase = 2;
+      cancelAnimationFrame(raf);
+      dying = false;
+      // Brief pause then show screen
+      setTimeout(() => {
+        document.getElementById('screen-dead').classList.add('visible');
+      }, 120);
+    }
+  }
+}
+
+function goMenu() {
+  active = false;
+  if (raf) cancelAnimationFrame(raf);
+  document.removeEventListener('keydown', onKey);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  comboEl.classList.remove('show');
+  hideScreens();
+  document.getElementById('screen-idle').classList.add('visible');
+}
+
+function hideScreens() {
+  ['screen-idle','screen-dead'].forEach(id =>
+    document.getElementById(id).classList.remove('visible'));
+}
+
+function updateHUD() {
+  document.getElementById('h-time').textContent    = elapsed.toFixed(1) + 's';
+  document.getElementById('h-letters').textContent = lettersTyped;
+  document.getElementById('h-typos').textContent   = typoCount;
+  document.getElementById('h-best').textContent    = (best[mode]||0) > 0 ? (best[mode]).toFixed(1) + 's' : '—';
+  document.getElementById('h-mode').textContent    = mode === 'hardcore' ? 'HRDCR' : 'HELL';
+
+  // Vignette — based on how close ball is to void edge
+  const ve      = voidEdge();
+  const safeZone = canvas.width * 0.45; // ball this far from void = safe
+  const dist    = ball.x - ve;
+  const danger  = Math.max(0, Math.min(1, 1 - (dist / safeZone)));
+  const vig     = document.getElementById('vignette');
+  vig.style.opacity  = danger * 0.85;
+  vig.style.background = `radial-gradient(ellipse at 20% 50%, transparent 25%, rgba(192,57,43,${danger * 0.5}) 100%)`;
+}
+
+function selectAndStart(m) {
+  mode = m;
+  cfg  = MODES[m];
+  startGame();
+}
+
+// ── Info popup ────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>
