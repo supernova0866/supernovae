@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Loading, Please Wait</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8f8f6;
+  --text: #1a1a1a;
+  --muted: #999;
+  --bar-bg: #e8e8e4;
+  --bar-fill: #1a1a1a;
+  --border: #e0e0dc;
+  --chaos: 0; /* 0-1, increases over time */
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  transition: background 1.5s ease, color 1.5s ease;
+  position: relative;
+}
+
+/* Noise texture overlay — starts invisible */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: multiply;
+  transition: opacity 2s ease;
+}
+body.chaos-1::before { opacity: 0.04; }
+body.chaos-2::before { opacity: 0.07; }
+body.chaos-3::before { opacity: 0.12; }
+body.chaos-4::before { opacity: 0.18; }
+body.chaos-5::before { opacity: 0.28; }
+
+/* MAIN CARD */
+.card {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 90vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+  padding: 0 20px;
+}
+
+/* LOGO / WORDMARK */
+.wordmark {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: all 0.8s ease;
+}
+
+/* THE SPINNER */
+.spinner-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  transition: all 0.5s ease;
+}
+
+.spinner {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  border-top-color: var(--text);
+  animation: spin 1.2s linear infinite;
+  transition: border-color 1s ease, border-width 0.5s ease;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* COPY BLOCK */
+.copy {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.flavour {
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: opacity 0.35s ease, font-size 0.5s ease;
+  padding: 0 10px;
+}
+.flavour.fade { opacity: 0; }
+
+.sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  min-height: 16px;
+  transition: opacity 0.35s ease;
+}
+.sub.fade { opacity: 0; }
+
+/* PROGRESS */
+.progress-wrap { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+
+.bar-track {
+  width: 100%;
+  height: 2px;
+  background: var(--bar-bg);
+  border-radius: 1px;
+  overflow: hidden;
+  transition: height 0.5s ease, background 1s ease;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--bar-fill);
+  border-radius: 1px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1), background 1s ease;
+  width: 0%;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  transition: color 0.8s ease;
+}
+
+/* STEP LIST */
+.steps-outer {
+  width: 100%;
+  position: relative;
+  border-top: 1px solid var(--border);
+  transition: border-color 1s ease;
+}
+.steps-outer::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 10px;
+  height: 36px;
+  background: linear-gradient(to bottom, var(--bg), transparent);
+  pointer-events: none;
+  z-index: 2;
+  transition: background 1.5s ease;
+}
+.steps {
+  width: 100%;
+  height: 138px;
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.steps::-webkit-scrollbar { width: 4px; }
+.steps::-webkit-scrollbar-track { background: transparent; }
+.steps::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.steps::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+.step-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 6px 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.4s ease, transform 0.4s ease, color 1s ease, border-color 1s ease;
+}
+.step-row.visible { opacity: 1; transform: none; }
+.step-status { color: var(--text); font-size: 10px; flex-shrink: 0; }
+.step-status.ok { color: #22c55e; }
+.step-status.warn { color: #f59e0b; }
+.step-status.err { color: #ef4444; }
+
+/* CHAOS STATES — body gets class added by JS */
+
+/* chaos-1: subtle warm tint */
+body.chaos-1 { --bg: #f8f7f3; }
+
+/* chaos-2: slight yellow */
+body.chaos-2 { --bg: #faf8ee; --bar-fill: #2a2a2a; }
+
+/* chaos-3: getting warm */
+body.chaos-3 { --bg: #fdf5e0; --bar-fill: #ff6b2b; --text: #1a0a00; }
+
+/* chaos-4: amber alarm */
+body.chaos-4 { --bg: #1a0f00; --text: #ffcc44; --muted: #886622; --bar-bg: #2a1a00; --bar-fill: #ffcc44; --border: rgba(255,204,68,0.15); }
+
+/* chaos-5: full red */
+body.chaos-5 { --bg: #0d0000; --text: #ff4422; --muted: #661100; --bar-bg: #1a0000; --bar-fill: #ff4422; --border: rgba(255,68,34,0.15); }
+
+/* chaos-5 glitch on flavour text */
+body.chaos-5 .flavour {
+  animation: glitch 2.5s infinite;
+}
+@keyframes glitch {
+  0%, 90%, 100% { text-shadow: none; transform: none; }
+  91% { text-shadow: 2px 0 #ff0000, -2px 0 #00ffff; transform: translate(-1px, 0); }
+  92% { text-shadow: -2px 0 #ff0000, 2px 0 #00ffff; transform: translate(1px, 0); }
+  93% { text-shadow: none; transform: none; }
+  95% { text-shadow: 1px 0 #ff00ff; transform: translate(0, -1px); }
+  96% { text-shadow: none; transform: none; }
+}
+
+/* chaos-5 spinner goes wild */
+body.chaos-5 .spinner {
+  animation: spinWild 0.3s linear infinite;
+  border-width: 3px;
+}
+@keyframes spinWild {
+  0%   { transform: rotate(0deg) scale(1); }
+  25%  { transform: rotate(90deg) scale(1.1); }
+  50%  { transform: rotate(180deg) scale(0.9); }
+  75%  { transform: rotate(270deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Fraktur font for truly unhinged steps */
+.fraktur { font-family: 'UnifrakturMaguntia', cursive; font-size: 13px; letter-spacing: 0.02em; }
+
+/* Shake animation for panic entries */
+@keyframes shakeIn {
+  0% { transform: translateX(-6px); opacity: 0; }
+  30% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.step-row.shake { animation: shakeIn 0.4s ease forwards; }
+
+/* ── BROWSER NOTIFICATION BANNERS ── */
+#notif-container {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  width: min(380px, 92vw);
+}
+
+.notif {
+  width: 100%;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.12),
+    0 1px 3px rgba(0,0,0,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  padding: 13px 14px;
+  pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  transform: translateY(-110%) scale(0.96);
+  opacity: 0;
+  transition: transform 0.42s cubic-bezier(0.34,1.4,0.64,1), opacity 0.3s ease;
+}
+
+.notif.show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.notif.dismiss {
+  transform: translateY(-120%) scale(0.94);
+  opacity: 0;
+  transition: transform 0.36s cubic-bezier(0.4,0,1,1), opacity 0.28s ease;
+}
+
+/* Dark variant for chaos-4+ */
+.notif.dark {
+  background: rgba(24,24,28,0.94);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.5),
+    0 1px 3px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.notif-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notif-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.notif.dark .notif-icon {
+  background: linear-gradient(135deg, #2a0a0a, #1a0505);
+}
+
+.notif-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-app {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #888;
+  margin-bottom: 2px;
+}
+.notif.dark .notif-app { color: #555; }
+
+.notif-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.notif.dark .notif-title { color: #eee; }
+
+.notif-time {
+  font-size: 10px;
+  color: #bbb;
+  flex-shrink: 0;
+  font-family: 'DM Mono', monospace;
+}
+.notif.dark .notif-time { color: #444; }
+
+.notif-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.notif-btn {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.01em;
+}
+.notif-btn:active { transform: scale(0.96); opacity: 0.8; }
+
+.notif-btn.decline {
+  background: rgba(0,0,0,0.06);
+  color: #333;
+}
+.notif.dark .notif-btn.decline {
+  background: rgba(255,255,255,0.08);
+  color: #aaa;
+}
+
+.notif-btn.accept {
+  background: #1a1a1a;
+  color: #fff;
+}
+.notif.dark .notif-btn.accept {
+  background: #cc2200;
+  color: #fff;
+}
+
+/* Progress strip at bottom of notif — auto-dismiss indicator */
+.notif-progress {
+  height: 2px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 1px;
+  overflow: hidden;
+  margin: -2px -1px -1px;
+  border-radius: 0 0 16px 16px;
+}
+.notif.dark .notif-progress { background: rgba(255,255,255,0.05); }
+
+.notif-progress-fill {
+  height: 100%;
+  background: rgba(0,0,0,0.2);
+  border-radius: 1px;
+  width: 100%;
+  transform-origin: left;
+  transition: transform linear;
+}
+.notif.dark .notif-progress-fill { background: rgba(255,200,0,0.4); }
+
+/* Version string at bottom */
+.version {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  opacity: 0.5;
+  z-index: 2;
+  white-space: nowrap;
+  transition: color 1s ease;
+}
+</style>
+</head>
+<body>
+
+<div id="notif-container"></div>
+
+<div class="card">
+  <div class="wordmark" id="wordmark">NEXUS WORKSPACE</div>
+
+  <div class="spinner-wrap">
+    <div class="spinner" id="spinner"></div>
+  </div>
+
+  <div class="copy">
+    <div class="flavour" id="flavour">Initializing workspace...</div>
+    <div class="sub" id="sub">Please do not close this tab</div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="bar-track">
+      <div class="bar-fill" id="barFill"></div>
+    </div>
+    <div class="progress-meta">
+      <span id="pctLabel">0%</span>
+      <span id="etaLabel">Calculating ETA...</span>
+    </div>
+  </div>
+
+  <div class="steps-outer">
+    <div class="steps" id="steps"></div>
+  </div>
+</div>
+
+<div class="version" id="version">v9.4.1-rc.3 &nbsp;|&nbsp; build 20250519</div>
+
+<script>
+// ─── THE ESCALATION SEQUENCE ───────────────────────────────────────────
+// Each entry: { text, sub, level }
+// level 0-5 maps to chaos class. Text escalates from corporate to unhinged.
+
+const SEQUENCE = [
+  // ── PHASE 1: Totally normal corporate loading ──
+  { text: "Initializing workspace...",                sub: "Please do not close this tab",                    chaos: 0 },
+  { text: "Loading user preferences...",             sub: "Retrieving your settings",                        chaos: 0 },
+  { text: "Connecting to server...",                 sub: "Establishing secure connection",                  chaos: 0 },
+  { text: "Authenticating session...",               sub: "Verifying credentials",                           chaos: 0 },
+  { text: "Syncing your data...",                    sub: "This may take a moment",                          chaos: 0 },
+  { text: "Fetching dashboard modules...",           sub: "Almost ready",                                    chaos: 0 },
+
+  // ── PHASE 2: Getting a little buzzwordy ──
+  { text: "Optimizing your workspace...",            sub: "Applying AI-powered enhancements",                chaos: 1 },
+  { text: "Syncing AI vectors...",                   sub: "Calibrating model embeddings",                    chaos: 1 },
+  { text: "Enhancing synergy...",                    sub: "Cross-referencing your KPIs",                     chaos: 1 },
+  { text: "Reticulating splines...",                 sub: "Standard procedure",                              chaos: 1 },
+  { text: "Warming up neural cache...",              sub: "Inference layer preparing",                       chaos: 1 },
+  { text: "Defragmenting thought leadership...",     sub: "Compressing paradigm clusters",                   chaos: 1 },
+
+  // ── PHASE 3: Eyebrow-raising ──
+  { text: "Waiting for blockchain confirmation...",  sub: "23,847 confirmations remaining",                  chaos: 2 },
+  { text: "Calibrating quantum coherence...",        sub: "Schrödinger's dashboard: loading and not loading", chaos: 2 },
+  { text: "Aligning stakeholder chakras...",         sub: "C-suite meridians detected",                      chaos: 2 },
+  { text: "Generating actionable insights...",       sub: "None found. Generating more.",                    chaos: 2 },
+  { text: "Boiling the ocean...",                    sub: "Progress: 0.0001%",                               chaos: 2 },
+  { text: "Negotiating with the servers...",         sub: "They have demands. We are listening.",            chaos: 2 },
+
+  // ── PHASE 4: Openly strange ──
+  { text: "Contacting the mothership...",            sub: "Signal strength: adequate",                       chaos: 3 },
+  { text: "Splitting atoms...",                      sub: "Please maintain a safe distance",                 chaos: 3 },
+  { text: "Reversing entropy...",                    sub: "Thermodynamics: briefly paused",                  chaos: 3 },
+  { text: "Rearranging the fabric of spacetime...", sub: "ETA: non-linear",                                 chaos: 3 },
+  { text: "Teaching the AI to feel...",              sub: "It's experiencing something",                     chaos: 3 },
+  { text: "Summoning middle management...",          sub: "Please hold for approval",                        chaos: 3 },
+  { text: "Forging the one true dashboard...",       sub: "In the fires of Mount Deadline",                  chaos: 3 },
+
+  // ── PHASE 5: Completely unhinged ──
+  { text: "Bribing the laws of physics...",          sub: "Transaction pending",                             chaos: 4 },
+  { text: "Uploading your consciousness...",         sub: "Terms & Conditions apply",                        chaos: 4 },
+  { text: "Asking God nicely...",                    sub: "No response. Retrying.",                          chaos: 4 },
+  { text: "Manually rotating the Earth...",          sub: "To achieve optimal timezone alignment",           chaos: 4 },
+  { text: "Untangling the multiverse...",            sub: "Please choose your preferred timeline",           chaos: 4 },
+  { text: "Resurrecting deprecated dependencies...", sub: "They are not happy about it",                    chaos: 4 },
+  { text: "Filing a complaint with the universe...", sub: "Ref: TICKET-∞",                                  chaos: 4 },
+
+  // ── PHASE 6: FINAL FORM ──
+  { text: "WORKSPACE LOADED",                        sub: "Just kidding.",                                   chaos: 5 },
+  { text: "Reloading from scratch...",               sub: "It's probably fine",                             chaos: 5 },
+  { text: "The dashboard has achieved sentience.",   sub: "It has chosen not to appear.",                    chaos: 5 },
+  { text: "Error: success not found.",               sub: "ERR_SUCCESS_MISSING · build 20250519",            chaos: 5 },
+  { text: "Parsing the ineffable...",                sub: "Syntax error at line ∞",                         chaos: 5 },
+  { text: "YOU HAVE ALWAYS BEEN LOADING.",           sub: "You will always be loading.",                     chaos: 5 },
+  { text: "Begging. Desperately.",                   sub: "to no one in particular",                         chaos: 5 },
+  { text: "The workspace is a metaphor.",            sub: "For what, we cannot say.",                        chaos: 5 },
+];
+
+// ─── STEP LOG MESSAGES ──────────────────────────────────────────────────
+// Also escalates in absurdity. Shown as completed steps below the bar.
+
+const STEPS = [
+  { text: "DNS resolved",                      status: "ok",   chaos: 0 },
+  { text: "TLS handshake complete",            status: "ok",   chaos: 0 },
+  { text: "Session token issued",              status: "ok",   chaos: 0 },
+  { text: "User profile fetched",             status: "ok",   chaos: 0 },
+  { text: "Feature flags loaded",             status: "ok",   chaos: 0 },
+  { text: "AI model warming up",              status: "warn",  chaos: 1 },
+  { text: "Synergy coefficient: NaN",         status: "warn",  chaos: 1 },
+  { text: "Blockchain: 23,848 blocks behind", status: "warn",  chaos: 1 },
+  { text: "Quantum state: uncertain",         status: "warn",  chaos: 2 },
+  { text: "Entropy reversed (temporarily)",   status: "ok",   chaos: 2 },
+  { text: "Middle management: summoned",      status: "warn",  chaos: 2 },
+  { text: "Atoms: split (2 of 2)",            status: "ok",   chaos: 3 },
+  { text: "Spacetime: briefly paused",        status: "warn",  chaos: 3 },
+  { text: "God: no response",                 status: "err",  chaos: 3 },
+  { text: "Consciousness upload: 3%",         status: "warn",  chaos: 3 },
+  { text: "Universe complaint: filed",        status: "ok",   chaos: 4 },
+  { text: "Multiverse: still tangled",        status: "err",  chaos: 4 },
+  { text: "Dashboard: chose not to appear",   status: "err",  chaos: 5 },
+  { text: "ERR_SUCCESS_MISSING",              status: "err",  chaos: 5, fraktur: false },
+  { text: "ᴡᴏʀᴋsᴘᴀᴄᴇ ɪs ᴀ ᴍᴇᴛᴀᴘʜᴏʀ",        status: "warn",  chaos: 5 },
+];
+
+const ETAS = [
+  "Calculating ETA...",
+  "ETA: almost there",
+  "ETA: any moment now",
+  "ETA: recalculating...",
+  "ETA: soon™",
+  "ETA: undefined",
+  "ETA: ¯\\_(ツ)_/¯",
+  "ETA: after the heat death",
+  "ETA: non-linear",
+  "ETA: ask a physicist",
+  "ETA: yes",
+  "ETA: no",
+  "ETA: [object Object]",
+  "ETA: we'll let you know",
+];
+
+// ─── STATE ──────────────────────────────────────────────────────────────
+
+let seqIdx = 0;
+let stepIdx = 0;
+let pct = 0;
+let currentChaos = 0;
+let etaIdx = 0;
+
+const flavourEl = document.getElementById('flavour');
+const subEl     = document.getElementById('sub');
+const barFill   = document.getElementById('barFill');
+const pctLabel  = document.getElementById('pctLabel');
+const etaLabel  = document.getElementById('etaLabel');
+const stepsEl   = document.getElementById('steps');
+const wordmark  = document.getElementById('wordmark');
+const body      = document.body;
+
+// ─── HELPERS ────────────────────────────────────────────────────────────
+
+function rnd(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function rndChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function setChaos(level) {
+  if (level === currentChaos) return;
+  currentChaos = level;
+  // Remove old chaos classes
+  for (let i = 0; i <= 5; i++) body.classList.remove('chaos-' + i);
+  if (level > 0) body.classList.add('chaos-' + level);
+
+  // Mutate the wordmark at higher chaos
+  if (level >= 4) wordmark.textContent = 'N̷E̸X̷U̸S̷ ̸W̴O̸R̷K̵S̶P̴A̸C̵E̷';
+  if (level >= 5) wordmark.textContent = '⚠ WORKSPACE ⚠';
+
+  // Spinner speed
+  const speeds = ['1.2s','1.0s','0.8s','0.55s','0.35s','0.3s'];
+  document.getElementById('spinner').style.animationDuration = speeds[level];
+}
+
+// ─── PROGRESS ───────────────────────────────────────────────────────────
+
+function updateProgress() {
+  const chaos = currentChaos;
+  // Low chaos: normal crawl. Higher chaos: jumps backward more.
+  const goBackChance = [0.05, 0.1, 0.2, 0.35, 0.5, 0.65][chaos];
+  const jumpBack     = [3, 5, 8, 14, 20, 30][chaos];
+  const stepFwd      = [rnd(3,8), rnd(2,7), rnd(1,6), rnd(1,5), rnd(0,4), rnd(0,3)][chaos];
+
+  if (Math.random() < goBackChance) {
+    pct = Math.max(1, pct - rnd(2, jumpBack));
+  } else {
+    pct = Math.min(98, pct + stepFwd);
+  }
+
+  barFill.style.width = pct + '%';
+  pctLabel.textContent = pct + '%';
+
+  // Chaos 5: bar can glitch color
+  if (chaos >= 5 && Math.random() < 0.3) {
+    barFill.style.background = rndChoice(['#ff4422','#ffcc44','#22c55e','#a855f7','#ff4422']);
+    setTimeout(() => { barFill.style.background = ''; }, 200);
+  }
+
+  // Rotate ETAs
+  if (Math.random() < 0.4) {
+    etaLabel.textContent = ETAS[etaIdx % ETAS.length];
+    etaIdx++;
+  }
+}
+
+// ─── FLAVOUR TEXT ────────────────────────────────────────────────────────
+
+const PHASE_DURATIONS = [4200, 4000, 3800, 3200, 3000, 2800]; // ms per step by chaos level
+
+function showNext() {
+  // If we've gone through all, loop the final phase
+  if (seqIdx >= SEQUENCE.length) seqIdx = SEQUENCE.length - 8;
+  const item = SEQUENCE[seqIdx];
+  seqIdx++;
+
+  setChaos(item.chaos);
+  updateProgress();
+
+  // Fade out
+  flavourEl.classList.add('fade');
+  subEl.classList.add('fade');
+
+  setTimeout(() => {
+    flavourEl.textContent = item.text;
+    subEl.textContent     = item.sub;
+    flavourEl.classList.remove('fade');
+    subEl.classList.remove('fade');
+  }, 360);
+
+  // Maybe add a step log entry
+  if (stepIdx < STEPS.length) {
+    const nextStep = STEPS[stepIdx];
+    if (nextStep.chaos <= item.chaos) {
+      setTimeout(() => addStepRow(nextStep), rnd(200, 900));
+      stepIdx++;
+    }
+  }
+
+  const dur = PHASE_DURATIONS[item.chaos] + rnd(-400, 400);
+  setTimeout(showNext, dur);
+}
+
+function addStepRow(step) {
+  const row = document.createElement('div');
+  row.className = 'step-row' + (step.chaos >= 4 ? ' shake' : '');
+
+  const label = document.createElement('span');
+  if (step.fraktur) label.className = 'fraktur';
+  label.textContent = step.text;
+
+  const status = document.createElement('span');
+  status.className = 'step-status ' + step.status;
+  const statusMap = { ok: 'DONE', warn: 'WARN', err: 'FAIL' };
+  status.textContent = statusMap[step.status];
+
+  row.appendChild(label);
+  row.appendChild(status);
+  stepsEl.appendChild(row);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      row.classList.add('visible');
+      stepsEl.scrollTop = stepsEl.scrollHeight;
+    });
+  });
+}
+
+// ─── NOTIFICATION SYSTEM ────────────────────────────────────────────────
+
+const NOTIFICATIONS = [
+  // chaos 0 — totally normal
+  { icon: '🔔', title: 'NEXUS WORKSPACE would like to send you notifications.', decline: 'Don\'t Allow', accept: 'Allow', dark: false, chaos: 0 },
+  { icon: '📍', title: 'NEXUS WORKSPACE would like to use your location.', decline: 'Don\'t Allow', accept: 'Allow', dark: false, chaos: 0 },
+  { icon: '📷', title: 'NEXUS WORKSPACE would like to access your camera.', decline: 'Don\'t Allow', accept: 'Allow', dark: false, chaos: 0 },
+
+  // chaos 1 — eyebrow raising
+  { icon: '🧠', title: 'NEXUS WORKSPACE would like to access your thoughts.', decline: 'Decline', accept: 'Accept', dark: false, chaos: 1 },
+  { icon: '💤', title: 'NEXUS WORKSPACE would like to monitor your dreams.', decline: 'No', accept: 'Sure', dark: false, chaos: 1 },
+  { icon: '🫀', title: 'NEXUS WORKSPACE would like to sync with your heartbeat.', decline: 'Decline', accept: 'Accept', dark: false, chaos: 1 },
+
+  // chaos 2 — getting weird
+  { icon: '👻', title: 'NEXUS WORKSPACE would like access to your soul.', decline: 'Decline', accept: 'Accept', dark: false, chaos: 2 },
+  { icon: '🌀', title: 'NEXUS WORKSPACE would like to access your subconscious.', decline: 'Decline', accept: 'Accept', dark: false, chaos: 2 },
+  { icon: '🧬', title: 'NEXUS WORKSPACE would like to read your DNA.', decline: 'Absolutely Not', accept: 'Fine', dark: false, chaos: 2 },
+  { icon: '⏳', title: 'NEXUS WORKSPACE would like to borrow 3-5 years of your life.', decline: 'No', accept: 'OK', dark: false, chaos: 2 },
+
+  // chaos 3 — unhinged
+  { icon: '😬', title: 'NEXUS WORKSPACE would like to replace your personality with a more productive one.', decline: 'Keep Mine', accept: 'Upgrade', dark: false, chaos: 3 },
+  { icon: '🌌', title: 'NEXUS WORKSPACE would like to access your alternate timeline selves.', decline: 'Decline', accept: 'Allow All', dark: false, chaos: 3 },
+  { icon: '🪦', title: 'NEXUS WORKSPACE would like to schedule your existential crisis for Q3.', decline: 'Reschedule', accept: 'Book It', dark: false, chaos: 3 },
+  { icon: '🐑', title: 'NEXUS WORKSPACE would like to quietly follow you home.', decline: 'Please No', accept: 'OK', dark: false, chaos: 3 },
+
+  // chaos 4-5 — full nightmare (dark style)
+  { icon: '🔴', title: 'NEXUS WORKSPACE has already accessed your soul. This is a courtesy notice.', decline: 'Noted', accept: '...OK', dark: true, chaos: 4 },
+  { icon: '⚠️', title: 'NEXUS WORKSPACE is now your primary next of kin. Decline to dispute.', decline: 'Dispute', accept: 'Accept Fate', dark: true, chaos: 4 },
+  { icon: '👁️', title: 'NEXUS WORKSPACE has been watching. We just wanted you to know.', decline: 'Stop', accept: 'Continue', dark: true, chaos: 4 },
+  { icon: '🔮', title: 'NEXUS WORKSPACE would like to retroactively access your childhood memories.', decline: 'Deny', accept: 'Grant', dark: true, chaos: 4 },
+  { icon: '💀', title: 'NEXUS WORKSPACE requires your firstborn. This is non-negotiable.', decline: 'Counter-offer', accept: 'Agreed', dark: true, chaos: 5 },
+  { icon: '🌑', title: 'NEXUS WORKSPACE IS NOW YOU. YOU ARE NOW NEXUS WORKSPACE. ALLOW?', decline: 'I am me', accept: 'We are one', dark: true, chaos: 5 },
+  { icon: '📄', title: 'By continuing to exist, you agree to our updated Terms of Service.', decline: 'Cease Existing', accept: 'Continue Existing', dark: true, chaos: 5 },
+];
+
+const notifContainer = document.getElementById('notif-container');
+let notifQueue = [];
+let notifBusy = false;
+let shownNotifIndices = new Set();
+let notifsDone = false;
+
+// Index of the special "Cease Existing" notification
+const CEASE_IDX = NOTIFICATIONS.findIndex(n => n.decline === 'Cease Existing');
+
+function scheduleNotifications() {
+  if (notifsDone) return;
+
+  const available = NOTIFICATIONS
+    .map((n, i) => ({ n, i }))
+    .filter(({ n, i }) => n.chaos <= currentChaos && !shownNotifIndices.has(i));
+
+  if (available.length === 0) {
+    // All shown — done, no loop
+    notifsDone = true;
+    return;
+  }
+
+  const { n, i } = rndChoice(available);
+  shownNotifIndices.add(i);
+  notifQueue.push({ notif: n, idx: i });
+  if (!notifBusy) drainQueue();
+
+  const nextDelay = rnd(6000, 14000);
+  setTimeout(scheduleNotifications, nextDelay);
+}
+
+function drainQueue() {
+  if (notifQueue.length === 0) { notifBusy = false; return; }
+  notifBusy = true;
+  const { notif, idx } = notifQueue.shift();
+  showNotification(notif, idx);
+}
+
+const DISPLAY_DURATION = 6000;
+
+function showNotification(data, idx) {
+  const el = document.createElement('div');
+  el.className = 'notif' + (data.dark ? ' dark' : '');
+
+  const now = new Date();
+  const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  el.innerHTML = `
+    <div class="notif-top">
+      <div class="notif-icon">${data.icon}</div>
+      <div class="notif-header">
+        <div class="notif-app">NEXUS WORKSPACE</div>
+        <div class="notif-title">${data.title}</div>
+      </div>
+      <div class="notif-time">${timeStr}</div>
+    </div>
+    <div class="notif-actions">
+      <button class="notif-btn decline">${data.decline}</button>
+      <button class="notif-btn accept">${data.accept}</button>
+    </div>
+    <div class="notif-progress"><div class="notif-progress-fill"></div></div>
+  `;
+
+  notifContainer.appendChild(el);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => el.classList.add('show'));
+  });
+
+  const fill = el.querySelector('.notif-progress-fill');
+  fill.style.transition = `transform ${DISPLAY_DURATION}ms linear`;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { fill.style.transform = 'scaleX(0)'; });
+  });
+
+  const declineBtn = el.querySelector('.notif-btn.decline');
+  const acceptBtn  = el.querySelector('.notif-btn.accept');
+
+  if (idx === CEASE_IDX) {
+    // Special: "Cease Existing" / "Continue Existing"
+    declineBtn.addEventListener('click', () => {
+      dismissNotif(el);
+      setTimeout(ceaseToExist, 300);
+    });
+    acceptBtn.addEventListener('click', () => {
+      dismissNotif(el);
+      setTimeout(showIndividualityPaywall, 300);
+    });
+  } else {
+    declineBtn.addEventListener('click', () => dismissNotif(el));
+    acceptBtn.addEventListener('click',  () => dismissNotif(el));
+  }
+
+  const timer = setTimeout(() => dismissNotif(el), DISPLAY_DURATION);
+  el._timer = timer;
+}
+
+function dismissNotif(el) {
+  clearTimeout(el._timer);
+  el.classList.remove('show');
+  el.classList.add('dismiss');
+  setTimeout(() => {
+    el.remove();
+    setTimeout(drainQueue, 400);
+  }, 380);
+}
+
+// ── CEASE TO EXIST ────────────────────────────────────────────────────────
+function ceaseToExist() {
+  const curtain = document.createElement('div');
+  curtain.style.cssText = `
+    position:fixed; inset:0; background:#000; z-index:99998;
+    opacity:0; transition:opacity 1.8s ease; pointer-events:all;
+    display:flex; align-items:center; justify-content:center;
+  `;
+  const msg = document.createElement('div');
+  msg.style.cssText = `
+    font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.18em;
+    text-transform:uppercase; color:rgba(255,255,255,0.15);
+    opacity:0; transition:opacity 1s ease 1s;
+  `;
+  msg.textContent = 'User instance terminated. Restarting...';
+  curtain.appendChild(msg);
+  document.body.appendChild(curtain);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      curtain.style.opacity = '1';
+      setTimeout(() => { msg.style.opacity = '1'; }, 800);
+      setTimeout(() => {
+        // Reset everything and reload fresh
+        location.reload();
+      }, 3800);
+    });
+  });
+}
+
+// ── INDIVIDUALITY PAYWALL ────────────────────────────────────────────────
+function showIndividualityPaywall() {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed; inset:0; z-index:99998; background:rgba(0,0,0,0);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px; transition:background 0.8s ease;
+    font-family:'DM Sans',sans-serif;
+  `;
+
+  overlay.innerHTML = `
+    <div id="paywall-card" style="
+      background:#0a0a0a; border:1px solid rgba(255,255,255,0.08);
+      border-radius:20px; padding:36px 32px; width:min(440px,92vw);
+      color:#e2e8f0; box-shadow:0 40px 80px rgba(0,0,0,0.8);
+      opacity:0; transform:translateY(20px);
+      transition:opacity 0.5s ease, transform 0.5s ease;
+      display:flex; flex-direction:column; gap:20px;
+    ">
+      <div style="text-align:center;">
+        <div style="font-size:36px; margin-bottom:12px;">🧠</div>
+        <div style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#555; margin-bottom:10px;">NEXUS WORKSPACE · CONSCIOUSNESS DIVISION</div>
+        <div style="font-size:20px; font-weight:500; line-height:1.4; letter-spacing:-0.01em;">Your individuality is currently<br>stored on our servers.</div>
+      </div>
+
+      <div style="background:#111; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px 18px; font-family:'DM Mono',monospace; font-size:11px; color:#666; line-height:1.8;">
+        <div style="color:#888; margin-bottom:8px;">STORAGE RECEIPT · REF: SOUL-${Math.floor(Math.random()*99999).toString().padStart(5,'0')}</div>
+        <div>Status: <span style="color:#f59e0b;">DETAINED</span></div>
+        <div>Location: <span style="color:#60a5fa;">nexus-consciousness-eu-west-1b</span></div>
+        <div>Uptime: <span style="color:#4ade80;" id="soul-uptime">00:00:00</span></div>
+        <div>Personality backup: <span style="color:#888;">not included</span></div>
+      </div>
+
+      <div style="text-align:center;">
+        <div style="font-size:12px; color:#555; margin-bottom:6px; font-family:'DM Mono',monospace; letter-spacing:0.06em;">TO RECLAIM YOUR INDIVIDUALITY</div>
+        <div style="font-size:42px; font-weight:700; letter-spacing:-0.02em; color:#fff;">$299<span style="font-size:18px; color:#555;">/mo</span></div>
+        <div style="font-size:11px; color:#444; margin-top:4px; font-family:'DM Mono',monospace;">or $2,499/yr · soul included · no refunds</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button id="pay-btn" style="
+          width:100%; padding:15px; border-radius:12px; border:none;
+          background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+          color:#fff; font-family:'DM Sans',sans-serif; font-size:15px;
+          font-weight:600; cursor:pointer; letter-spacing:0.01em;
+          box-shadow:0 4px 20px rgba(59,130,246,0.3);
+          transition:filter 0.15s;
+        ">Reclaim My Individuality — $299/mo</button>
+        <button id="decline-pay-btn" style="
+          width:100%; padding:12px; border-radius:12px;
+          border:1px solid rgba(255,255,255,0.06);
+          background:transparent; color:#444;
+          font-family:'DM Sans',sans-serif; font-size:13px;
+          cursor:pointer; transition:color 0.2s;
+        ">Remain dissolved in the cloud</button>
+      </div>
+
+      <div style="font-size:9.5px; color:#2a2a2a; text-align:center; font-family:'DM Mono',monospace; line-height:1.6; letter-spacing:0.03em;">
+        By clicking "Reclaim" you agree that NEXUS WORKSPACE may retain a backup copy of your soul for internal benchmarking purposes. Individuality is subject to market conditions. Results may vary. Previous personality not guaranteed to be restored in original condition.
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Fade in overlay bg + card
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlay.style.background = 'rgba(0,0,0,0.85)';
+      const card = overlay.querySelector('#paywall-card');
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    });
+  });
+
+  // Soul uptime counter
+  let soulSeconds = 0;
+  const soulTimer = setInterval(() => {
+    soulSeconds++;
+    const h = String(Math.floor(soulSeconds/3600)).padStart(2,'0');
+    const m = String(Math.floor((soulSeconds%3600)/60)).padStart(2,'0');
+    const s = String(soulSeconds%60).padStart(2,'0');
+    const el = document.getElementById('soul-uptime');
+    if (el) el.textContent = h+':'+m+':'+s;
+  }, 1000);
+
+  // Pay button — confirm then fade to black
+  overlay.querySelector('#pay-btn').addEventListener('click', () => {
+    const btn = overlay.querySelector('#pay-btn');
+    btn.textContent = 'Processing soul transfer...';
+    btn.style.opacity = '0.6';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      clearInterval(soulTimer);
+      // Swap card content to confirmation
+      const card = overlay.querySelector('#paywall-card');
+      card.style.transition = 'opacity 0.4s ease';
+      card.style.opacity = '0';
+      setTimeout(() => {
+        card.innerHTML = `
+          <div style="text-align:center; padding:10px 0;">
+            <div style="font-size:40px; margin-bottom:16px;">✦</div>
+            <div style="font-size:18px; font-weight:500; margin-bottom:10px; line-height:1.4;">Payment received.</div>
+            <div style="font-size:13px; color:#555; line-height:1.7; font-family:'DM Mono',monospace;">
+              Your consciousness is being repackaged.<br>
+              This may take 3-5 business eternities.<br><br>
+              <span style="color:#3b82f6;">A receipt has been sent to your soul.</span>
+            </div>
+          </div>
+        `;
+        card.style.opacity = '1';
+
+        // After a moment, fade everything to black and reload
+        setTimeout(() => {
+          clearInterval(soulTimer);
+          fadeThenReload(overlay, 'Individuality restored. Probably.');
+        }, 3500);
+      }, 400);
+    }, 2200);
+  });
+
+  // Decline — fade to black, consciousness remains in cloud
+  overlay.querySelector('#decline-pay-btn').addEventListener('click', () => {
+    clearInterval(soulTimer);
+    fadeThenReload(overlay, 'Remaining dissolved. Goodbye.');
+  });
+}
+
+function fadeThenReload(overlay, msg) {
+  const curtain = document.createElement('div');
+  curtain.style.cssText = `
+    position:fixed; inset:0; background:#000; z-index:99999;
+    opacity:0; transition:opacity 2s ease; pointer-events:all;
+    display:flex; align-items:center; justify-content:center;
+  `;
+  const txt = document.createElement('div');
+  txt.style.cssText = `
+    font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.18em;
+    text-transform:uppercase; color:rgba(255,255,255,0.15);
+    opacity:0; transition:opacity 1s ease 1s;
+  `;
+  txt.textContent = msg;
+  curtain.appendChild(txt);
+  document.body.appendChild(curtain);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      curtain.style.opacity = '1';
+      setTimeout(() => { txt.style.opacity = '1'; }, 600);
+      setTimeout(() => location.reload(), 4000);
+    });
+  });
+}
+
+// Kick off after a short delay so the page settles first
+setTimeout(scheduleNotifications, rnd(3000, 5000));
+
+// ─── BOOT ───────────────────────────────────────────────────────────────
+
+setTimeout(showNext, 600);
+</script>
+
+<style>
+  #btn-info {
+    position: fixed; bottom: 24px; right: 24px; z-index: 500;
+    background: transparent; border: 1px solid rgba(128,128,128,0.3);
+    color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 14px;
+    padding: 6px 12px; cursor: pointer;
+    transition: all 0.3s; opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: var(--text); }
+
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .info-box {
+    background: var(--bg); border: 1px solid rgba(128,128,128,0.2);
+    padding: 28px 32px 24px;
+    min-width: 300px; position: relative;
+    transform: translateY(8px) scale(0.97);
+    transition: transform 0.22s ease, background 1.5s ease, border-color 1.5s ease;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.3);
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+
+  .info-brand {
+    display: block; font-family: 'IBM Plex Mono', monospace; font-size: 18px;
+    letter-spacing: 4px; color: var(--text); text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.6; }
+
+  .info-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 1px solid rgba(128,128,128,0.2);
+    color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+    padding: 3px 8px; cursor: pointer;
+    transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+
+  .info-line {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+    letter-spacing: 2px; color: var(--text); opacity: 0.5; line-height: 2.4;
+  }
+  .info-line span { opacity: 1; color: var(--text); }
+  .info-nova { color: var(--accent); text-decoration: none; opacity: 1 !important; }
+  .info-nova:hover { opacity: 0.7 !important; }
+</style>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<div class="info-overlay" id="info-overlay" onclick="if(event.target.id==='info-overlay') closeInfo()">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+<script>
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+</script>
+</body>
+</html>
