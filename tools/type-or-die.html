@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Type or Die</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap');
+
+:root {
+  --bg: #f2ede4;
+  --paper: #faf7f2;
+  --ink: #1c1812;
+  --ink-dim: #7a6f60;
+  --ink-faint: #c4bdb0;
+  --line: rgba(28,24,18,0.08);
+  --red: #9b1c1c;
+  --red-dim: rgba(155,28,28,0.12);
+  --red-faint: rgba(155,28,28,0.06);
+  --green: #2d5a27;
+  --gold: #b8860b;
+  --mono: 'Courier Prime', 'Courier New', monospace;
+  --display: 'Bebas Neue', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ruled lines background */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 31px,
+    var(--line) 31px,
+    var(--line) 32px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Blood seep overlay — grows as health drops */
+#blood-overlay {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.4s;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(155,28,28,0.0) 100%);
+}
+
+/* Corruption overlay */
+#corrupt-overlay {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(155,28,28,0.03) 2px,
+    rgba(155,28,28,0.03) 4px
+  );
+  transition: opacity 0.3s;
+}
+
+.wrap {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 28px;
+}
+
+.title {
+  font-family: var(--display);
+  font-size: clamp(48px, 10vw, 80px);
+  line-height: 0.9;
+  letter-spacing: 2px;
+  color: var(--ink);
+}
+
+.title span { color: var(--red); }
+
+.header-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+/* ── Health bar ── */
+.health-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--ink-dim);
+}
+
+.health-track {
+  width: 140px;
+  height: 6px;
+  background: var(--ink-faint);
+  position: relative;
+  overflow: hidden;
+}
+
+.health-fill {
+  height: 100%;
+  background: var(--ink);
+  width: 100%;
+  transition: width 0.25s ease, background 0.4s;
+  transform-origin: left;
+}
+
+/* ── Predator bar ── */
+.predator-wrap {
+  width: 100%;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.predator-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--red);
+  opacity: 0.7;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.predator-track {
+  width: 100%;
+  height: 3px;
+  background: var(--ink-faint);
+  position: relative;
+}
+
+.predator-fill {
+  height: 100%;
+  background: var(--red);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* Predator icon */
+.predator-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) scaleX(-1);
+  font-size: 18px;
+  transition: left 0.3s ease;
+  left: 0%;
+  filter: grayscale(1);
+  line-height: 1;
+}
+
+/* ── Typing area ── */
+.typing-area {
+  background: var(--paper);
+  border: 1px solid var(--ink-faint);
+  border-left: 3px solid var(--ink);
+  padding: 28px 28px 24px;
+  position: relative;
+  min-height: 320px;
+}
+
+/* Page corner fold */
+.typing-area::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0 0 20px 20px;
+  border-color: transparent transparent var(--bg) var(--ink-faint);
+}
+
+.prompt-text {
+  font-size: clamp(16px, 2.2vw, 20px);
+  line-height: 1.8;
+  position: relative;
+  min-height: 80px;
+}
+
+.char {
+  position: relative;
+  display: inline;
+}
+
+.char.pending  { color: var(--ink-faint); }
+.char.correct  { color: var(--ink); }
+.char.wrong    { color: var(--red); background: var(--red-faint); text-decoration: underline; text-decoration-color: var(--red); }
+.char.cursor   { position: relative; }
+.char.cursor::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 2px; bottom: 2px;
+  width: 2px;
+  background: var(--ink);
+  animation: blink 0.9s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Stats row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--ink-faint);
+  border-top: none;
+  background: white;
+}
+
+.stat {
+  padding: 12px 14px;
+  border-right: 1px solid var(--ink-faint);
+}
+.stat:last-child { border-right: none; }
+
+.stat-label {
+  font-size: 7px;
+  letter-spacing: 3px;
+  color: var(--ink-faint);
+  margin-bottom: 4px;
+}
+
+.stat-val {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.stat-val.danger { color: var(--red); }
+.stat-val.good   { color: var(--green); }
+
+/* ── Idle / dead / win screen ── */
+.overlay-screen {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  padding: 24px 32px;
+  border: 1px solid var(--ink-faint);
+  border-left: 3px solid var(--ink);
+}
+
+.overlay-screen.visible { display: flex; }
+
+.overlay-title {
+  font-family: var(--display);
+  font-size: clamp(36px, 8vw, 64px);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.overlay-title.dead { color: var(--red); }
+.overlay-title.win  { color: var(--green); }
+.overlay-title.idle { color: var(--ink); }
+
+.overlay-sub {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-dim);
+  line-height: 2;
+  max-width: 360px;
+}
+
+.overlay-stats {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--ink-dim);
+  line-height: 2.2;
+  border-top: 1px solid var(--ink-faint);
+  padding-top: 16px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.start-btn {
+  margin-top: 8px;
+  padding: 10px 32px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.start-btn:hover { background: var(--red); }
+
+/* ── Shake animation ── */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  15%     { transform: translateX(-5px) rotate(-0.3deg); }
+  30%     { transform: translateX(5px) rotate(0.3deg); }
+  45%     { transform: translateX(-4px); }
+  60%     { transform: translateX(4px); }
+  75%     { transform: translateX(-2px); }
+}
+
+.shaking { animation: shake 0.3s ease; }
+
+/* ── Flash ── */
+@keyframes flash-red {
+  0%   { background: rgba(155,28,28,0.15); }
+  100% { background: transparent; }
+}
+.flash-red { animation: flash-red 0.35s ease; }
+
+/* ── WPM pulse ── */
+@keyframes wpm-bump {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.15); }
+}
+.wpm-bump { animation: wpm-bump 0.2s ease; }
+
+/* ── Info ── */
+#btn-info {
+  position: fixed; top: 12px; right: 12px;
+  background: white; border: 1px solid var(--ink-faint);
+  color: var(--ink-dim); font-size: 14px; font-family: var(--mono);
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; z-index: 200;
+}
+#btn-info:hover { border-color: var(--ink); color: var(--ink); }
+
+.info-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(242,237,228,0.8); backdrop-filter: blur(6px);
+  z-index: 300; align-items: center; justify-content: center;
+}
+.info-overlay.open { display: flex; }
+
+.info-box {
+  background: white; border: 1px solid var(--ink-faint);
+  padding: 28px 32px 24px; position: relative; min-width: 280px;
+  box-shadow: 5px 5px 0 var(--ink-faint);
+}
+
+.info-brand {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 4px;
+  color: var(--ink); text-decoration: none; display: block;
+  margin-bottom: 20px; font-weight: 700;
+}
+.info-brand:hover { opacity: 0.6; }
+
+.info-close {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: 1px solid var(--ink-faint);
+  color: var(--ink-dim); font-size: 11px; font-family: var(--mono);
+  padding: 3px 8px; cursor: pointer; transition: all 0.15s;
+}
+.info-close:hover { border-color: var(--ink); color: var(--ink); }
+
+.info-line {
+  font-size: 10px; letter-spacing: 2px; color: var(--ink-dim); line-height: 2.2;
+}
+.info-nova { color: var(--red); text-decoration: none; }
+.info-nova:hover { opacity: 0.7; }
+
+.menu-btn {
+  margin-top: 0;
+  padding: 10px 32px;
+  background: transparent;
+  color: var(--ink-dim);
+  border: 1px solid var(--ink-faint);
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.menu-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+/* Difficulty selector */
+.diff-row {
+  display: flex; gap: 0; margin-top: 12px;
+}
+.diff-btn {
+  flex: 1; padding: 7px 4px;
+  background: transparent; border: 1px solid var(--ink-faint);
+  border-right: none; font-family: var(--mono); font-size: 10px;
+  letter-spacing: 2px; color: var(--ink-dim); cursor: pointer;
+  transition: all 0.15s; text-align: center;
+}
+.diff-btn:last-child { border-right: 1px solid var(--ink-faint); }
+.diff-btn:hover { background: var(--ink-faint); }
+.diff-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div id="blood-overlay"></div>
+<div id="corrupt-overlay"></div>
+
+<div class="wrap">
+
+  <div class="header">
+    <div class="title">TYPE<br><span>OR DIE</span></div>
+    <div class="header-right">
+      <div class="health-label">HEALTH</div>
+      <div class="health-track">
+        <div class="health-fill" id="health-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="predator-wrap">
+    <div class="predator-label">
+      <span>PREDATOR</span>
+      <span id="predator-dist">— M AWAY</span>
+    </div>
+    <div class="predator-track">
+      <div class="predator-fill" id="predator-fill"></div>
+      <div class="predator-icon" id="predator-icon">🐆</div>
+    </div>
+  </div>
+
+  <div class="typing-area" id="typing-area">
+    <div class="prompt-text" id="prompt-text"></div>
+
+    <!-- idle screen -->
+    <div class="overlay-screen visible" id="screen-idle">
+      <div class="overlay-title idle">TYPE OR DIE</div>
+      <div class="overlay-sub">A predator is closing in.<br>Type to survive. Typos cost health and distance.<br>Don't stop.</div>
+      <div class="diff-row">
+        <button class="diff-btn active" onclick="setDiff('easy',this)">EASY</button>
+        <button class="diff-btn" onclick="setDiff('normal',this)">NORMAL</button>
+        <button class="diff-btn" onclick="setDiff('hard',this)">HARD</button>
+      </div>
+      <button class="start-btn" onclick="startGame()">BEGIN</button>
+    </div>
+
+    <!-- dead screen -->
+    <div class="overlay-screen" id="screen-dead">
+      <div class="overlay-title dead">CONSUMED</div>
+      <div class="overlay-sub" id="dead-sub">It was inevitable.</div>
+      <div class="overlay-stats" id="dead-stats"></div>
+      <div style="display:flex;gap:8px;width:100%;max-width:320px;">
+        <button class="start-btn" style="flex:1;margin-top:0;" onclick="startGame()">TRY AGAIN</button>
+        <button class="menu-btn" style="flex:1;" onclick="goMenu()">MAIN MENU</button>
+      </div>
+    </div>
+
+    <!-- win screen -->
+    <div class="overlay-screen" id="screen-win">
+      <div class="overlay-title win">SURVIVED</div>
+      <div class="overlay-sub" id="win-sub">For now.</div>
+      <div class="overlay-stats" id="win-stats"></div>
+      <div style="display:flex;gap:8px;width:100%;max-width:320px;">
+        <button class="start-btn" style="flex:1;margin-top:0;" onclick="startGame()">AGAIN</button>
+        <button class="menu-btn" style="flex:1;" onclick="goMenu()">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">WPM</div><div class="stat-val" id="s-wpm">—</div></div>
+    <div class="stat"><div class="stat-label">ACCURACY</div><div class="stat-val" id="s-acc">—</div></div>
+    <div class="stat"><div class="stat-label">WORDS LEFT</div><div class="stat-val" id="s-words">—</div></div>
+    <div class="stat"><div class="stat-label">ERRORS</div><div class="stat-val danger" id="s-err">—</div></div>
+  </div>
+
+</div>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="#" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<script>
+// ── Prompts — increasingly unhinged ───────────────────────────────────────
+const PROMPTS = [
+  // Level 1 — coherent
+  "the quick brown fox jumps over the lazy dog and keeps running because something is behind it",
+  "stay calm and keep moving forward one word at a time until you reach the end of the line",
+  "you are faster than you think just keep your fingers moving and do not look back",
+  "focus on the words ahead of you the distance is closing but so are you",
+
+  // Level 2 — unsettling
+  "the grass is wet and your shoes are heavy and something in the trees has been following you since dawn",
+  "do not stop typing even if you hear it even if the sound gets closer just keep your eyes on the words",
+  "it does not get tired it does not slow down it has been doing this for a very long time",
+  "the sentence will end and another will begin and by then you will have survived this particular moment",
+
+  // Level 3 — unhinged
+  "keep typing it cannot hear your thoughts only the silence between keystrokes which is getting longer",
+  "your fingers know what to do even when your brain forgets even when the words stop making sense trust them",
+  "the words are getting stranger because the situation is getting stranger this is not a coincidence keep typing",
+  "it is closer now you can feel the drop in temperature which is either the predator or existential dread either way type faster",
+
+  // Level 4 — fully unhinged
+  "you have been typing for what feels like years the words have lost all meaning but your hands remember what survival looks like",
+  "the sentence no longer makes grammatical sense but grammar is a human concern and you are barely human right now just type",
+  "there is no correct interpretation of what is happening just correct keystrokes and the small mercy of forward momentum",
+  "if you stop the narrative collapses and you with it so keep going keep going keep going keep going do not stop",
+];
+
+// ── Difficulty ────────────────────────────────────────────────────────────
+const DIFFICULTIES = {
+  easy:   { healthLoss: 6,  predatorPerError: 4,  predatorPassive: 0.008, totalWords: 8  },
+  normal: { healthLoss: 10, predatorPerError: 7,  predatorPassive: 0.015, totalWords: 10 },
+  hard:   { healthLoss: 15, predatorPerError: 12, predatorPassive: 0.025, totalWords: 12 },
+};
+
+let diff = 'easy';
+let cfg  = DIFFICULTIES[diff];
+
+function setDiff(d, el) {
+  diff = d;
+  cfg  = DIFFICULTIES[d];
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── State ─────────────────────────────────────────────────────────────────
+let health       = 100;
+let predator     = 0;      // 0–100, 100 = caught
+let typed        = 0;      // chars typed correctly
+let errors       = 0;
+let totalTyped   = 0;
+let startTime    = null;
+let promptIndex  = 0;
+let currentText  = '';
+let currentPos   = 0;
+let gameActive   = false;
+let passiveTimer = null;
+let promptCount  = 0;
+let wordsLeft    = 0;
+let totalWords   = 0;
+
+// ── DOM ───────────────────────────────────────────────────────────────────
+const promptEl     = document.getElementById('prompt-text');
+const healthFill   = document.getElementById('health-fill');
+const predatorFill = document.getElementById('predator-fill');
+const predatorIcon = document.getElementById('predator-icon');
+const predatorDist = document.getElementById('predator-dist');
+const bloodOverlay = document.getElementById('blood-overlay');
+const corruptOverlay = document.getElementById('corrupt-overlay');
+const typingArea   = document.getElementById('typing-area');
+const sWpm  = document.getElementById('s-wpm');
+const sAcc  = document.getElementById('s-acc');
+const sWords = document.getElementById('s-words');
+const sErr  = document.getElementById('s-err');
+
+// ── Game flow ─────────────────────────────────────────────────────────────
+function startGame() {
+  health     = 100;
+  predator   = 0;
+  errors     = 0;
+  totalTyped = 0;
+  startTime  = null;
+  promptCount = 0;
+  totalWords  = cfg.totalWords;
+  wordsLeft   = totalWords;
+  gameActive  = true;
+
+  hideScreens();
+  updateHUD();
+  loadNextPrompt();
+  startPassiveTimer();
+
+  document.addEventListener('keydown', onKey);
+}
+
+function loadNextPrompt() {
+  // Pick prompt — escalates as words complete
+  const progress = 1 - (wordsLeft / totalWords);
+  const tier = Math.floor(progress * PROMPTS.length);
+  const idx  = Math.min(tier, PROMPTS.length - 1);
+  // pick a random from that tier's group
+  const group = PROMPTS.filter((_, i) => Math.floor(i / (PROMPTS.length / 4)) === Math.floor(idx / (PROMPTS.length / 4)));
+  currentText = group[Math.floor(Math.random() * group.length)];
+  currentPos  = 0;
+  renderPrompt();
+}
+
+function renderPrompt() {
+  promptEl.innerHTML = '';
+  for (let i = 0; i < currentText.length; i++) {
+    const span = document.createElement('span');
+    span.className = 'char ' + (i === currentPos ? 'cursor' : i < currentPos ? 'correct' : 'pending');
+    span.textContent = currentText[i];
+    span.id = 'c' + i;
+    promptEl.appendChild(span);
+  }
+}
+
+function onKey(e) {
+  if (!gameActive) return;
+  if (e.key === 'Escape') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key.length !== 1) return;
+
+  if (!startTime) startTime = performance.now();
+
+  const expected = currentText[currentPos];
+  totalTyped++;
+
+  if (e.key === expected) {
+    // Correct
+    const span = document.getElementById('c' + currentPos);
+    if (span) span.className = 'char correct';
+    currentPos++;
+
+    // Move cursor
+    const next = document.getElementById('c' + currentPos);
+    if (next) next.className = 'char cursor' + (next.className.includes('wrong') ? ' wrong' : '');
+
+    // Prompt complete
+    if (currentPos >= currentText.length) {
+      wordsLeft--;
+      updateStats();
+      if (wordsLeft <= 0) {
+        win();
+      } else {
+        loadNextPrompt();
+      }
+    }
+  } else {
+    // Wrong
+    errors++;
+    const span = document.getElementById('c' + currentPos);
+    if (span) span.className = 'char wrong cursor';
+    takeDamage();
+  }
+
+  updateStats();
+}
+
+function takeDamage() {
+  health   = Math.max(0, health - cfg.healthLoss);
+  predator = Math.min(100, predator + cfg.predatorPerError);
+
+  typingArea.classList.remove('shaking');
+  void typingArea.offsetWidth;
+  typingArea.classList.add('shaking');
+
+  typingArea.classList.remove('flash-red');
+  void typingArea.offsetWidth;
+  typingArea.classList.add('flash-red');
+
+  updateHUD();
+  if (health <= 0) die();
+}
+
+function startPassiveTimer() {
+  clearInterval(passiveTimer);
+  passiveTimer = setInterval(() => {
+    if (!gameActive) return;
+    predator = Math.min(100, predator + cfg.predatorPassive);
+    updateHUD();
+    if (predator >= 100) die();
+  }, 100);
+}
+
+function updateHUD() {
+  // Health
+  healthFill.style.width = health + '%';
+  if (health > 60)      healthFill.style.background = 'var(--ink)';
+  else if (health > 30) healthFill.style.background = 'var(--gold)';
+  else                  healthFill.style.background = 'var(--red)';
+
+  // Predator bar
+  predatorFill.style.width = predator + '%';
+  predatorIcon.style.left  = Math.max(0, predator - 4) + '%';
+
+  // Distance label — inverted, max 500m
+  const dist = Math.round((1 - predator / 100) * 500);
+  predatorDist.textContent = dist + 'M AWAY';
+
+  // Blood seep
+  const danger = Math.max(0, (predator - 40) / 60);
+  bloodOverlay.style.background = `radial-gradient(ellipse at center, transparent 20%, rgba(155,28,28,${danger * 0.35}) 100%)`;
+
+  // Corruption
+  const corrupt = Math.max(0, (100 - health) / 100);
+  corruptOverlay.style.opacity = corrupt * 0.8;
+}
+
+function updateStats() {
+  const elapsed = startTime ? (performance.now() - startTime) / 60000 : 0;
+  const wpm = elapsed > 0 ? Math.round((totalTyped / 5) / elapsed) : 0;
+  const acc = totalTyped > 0 ? Math.round(((totalTyped - errors) / totalTyped) * 100) : 100;
+
+  sWpm.textContent  = wpm || '—';
+  sAcc.textContent  = totalTyped > 0 ? acc + '%' : '—';
+  sWords.textContent = wordsLeft;
+  sErr.textContent  = errors || '—';
+
+  if (acc < 80) sAcc.className = 'stat-val danger';
+  else if (acc > 95) sAcc.className = 'stat-val good';
+  else sAcc.className = 'stat-val';
+}
+
+function die() {
+  gameActive = false;
+  clearInterval(passiveTimer);
+  document.removeEventListener('keydown', onKey);
+
+  const elapsed = startTime ? (performance.now() - startTime) / 60000 : 0;
+  const wpm = elapsed > 0 ? Math.round((totalTyped / 5) / elapsed) : 0;
+  const acc = totalTyped > 0 ? Math.round(((totalTyped - errors) / totalTyped) * 100) : 100;
+
+  const subs = [
+    "It was faster than you.",
+    "You hesitated. Just once.",
+    "The errors added up.",
+    "Something had to give.",
+    "It was always going to end this way.",
+  ];
+
+  document.getElementById('dead-sub').textContent = subs[Math.floor(Math.random() * subs.length)];
+  document.getElementById('dead-stats').innerHTML =
+    `WPM: ${wpm || 0} &nbsp;·&nbsp; ACCURACY: ${acc}%<br>ERRORS: ${errors} &nbsp;·&nbsp; PROMPTS SURVIVED: ${totalWords - wordsLeft}`;
+
+  document.getElementById('screen-dead').classList.add('visible');
+
+  // Reset overlays slowly
+  setTimeout(() => {
+    bloodOverlay.style.background = 'transparent';
+    corruptOverlay.style.opacity = 0;
+  }, 2000);
+}
+
+function win() {
+  gameActive = false;
+  clearInterval(passiveTimer);
+  document.removeEventListener('keydown', onKey);
+
+  const elapsed = startTime ? (performance.now() - startTime) / 60000 : 0;
+  const wpm = elapsed > 0 ? Math.round((totalTyped / 5) / elapsed) : 0;
+  const acc = totalTyped > 0 ? Math.round(((totalTyped - errors) / totalTyped) * 100) : 100;
+
+  const subs = [
+    "It will find you again.",
+    "You outran it. This time.",
+    "The predator has a long memory.",
+    "Enjoy the silence while it lasts.",
+  ];
+
+  document.getElementById('win-sub').textContent = subs[Math.floor(Math.random() * subs.length)];
+  document.getElementById('win-stats').innerHTML =
+    `WPM: ${wpm} &nbsp;·&nbsp; ACCURACY: ${acc}%<br>ERRORS: ${errors} &nbsp;·&nbsp; HEALTH REMAINING: ${health}%`;
+
+  document.getElementById('screen-win').classList.add('visible');
+
+  bloodOverlay.style.background = 'transparent';
+  corruptOverlay.style.opacity = 0;
+}
+
+function goMenu() {
+  gameActive = false;
+  clearInterval(passiveTimer);
+  document.removeEventListener('keydown', onKey);
+  bloodOverlay.style.background = 'transparent';
+  corruptOverlay.style.opacity = 0;
+  health = 100; predator = 0; errors = 0; totalTyped = 0;
+  updateHUD();
+  updateStats();
+  hideScreens();
+  document.getElementById('screen-idle').classList.add('visible');
+}
+
+function hideScreens() {
+  ['screen-idle','screen-dead','screen-win'].forEach(id => {
+    document.getElementById(id).classList.remove('visible');
+  });
+  promptEl.innerHTML = '';
+}
+
+// ── Info popup ────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>
