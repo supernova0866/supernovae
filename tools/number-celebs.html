@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NUMBER CELEBS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Share+Tech+Mono&family=Bebas+Neue&display=swap');
+
+:root {
+  --bg:       #0e0a06;
+  --panel:    #150f08;
+  --gold:     #f5a623;
+  --amber:    #e8890a;
+  --cream:    #f0e6d3;
+  --rust:     #c0392b;
+  --dim:      rgba(240,230,211,0.35);
+  --border:   rgba(245,166,35,0.18);
+  --mono:     'Share Tech Mono', monospace;
+  --display:  'Playfair Display', serif;
+  --title:    'Bebas Neue', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); color: var(--cream); font-family: var(--mono); }
+
+/* ── Texture overlay ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(245,166,35,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(192,57,43,0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(245,166,35,0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* ── Layout ── */
+#app {
+  position: relative; z-index: 1;
+  width: 100vw; height: 100vh;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+}
+
+/* ── LEFT: Grid panel ── */
+#grid-panel {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: rgba(0,0,0,0.2);
+}
+
+#grid-header {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#grid-title {
+  font-family: var(--title);
+  font-size: 28px;
+  letter-spacing: 6px;
+  color: var(--gold);
+  text-shadow: 0 0 30px rgba(245,166,35,0.3);
+  line-height: 1;
+}
+
+#grid-sub {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--dim);
+  margin-top: 5px;
+}
+
+#grid-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245,166,35,0.2) transparent;
+}
+#grid-scroll::-webkit-scrollbar { width: 3px; }
+#grid-scroll::-webkit-scrollbar-thumb { background: rgba(245,166,35,0.2); }
+
+#number-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.num-tile {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid rgba(245,166,35,0.1);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+  position: relative;
+  user-select: none;
+}
+
+.num-tile:hover {
+  border-color: rgba(245,166,35,0.4);
+  color: var(--cream);
+  background: rgba(245,166,35,0.06);
+}
+
+.num-tile.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(245,166,35,0.1);
+  text-shadow: 0 0 12px rgba(245,166,35,0.5);
+}
+
+.num-tile.active::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--gold);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Category dot */
+.num-tile::before {
+  content: '';
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+.num-tile[data-cat="math"]::before    { background: #4ecdc4; }
+.num-tile[data-cat="culture"]::before { background: var(--gold); }
+.num-tile[data-cat="sports"]::before  { background: #e74c3c; }
+.num-tile[data-cat="meme"]::before    { background: #9b59b6; }
+.num-tile[data-cat="history"]::before { background: #27ae60; }
+
+/* Legend */
+#legend {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+.legend-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+}
+
+/* ── RIGHT: Detail panel ── */
+#detail-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 72px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Big ambient number watermark */
+#detail-watermark {
+  position: absolute;
+  right: -20px; top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--display);
+  font-size: clamp(180px, 28vw, 340px);
+  font-weight: 900;
+  color: rgba(245,166,35,0.04);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.4s;
+  white-space: nowrap;
+}
+
+#detail-content {
+  position: relative;
+  z-index: 2;
+  max-width: 580px;
+}
+
+#detail-cat {
+  font-size: 8px;
+  letter-spacing: 5px;
+  color: var(--dim);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#detail-cat-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+
+#detail-number {
+  font-family: var(--display);
+  font-size: clamp(72px, 12vw, 140px);
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 0.9;
+  text-shadow:
+    0 0 60px rgba(245,166,35,0.3),
+    0 0 120px rgba(245,166,35,0.1);
+  transition: opacity 0.2s, transform 0.25s;
+  margin-bottom: 10px;
+}
+
+#detail-tagline {
+  font-family: var(--title);
+  font-size: clamp(22px, 3.5vw, 40px);
+  letter-spacing: 4px;
+  color: var(--cream);
+  line-height: 1.1;
+  margin-bottom: 28px;
+  transition: opacity 0.2s;
+}
+
+.detail-divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  margin-bottom: 24px;
+  transition: width 0.4s;
+}
+
+#detail-body {
+  font-size: 12px;
+  line-height: 2;
+  color: rgba(240,230,211,0.65);
+  letter-spacing: 0.3px;
+  max-width: 500px;
+  transition: opacity 0.2s;
+}
+
+#detail-body strong {
+  color: var(--cream);
+  font-weight: normal;
+}
+
+#detail-body em {
+  color: var(--gold);
+  font-style: normal;
+}
+
+/* Empty state */
+#detail-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0.4;
+}
+#detail-empty .empty-title {
+  font-family: var(--title);
+  font-size: 48px;
+  letter-spacing: 6px;
+  color: var(--gold);
+}
+#detail-empty .empty-sub {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--dim);
+}
+
+/* ── Info button ── */
+#btn-info {
+  position: fixed; top: 12px; right: 12px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--dim); font-size: 14px; font-family: var(--mono);
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; z-index: 30;
+}
+#btn-info:hover { border-color: var(--gold); color: var(--gold); }
+.info-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88); backdrop-filter: blur(6px);
+  z-index: 40; align-items: center; justify-content: center;
+}
+.info-overlay.open { display: flex; }
+.info-box {
+  background: #0d0a06; border: 1px solid var(--border);
+  padding: 28px 32px 24px; position: relative; min-width: 280px;
+}
+.info-brand {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 4px;
+  color: var(--gold); text-decoration: none; display: block; margin-bottom: 20px;
+}
+.info-brand:hover { opacity: 0.6; }
+.info-close {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: 1px solid var(--border);
+  color: var(--dim); font-size: 11px; font-family: var(--mono);
+  padding: 3px 8px; cursor: pointer;
+}
+.info-close:hover { border-color: var(--gold); color: var(--gold); }
+.info-line { font-size: 10px; letter-spacing: 2px; color: var(--dim); line-height: 2.2; }
+.info-nova { color: var(--gold); text-decoration: none; }
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- LEFT -->
+  <div id="grid-panel">
+    <div id="grid-header">
+      <div id="grid-title">NUMBER CELEBS</div>
+      <div id="grid-sub">50 NUMBERS THAT EARNED THEIR FAME</div>
+    </div>
+    <div id="grid-scroll">
+      <div id="number-grid"></div>
+    </div>
+    <div id="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#4ecdc4"></div>MATH</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div>CULTURE</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>SPORTS</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9b59b6"></div>MEME</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>HISTORY</div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div id="detail-panel">
+    <div id="detail-watermark"></div>
+    <div id="detail-content">
+      <div id="detail-empty">
+        <div class="empty-title">PICK A NUMBER</div>
+        <div class="empty-sub">// 50 NUMBERS. ALL FAMOUS. ALL DESERVE IT.</div>
+      </div>
+      <div id="detail-main" style="display:none">
+        <div id="detail-cat"><div id="detail-cat-dot" class="detail-cat-dot"></div><span id="detail-cat-text"></span></div>
+        <div id="detail-number"></div>
+        <div id="detail-tagline"></div>
+        <div class="detail-divider" id="detail-divider"></div>
+        <div id="detail-body"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="#" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<script>
+const CAT_COLORS = {
+  math:    '#4ecdc4',
+  culture: '#f5a623',
+  sports:  '#e74c3c',
+  meme:    '#9b59b6',
+  history: '#27ae60',
+};
+
+const NUMBERS = [
+  {
+    n: 0, cat: 'math',
+    tag: 'THE VOID THAT CHANGED EVERYTHING',
+    body: `<strong>Zero</strong> didn't exist in Western mathematics until the 7th century — the ancient Greeks couldn't conceptualise "nothing" as a number. Indian mathematician <em>Brahmagupta</em> was the first to define zero and its rules in 628 AD. Before zero, arithmetic was a nightmare and algebra was impossible. Zero is also the only number that is neither positive nor negative, and the only number you genuinely cannot divide by.`,
+  },
+  {
+    n: 1, cat: 'math',
+    tag: 'THE LONELIEST PRIME (THAT ISN\'T ONE)',
+    body: `<strong>One</strong> is the first counting number and the multiplicative identity — multiply anything by 1 and it stays itself. Mathematicians formally excluded 1 from being a prime number in the 20th century, because including it would break the <em>fundamental theorem of arithmetic</em>. One is also the only positive integer that is its own factorial, its own square, and its own cube simultaneously.`,
+  },
+  {
+    n: 2, cat: 'math',
+    tag: 'THE ODD PRIME',
+    body: `<strong>Two</strong> is the only even prime number — every other even number is divisible by 2, disqualifying it. It is the basis of all binary computing: every device you have ever used runs on sequences of 1s and 0s. The ancient Chinese considered 2 to represent <em>yin</em>, the feminine force. In most cultures, two is the number of opposition — day/night, good/evil, us/them.`,
+  },
+  {
+    n: 3, cat: 'culture',
+    tag: 'THE MAGIC NUMBER',
+    body: `<strong>Three</strong> is embedded deeper in human culture than any other digit. The Holy Trinity, the three Fates, three wishes, three strikes, three-act structure, "third time lucky." Psychologists call it the <em>rule of three</em> — humans remember things best in groups of three. In comedy, the setup-setup-punchline structure relies entirely on three. Even "three blind mice" is more satisfying than two or four would be.`,
+  },
+  {
+    n: 7, cat: 'culture',
+    tag: 'THE WORLD\'S FAVOURITE NUMBER',
+    body: `In a global survey of 30,000 people, <strong>7</strong> was the most commonly chosen "favourite number" by a significant margin. It appears in the seven deadly sins, seven wonders of the world, seven days of the week, seven musical notes, seven colours of the rainbow, and seven continents. In most cultures 7 is lucky. In Japan, the <em>Seven Lucky Gods</em> are central to New Year tradition. Nobody agrees on why 7 feels special. It just does.`,
+  },
+  {
+    n: 8, cat: 'culture',
+    tag: 'CHINA\'S GOLDEN NUMBER',
+    body: `<strong>Eight</strong> is the luckiest number in Chinese culture because the word for 8 — <em>bā</em> — sounds like the word for prosperity. The 2008 Beijing Olympics deliberately opened at 8:08 PM on 08/08/08. Phone numbers, addresses, and car plates containing 8 sell for premiums. In mathematics, 8 is a cube (2³) and the only positive cube that is one less than a perfect square. Lay it on its side and it becomes infinity.`,
+  },
+  {
+    n: 9, cat: 'culture',
+    tag: 'THE NUMBER THAT EATS ITSELF',
+    body: `<strong>Nine</strong> has a strange mathematical property: multiply 9 by any integer, then add the digits of the result, and keep adding until you get a single digit — you always end up back at 9. 9×7=63, 6+3=9. It is also the highest single digit, making it the symbol of completeness in many traditions. In Norse mythology, Odin hung on the world tree for <em>nine days</em>. In China, 9 represents the Emperor.`,
+  },
+  {
+    n: 11, cat: 'culture',
+    tag: 'ONE LOUDER',
+    body: `<strong>11</strong> is famous for being one more than the maximum. In the 1984 mockumentary <em>This Is Spinal Tap</em>, guitarist Nigel Tufnel points to his amp's volume dial that goes to 11 and says "it's one louder." The phrase "up to eleven" entered the Oxford English Dictionary in 2002. 11:11 is also the most wished-upon time on a clock — millions make a wish at that moment daily, a superstition with no traceable origin.`,
+  },
+  {
+    n: 12, cat: 'culture',
+    tag: 'THE DOZEN THAT RUNS THE WORLD',
+    body: `<strong>12</strong> is a dozenal favourite — divisible by 1, 2, 3, 4, 6 and 12 — more factors than 10, which made it the basis of imperial measurement, time, and calendars. 12 months, 12 hours, 12 apostles, 12 signs of the zodiac, 12 days of Christmas. The Babylonians built their number system around 12. A dozen eggs, a dozen donuts — there's a reason 10-packs feel weird.`,
+  },
+  {
+    n: 13, cat: 'culture',
+    tag: 'THE DEVIL\'S DOZEN',
+    body: `<strong>13</strong>'s bad luck reputation is ancient and widespread. At the Last Supper there were 13 at the table. In Norse mythology, Loki — the 13th guest at a divine dinner — caused the death of Balder. Fear of 13 is called <em>triskaidekaphobia</em>. Many buildings skip floor 13 entirely. The American $1 bill has 13 arrows, 13 stars, and 13 stripes — deliberately, for the 13 original colonies — but the superstition still dominates.`,
+  },
+  {
+    n: 17, cat: 'culture',
+    tag: 'ITALY\'S CURSED NUMBER',
+    body: `In Italy, <strong>17</strong> is unlucky — not 13. The Roman numeral XVII can be rearranged to spell <em>VIXI</em>, Latin for "I lived" (meaning "I am dead"). Renault refused to sell the R17 in Italy. Many Italian buildings skip the 17th floor. Formula 1 driver Jules Bianchi died after an accident in 2015 — he wore number 17. Meanwhile, in Brazil 17 is the electoral code for a political party, making it a wildly different cultural symbol.`,
+  },
+  {
+    n: 21, cat: 'culture',
+    tag: 'THE AGE OF EVERYTHING',
+    body: `<strong>21</strong> is the legal drinking age in the United States, the age of adulthood in many countries, and the winning score in blackjack. Turning 21 has been a cultural milestone for centuries — it was once the age a person could legally own property in England. <em>21 guns</em> is the highest military honour salute. Adele named her second album 21, the age she wrote it. The number just means you've arrived.`,
+  },
+  {
+    n: 23, cat: 'sports',
+    tag: 'THE JORDAN NUMBER',
+    body: `<strong>23</strong> belongs to Michael Jordan so completely that no single player in NBA history has worn it more famously. Jordan chose 23 because his older brother Larry wore 45 and Michael "wanted to be at least half as good." The number was then worn by LeBron James as tribute. In biology, humans have 23 pairs of chromosomes. The <em>23 Enigma</em> — the belief that 23 appears everywhere meaningfully — became a minor cult phenomenon in the 1970s.`,
+  },
+  {
+    n: 24, cat: 'sports',
+    tag: 'KOBE\'S NUMBER',
+    body: `<strong>24</strong> is Kobe Bryant's second and final jersey number with the LA Lakers, worn from 2006 until his retirement. He switched from 8 to 24 to represent a "new beginning." After his death in 2020, both 8 and 24 were retired by the Lakers simultaneously — unprecedented for a single player. 24 is also the number of hours in a day, frames per second in film, and carats in pure gold.`,
+  },
+  {
+    n: 27, cat: 'culture',
+    tag: 'THE FOREVER CLUB',
+    body: `The <strong>27 Club</strong> is the informal name for the striking number of iconic musicians who died at exactly 27: Jimi Hendrix, Janis Joplin, Jim Morrison, Kurt Cobain, Amy Winehouse. Statistically, a 2011 study found no actual spike in musician deaths at 27 — but the myth is now larger than the data. Rolling Stone called it "the age rock stars die." The number carries a strange weight in music to this day.`,
+  },
+  {
+    n: 32, cat: 'history',
+    tag: 'THE TEMPERATURE EVERYTHING CHANGES',
+    body: `<strong>32°F</strong> is the freezing point of water on the Fahrenheit scale, chosen by Daniel Fahrenheit in 1724 using a brine solution. At exactly 32, water transitions between solid and liquid — one of the most consequential physical thresholds on Earth. 32 is also the number of teeth in a full adult human mouth, the number of teams in the NFL, and the degree at which most weather conversations become interesting.`,
+  },
+  {
+    n: 33, cat: 'culture',
+    tag: 'THE AGE OF JESUS',
+    body: `<strong>33</strong> is the age at which Jesus Christ is believed to have been crucified, making it a deeply significant number in Christian tradition. There are 33 degrees in Freemasonry. Rolling Rock beer has "33" printed on every bottle — for decades, nobody at the company could explain why. Dante's <em>Divine Comedy</em> has 33 cantos in each of its three books. It is also the normal human spine's vertebrae count.`,
+  },
+  {
+    n: 37, cat: 'meme',
+    tag: 'THE INTERNET\'S FAVOURITE RANDOM NUMBER',
+    body: `Ask someone to pick a number between 1 and 100 "at random" and <strong>37</strong> comes up disproportionately often — confirmed in multiple informal studies. It feels random because it's odd, not round, and has no obvious cultural attachment. Mathematicians call numbers like this <em>psychologically random</em>. 37 also appears in the Bible 37 times as a symbol of wisdom. Comedians have exploited its perceived randomness for decades.`,
+  },
+  {
+    n: 42, cat: 'culture',
+    tag: 'THE ANSWER TO LIFE, THE UNIVERSE, AND EVERYTHING',
+    body: `In Douglas Adams' <em>The Hitchhiker's Guide to the Galaxy</em>, a supercomputer called Deep Thought spends 7.5 million years computing the <strong>answer to life, the universe, and everything</strong> — and the answer is 42. Adams claimed he chose it because it was "a perfectly ordinary number, a number not just divisible by two, but also six and seven." The joke is that the answer is meaningless without knowing the question. 42 now appears in cultural references so frequently it has its own Wikipedia page.`,
+  },
+  {
+    n: 44, cat: 'history',
+    tag: 'OBAMA\'S NUMBER',
+    body: `<strong>Barack Obama</strong> was the 44th President of the United States, the first Black president in American history, serving from 2009 to 2017. The number 44 became a symbol of that historic moment. In Japanese, 44 can be read as <em>shi-shi</em>, meaning "death-death" — doubly unlucky. Yet in American political history, it means something else entirely: a turning point.`,
+  },
+  {
+    n: 47, cat: 'meme',
+    tag: 'STAR TREK\'S SECRET NUMBER',
+    body: `<strong>47</strong> appears in virtually every episode of <em>Star Trek: The Next Generation</em> and its spinoffs — starship numbers, crew counts, reference codes. It started as an in-joke by writer Joe Menosky, who studied at Pomona College where 47 was considered the quintessential random number. Once you notice it, you cannot stop. The "47 Society" at Pomona College officially documents every appearance. It has logged over 4,000 instances.`,
+  },
+  {
+    n: 54, cat: 'history',
+    tag: 'THE STUDIO',
+    body: `<strong>Studio 54</strong> was the most famous nightclub in history, open in New York City from 1977 to 1981. Located at 254 West 54th Street, it became synonymous with disco, celebrity, and excess. Andy Warhol, Mick Jagger, and Bianca Jagger were regulars. The door policy was legendarily brutal. It was raided by the IRS in 1978 for tax evasion. The number 54 still conjures a specific era of unapologetic hedonism.`,
+  },
+  {
+    n: 57, cat: 'culture',
+    tag: 'HEINZ\'S MAGIC LIE',
+    body: `<strong>Heinz 57</strong> varieties — the slogan was invented by Henry John Heinz in 1896. He saw a sign advertising "21 styles of shoes" and was inspired, picking 57 because it felt right. At the time, Heinz actually had over 60 products. The number was never accurate. It didn't matter. "57 Varieties" became one of the most recognised slogans in history, and the 57 is still embossed on every Heinz ketchup bottle — 130 years after the number was made up.`,
+  },
+  {
+    n: 60, cat: 'history',
+    tag: 'THE BABYLONIAN LEGACY',
+    body: `<strong>60</strong> is why we have 60 seconds in a minute and 60 minutes in an hour — a direct inheritance from the Babylonian sexagesimal number system of 3,500 years ago. The Babylonians chose 60 because it has the most divisors of any number that size: 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60. We still live inside their arithmetic every time we check the time.`,
+  },
+  {
+    n: 64, cat: 'meme',
+    tag: 'THE N64 NUMBER',
+    body: `<strong>64</strong> is the Nintendo 64's defining number — its 64-bit processor was the selling point in 1996 when the N64 launched and ushered in 3D gaming. The console sold 33 million units. 64 is also 8², the number of squares on a chessboard, and the number of codons in the genetic code. But for an entire generation, 64 means one thing: the smell of a new cartridge and a joystick that broke your thumb.`,
+  },
+  {
+    n: 66, cat: 'history',
+    tag: 'THE MOTHER ROAD',
+    body: `<strong>Route 66</strong> is the most mythologised highway in America — a 2,448-mile road from Chicago to Los Angeles, established in 1926. It was the path of the Dust Bowl migration, the road of Steinbeck's <em>Grapes of Wrath</em>, and the setting of a song recorded by over 100 artists. It was officially decommissioned in 1985 but remains one of the world's most travelled tourist routes. The number 66 is America's road.`,
+  },
+  {
+    n: 67, cat: 'meme',
+    tag: 'THE MEME THAT BROKE CLASSROOMS',
+    body: `<strong>67</strong> — say it "six seven," never sixty-seven — was <em>Dictionary.com</em>'s 2025 Word of the Year and the defining Gen Alpha brainrot moment of the decade so far. It started with Philly drill rapper Skrilla's late 2024 track <em>Doot Doot (6 7)</em>, which blew up in TikTok edits of LaMelo Ball (who is, in fact, 6'7"). Overtime Elite player Taylen "TK" Kinney spread the hand gesture. Then seventh-grader Maverick Trevillian screamed it at a basketball game with unhinged energy — and became the <em>67 Kid</em>, complete with merch and an LA tour. At its peak, teachers reported daily classroom disruptions, In-N-Out quietly retired number 67 from their ordering system to stop crowds of teens cheering, Google added a screen-shaking Easter egg when you type it, and Pizza Hut ran 67-cent wings. Kamala Harris renamed her campaign account "Headquarters 67" in February 2026 — and renamed it back the next day after being called cringe. By March 2026 it was already fading, replaced by whatever Gen Alpha conjures next. It never meant anything. That was the entire point.`,
+  },
+  {
+    n: 69, cat: 'meme',
+    tag: 'YOU ALREADY KNOW',
+    body: `<strong>69</strong> needs no explanation, which is precisely why it has transcended its origin. The sexual connotation comes from the visual resemblance of the numerals to the act they describe. It became internet law in the early 2000s that any appearance of 69 must be acknowledged with "nice." In 2018, rapper Tekashi 6ix9ine legally changed his name to embed the number permanently. When SpaceX launched its 69th mission, the internet collectively lost its mind.`,
+  },
+  {
+    n: 72, cat: 'sports',
+    tag: 'THE PERFECT GOLF SCORE',
+    body: `<strong>72</strong> is the standard par score for a full 18-hole golf course — 4 shots per hole on average across 18 holes. Shooting 72 means you played exactly as expected. Shooting below 72 is the dream. The Masters, The Open, the US Open — all played on par-72 courses. The number is so embedded in golf culture that "shooting par" is a metaphor for meeting expectations in any field.`,
+  },
+  {
+    n: 77, cat: 'culture',
+    tag: 'LUCKY SEVENS DOUBLED',
+    body: `<strong>77</strong> doubles down on the luck of 7 — and casinos know it. Slot machines built their mythology around triple sevens (777), but 77 carries its own weight. David Bowie's album <em>"Heroes"</em> was released in 1977. Star Wars premiered in 1977. Elvis died in 1977. The Sex Pistols released <em>Never Mind the Bollocks</em> in 1977. No single year in popular culture carries more number mythology than '77.`,
+  },
+  {
+    n: 99, cat: 'sports',
+    tag: 'GRETZKY\'S UNTOUCHABLE',
+    body: `<strong>99</strong> is Wayne Gretzky's number — and the only jersey number retired across the entire NHL, not just by one team. Gretzky didn't just wear 99; he redefined what the number meant. He scored more goals than any other player and also has more <em>assists</em> than any player has total points. The NHL retired 99 league-wide in 1999 when he retired. No player in any NHL team can ever wear it again.`,
+  },
+  {
+    n: 100, cat: 'culture',
+    tag: 'THE PERFECT SCORE',
+    body: `<strong>100</strong> is the number of completion — 100%, full marks, a century. It is the boiling point of water in Celsius. There are 100 senators in the US Senate. The first 100 days of a presidency are scrutinised as a symbol of momentum. Running 100 metres in under 10 seconds is the threshold of human speed greatness. "100" as slang means "authentic, real, keeping it real" — because a perfect score means nothing is missing.`,
+  },
+  {
+    n: 108, cat: 'culture',
+    tag: 'THE SACRED NUMBER OF EVERYTHING',
+    body: `<strong>108</strong> is considered sacred in Hinduism, Buddhism, and Jainism. There are 108 beads on a mala (prayer necklace). 108 Upanishads. 108 sacred sites in India. The distance from Earth to the Sun is approximately 108 times the Sun's diameter. The distance from Earth to the Moon is approximately 108 times the Moon's diameter. In <em>Lost</em>, 108 was the sum of the numbers 4, 8, 15, 16, 23, 42 — a deliberate choice by the writers.`,
+  },
+  {
+    n: 111, cat: 'sports',
+    tag: 'CRICKET\'S CURSED SCORE',
+    body: `In cricket, <strong>111</strong> is called "Nelson" — a score considered deeply unlucky, believed to have originated from Admiral Nelson having "one eye, one arm, one leg" (historically inaccurate, but the myth persists). When a team or batsman reaches 111, umpires sometimes lift one leg off the ground to ward off bad luck. The superstition is entirely British and entirely cricket. It has no rational basis and nobody wants to abandon it.`,
+  },
+  {
+    n: 143, cat: 'culture',
+    tag: 'I LOVE YOU IN THREE DIGITS',
+    body: `<strong>143</strong> means "I love you" — 1 letter, 4 letters, 3 letters. It predates texting: it was used in pager culture in the 1990s. Mister Rogers reportedly used 143 as a personal symbol of love throughout his life — he maintained his weight at exactly 143 pounds as a daily spiritual practice. In 2019, the US Post Office released a 143 stamp in his honour. The number is now permanently linked to one of the kindest humans who ever lived.`,
+  },
+  {
+    n: 180, cat: 'sports',
+    tag: 'THE PERFECT DARTS THROW',
+    body: `<strong>180</strong> is the maximum score possible in a single darts turn — three triple-20s. When a player hits 180, the crowd erupts and the announcer screams "ONE HUNDRED AND EIGHTY" in a way that is impossible to describe. Phil "The Power" Taylor hit 180 so consistently it became expected. 180 is also a half-revolution in degrees, which is why "doing a 180" means completely reversing direction.`,
+  },
+  {
+    n: 200, cat: 'history',
+    tag: 'PASSING GO',
+    body: `In <strong>Monopoly</strong>, passing Go earns you $200 — a rule established in the original 1935 game and never changed. "Collect $200" has entered the language as a phrase for an easy reward. The number was chosen to represent a modest salary in Depression-era America. Today, $200 would be worth about $4,500. The original Monopoly board was designed to teach players about the dangers of land monopolies — the irony being that people now love the thing it was meant to criticise.`,
+  },
+  {
+    n: 212, cat: 'history',
+    tag: 'BOILING POINT USA',
+    body: `<strong>212°F</strong> is the boiling point of water at sea level in Fahrenheit — the temperature at which everything changes state. It is New York City's original area code, given to it first because NYC was the most important city in America (area codes were assigned by population at the time). "212" became shorthand for Manhattan specifically — a status symbol embedded in a phone number.`,
+  },
+  {
+    n: 300, cat: 'history',
+    tag: 'SPARTA\'S LAST STAND',
+    body: `<strong>300</strong> Spartan warriors held the pass at Thermopylae against the Persian army of Xerxes I in 480 BC — estimated at 100,000 to 300,000 soldiers. They held for three days and died to the last man, buying Greece enough time to organise its defence. The story became a cornerstone of Western mythology about sacrifice and courage. The 2006 film <em>300</em> made the number a cultural shorthand for outnumbered defiance.`,
+  },
+  {
+    n: 360, cat: 'math',
+    tag: 'THE CIRCLE\'S NUMBER',
+    body: `<strong>360</strong> degrees in a circle is a Babylonian convention — they divided the year into 360 days (close enough to 365) and applied the same division to angles. 360 was chosen because it has 24 divisors, making it extraordinarily easy to divide evenly. In skateboarding and snowboarding, a 360 is a full rotation trick — the most satisfying number of degrees because it returns you to where you started.`,
+  },
+  {
+    n: 404, cat: 'meme',
+    tag: 'NOT FOUND',
+    body: `<strong>HTTP 404</strong> is the internet's most famous error code — "Not Found." The legend says it originated from Room 404 at CERN in Geneva, where the original World Wide Web team was based. If a file couldn't be found in that room's server, you got a 404. CERN denies this. The real origin is simply the HTTP specification's numbering convention. But the myth of Room 404 persists because it makes a better story.`,
+  },
+  {
+    n: 420, cat: 'meme',
+    tag: 'THE WEED HOLIDAY',
+    body: `<strong>420</strong> is cannabis culture's most sacred number. The origin: in 1971, a group of five San Rafael High School students called "The Waldos" met at 4:20 PM to search for an abandoned cannabis crop. They never found it. The time became their code word. The Grateful Dead's circle adopted it. High Times magazine spread it globally in the 1990s. April 20th (4/20) is now an unofficial international holiday. Hitler was also born on April 20th, which nobody brings up at dispensaries.`,
+  },
+  {
+    n: 451, cat: 'history',
+    tag: 'THE TEMPERATURE OF CENSORSHIP',
+    body: `<strong>Fahrenheit 451</strong> is the temperature at which Ray Bradbury claimed paper ignites — and the title of his 1953 dystopian novel about a society that burns books. Bradbury later admitted he got the number from a fireman friend and never verified it. The actual ignition temperature of paper is around 480°F. The inaccuracy doesn't matter. 451 is now permanently the temperature of intellectual destruction.`,
+  },
+  {
+    n: 666, cat: 'culture',
+    tag: 'THE NUMBER OF THE BEAST',
+    body: `<strong>666</strong> is identified as the Number of the Beast in the Book of Revelation. Most scholars believe it referred to Emperor Nero, using <em>gematria</em> — assigning numbers to letters. A 2005 discovery of an older manuscript shows the number may originally have been 616. Despite this, 666 became the ultimate symbol of evil in Western culture. Iron Maiden wrote a song about it. The US town of Hell, Michigan held a special ceremony when the date 6/6/6 rolled around.`,
+  },
+  {
+    n: 777, cat: 'culture',
+    tag: 'THE JACKPOT',
+    body: `<strong>777</strong> is the universal symbol of luck and jackpot. Slot machines made it famous — three sevens align and you win everything. The Boeing 777 was deliberately named to invoke luck. 7-Eleven stores are named for their original hours. In many Christian traditions 777 represents divine perfection (a counterpoint to 666). Nevada casinos report that 777 is the single most requested combination for personalised licence plates in the state.`,
+  },
+  {
+    n: 1000, cat: 'meme',
+    tag: 'OVER 9000\'S BORING COUSIN',
+    body: `<strong>1,000</strong> is the threshold that changes everything — a millennium, a kilogram, a grand. In internet culture, hitting 1,000 subscribers, followers, or views is the first milestone that matters. Malcolm Gladwell's 10,000-hour rule made <em>1,000</em> feel inadequate by comparison. Yet 1,000 true fans — a concept by Kevin Kelly — remains one of the most influential theories in creator economics. One thousand isn't a ceiling. It's a door.`,
+  },
+  {
+    n: 1337, cat: 'meme',
+    tag: 'ELITE IN FOUR DIGITS',
+    body: `<strong>1337</strong> is "leet speak" for "elite" — a substitution cipher from early internet and hacker culture where letters are replaced by visually similar numbers: L=1, E=3, E=3, T=7. It originated on bulletin board systems in the 1980s as a way to evade keyword filters. By the early 2000s it became self-parody — a way of sarcastically claiming superiority. "I am so 1337" is simultaneously a flex and a joke about flexing.`,
+  },
+  {
+    n: 1984, cat: 'history',
+    tag: 'THE YEAR THAT BECAME A WARNING',
+    body: `George Orwell wrote <em>1984</em> in 1948, reversing the last two digits for the title. He died in 1950, never seeing his predicted year arrive. When the actual 1984 came, it was watched closely for signs of his dystopian vision — Big Brother, doublethink, the memory hole. Apple ran their famous "1984" Super Bowl ad that year, positioning themselves against IBM's supposed totalitarianism. The number now means surveillance, propaganda, and the erasure of truth.`,
+  },
+  {
+    n: 2001, cat: 'history',
+    tag: 'THE YEAR EVERYTHING SPLIT IN TWO',
+    body: `<strong>2001</strong> is the year the September 11 attacks occurred, permanently dividing recent history into before and after. It is also the year of Kubrick's <em>2001: A Space Odyssey</em> — set in a future of space stations and sentient computers. The film premiered in 1968 and predicted GPS, video calls, and AI assistants with unnerving accuracy. The year 2001 carries the weight of both the most optimistic science fiction vision and the darkest modern moment.`,
+  },
+  {
+    n: 9001, cat: 'meme',
+    tag: 'IT\'S OVER',
+    body: `"It's over <strong>9,000</strong>!" is one of the oldest surviving internet memes, originating from a 2006 upload of a dubbed <em>Dragon Ball Z</em> scene. Vegeta destroys his scouter upon measuring Goku's power level. In the original Japanese, the number was 8,000 — the English dub changed it to 9,000. The meme took off because the delivery was absurd and the number was arbitrary. "It's over 9,000" now means anything that exceeds expectations by an unquantifiable margin.`,
+  },
+  {
+    n: 10000, cat: 'culture',
+    tag: 'THE HOURS TO MASTERY',
+    body: `Malcolm Gladwell's <em>Outliers</em> (2008) popularised the idea that <strong>10,000 hours</strong> of deliberate practice is what separates masters from the rest. The claim came from psychologist Anders Ericsson's research on violinists. Ericsson later disputed Gladwell's interpretation, saying deliberate practice quality matters more than raw hours. None of that stopped 10,000 from becoming the single most cited number in self-improvement culture for the next decade.`,
+  },
+];
+
+// ── Build grid ────────────────────────────────────────────────────────────
+const grid = document.getElementById('number-grid');
+let activeIdx = null;
+
+NUMBERS.forEach((item, i) => {
+  const tile = document.createElement('div');
+  tile.className = 'num-tile';
+  tile.dataset.cat = item.cat;
+  tile.dataset.i   = i;
+  tile.textContent = item.n.toLocaleString();
+  tile.addEventListener('click', () => selectNumber(i));
+  grid.appendChild(tile);
+});
+
+// ── Select ────────────────────────────────────────────────────────────────
+function selectNumber(i) {
+  if (activeIdx === i) return;
+  activeIdx = i;
+  const item = NUMBERS[i];
+
+  // Update tiles
+  document.querySelectorAll('.num-tile').forEach((t, j) => {
+    t.classList.toggle('active', j === i);
+  });
+
+  const emptyEl  = document.getElementById('detail-empty');
+  const mainEl   = document.getElementById('detail-main');
+  const numEl    = document.getElementById('detail-number');
+  const tagEl    = document.getElementById('detail-tagline');
+  const bodyEl   = document.getElementById('detail-body');
+  const catText  = document.getElementById('detail-cat-text');
+  const catDot   = document.getElementById('detail-cat-dot');
+  const watermark = document.getElementById('detail-watermark');
+
+  // Fade out
+  mainEl.style.opacity  = '0';
+  mainEl.style.transform = 'translateY(6px)';
+
+  setTimeout(() => {
+    emptyEl.style.display = 'none';
+    mainEl.style.display  = 'block';
+    mainEl.style.transition = 'none';
+
+    numEl.textContent  = item.n.toLocaleString();
+    tagEl.textContent  = item.tag;
+    bodyEl.innerHTML   = item.body;
+    catText.textContent = item.cat.toUpperCase();
+    catDot.style.background = CAT_COLORS[item.cat];
+    watermark.textContent   = item.n.toLocaleString();
+
+    requestAnimationFrame(() => {
+      mainEl.style.transition = 'opacity 0.3s, transform 0.3s';
+      mainEl.style.opacity    = '1';
+      mainEl.style.transform  = 'translateY(0)';
+    });
+  }, activeIdx === null ? 0 : 160);
+}
+
+// ── Info popup ────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>
