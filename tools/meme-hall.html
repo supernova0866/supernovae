@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEME HALL OF FAME</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Bebas+Neue&display=swap');
+
+:root {
+  --bg:       #060a06;
+  --panel:    #090d09;
+  --green:    #39ff14;
+  --lime:     #a8ff3e;
+  --dim:      rgba(57,255,20,0.3);
+  --border:   rgba(57,255,20,0.15);
+  --cream:    #d4edda;
+
+  /* Era colors */
+  --proto:    #39ff14;  /* Proto-internet */
+  --golden:   #ffd60a;  /* Golden age 2007-2012 */
+  --dank:     #ff006e;  /* Dank era 2013-2017 */
+  --modern:   #00cfff;  /* Modern / brainrot */
+  --tribute:  #bf7fff;  /* Tributes / legends */
+
+  --mono:     'Share Tech Mono', monospace;
+  --pixel:    'VT323', monospace;
+  --title:    'Bebas Neue', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); color: var(--cream); font-family: var(--mono); }
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 100;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(57,255,20,0.04) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 30%, rgba(0,207,255,0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* ── Layout ── */
+#app {
+  position: relative; z-index: 1;
+  width: 100vw; height: 100vh;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+}
+
+/* ── LEFT ── */
+#grid-panel {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: rgba(0,0,0,0.3);
+}
+
+#grid-header {
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#grid-title {
+  font-family: var(--pixel);
+  font-size: 30px;
+  letter-spacing: 3px;
+  color: var(--green);
+  text-shadow: 0 0 20px rgba(57,255,20,0.5), 0 0 40px rgba(57,255,20,0.2);
+  line-height: 1;
+}
+
+#grid-sub {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--dim);
+  margin-top: 4px;
+}
+
+/* Era filter tabs */
+#era-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.era-tab {
+  font-size: 7px;
+  letter-spacing: 2px;
+  padding: 3px 7px;
+  border: 1px solid rgba(57,255,20,0.2);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--mono);
+}
+.era-tab:hover { border-color: var(--green); color: var(--green); }
+.era-tab.active { background: rgba(57,255,20,0.08); border-color: var(--green); color: var(--green); }
+.era-tab[data-era="proto"].active    { border-color: var(--proto);   color: var(--proto);   background: rgba(57,255,20,0.08); }
+.era-tab[data-era="golden"].active   { border-color: var(--golden);  color: var(--golden);  background: rgba(255,214,10,0.08); }
+.era-tab[data-era="dank"].active     { border-color: var(--dank);    color: var(--dank);    background: rgba(255,0,110,0.08); }
+.era-tab[data-era="modern"].active   { border-color: var(--modern);  color: var(--modern);  background: rgba(0,207,255,0.08); }
+.era-tab[data-era="tribute"].active  { border-color: var(--tribute); color: var(--tribute); background: rgba(191,127,255,0.08); }
+
+#grid-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(57,255,20,0.15) transparent;
+}
+#grid-scroll::-webkit-scrollbar { width: 3px; }
+#grid-scroll::-webkit-scrollbar-thumb { background: rgba(57,255,20,0.15); }
+
+#meme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.meme-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(212,237,218,0.55);
+  position: relative;
+}
+
+.meme-row:hover {
+  border-color: rgba(57,255,20,0.2);
+  color: var(--cream);
+  background: rgba(57,255,20,0.03);
+}
+
+.meme-row.active {
+  border-color: rgba(57,255,20,0.35);
+  color: var(--cream);
+  background: rgba(57,255,20,0.06);
+}
+
+.meme-row.active::before {
+  content: '▶';
+  position: absolute;
+  left: -2px;
+  color: var(--green);
+  font-size: 8px;
+}
+
+.row-era-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.row-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-year {
+  font-size: 8px;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+.meme-row.hidden { display: none; }
+
+/* ── RIGHT ── */
+#detail-panel {
+  display: flex;
+  align-items: center;
+  padding: 40px 56px 40px 48px;
+  position: relative;
+  overflow: hidden;
+  gap: 48px;
+}
+
+/* ASCII art column */
+#ascii-col {
+  flex-shrink: 0;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+#ascii-art {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: var(--green);
+  opacity: 0.55;
+  white-space: pre;
+  text-shadow: 0 0 8px rgba(57,255,20,0.3);
+  transition: opacity 0.3s, color 0.3s;
+  user-select: none;
+}
+
+#ascii-label {
+  font-size: 7px;
+  letter-spacing: 3px;
+  color: var(--dim);
+  margin-top: 10px;
+  opacity: 0.6;
+}
+
+#ascii-divider {
+  width: 1px;
+  height: 280px;
+  background: linear-gradient(180deg, transparent, var(--border), transparent);
+  flex-shrink: 0;
+}
+
+/* Watermark */
+#detail-watermark {
+  position: absolute;
+  right: -10px; bottom: -20px;
+  font-family: var(--pixel);
+  font-size: clamp(120px, 16vw, 200px);
+  color: rgba(57,255,20,0.025);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+#detail-content {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+}
+
+#detail-era {
+  font-size: 8px;
+  letter-spacing: 5px;
+  color: var(--dim);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#detail-era-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+}
+
+#detail-name {
+  font-family: var(--pixel);
+  font-size: clamp(44px, 7vw, 88px);
+  line-height: 0.95;
+  color: var(--green);
+  text-shadow: 0 0 30px rgba(57,255,20,0.3), 0 0 60px rgba(57,255,20,0.1);
+  transition: opacity 0.2s, transform 0.25s;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+#detail-year-tag {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+#detail-year {
+  font-family: var(--pixel);
+  font-size: 20px;
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+
+#detail-tagline {
+  font-family: var(--title);
+  font-size: clamp(16px, 2.5vw, 28px);
+  letter-spacing: 4px;
+  color: var(--cream);
+  line-height: 1.2;
+  transition: opacity 0.2s;
+}
+
+.detail-divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--green), rgba(57,255,20,0.2), transparent);
+  opacity: 0.3;
+  margin-bottom: 22px;
+}
+
+#detail-body {
+  font-size: 11.5px;
+  line-height: 2;
+  color: rgba(212,237,218,0.6);
+  letter-spacing: 0.3px;
+  max-width: 540px;
+}
+#detail-body strong { color: var(--cream); font-weight: normal; }
+#detail-body em     { color: var(--green); font-style: normal; }
+
+/* Empty state */
+#detail-empty {
+  opacity: 0.35;
+}
+#detail-empty .e-title {
+  font-family: var(--pixel);
+  font-size: 56px;
+  color: var(--green);
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(57,255,20,0.3);
+}
+#detail-empty .e-sub {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--dim);
+  margin-top: 8px;
+}
+#detail-empty .e-cursor {
+  display: inline-block;
+  width: 10px; height: 20px;
+  background: var(--green);
+  margin-left: 4px;
+  animation: blink 1s step-end infinite;
+  vertical-align: middle;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Info button */
+#btn-info {
+  position: fixed; top: 12px; right: 12px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--dim); font-size: 14px; font-family: var(--mono);
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; z-index: 30;
+}
+#btn-info:hover { border-color: var(--green); color: var(--green); }
+.info-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92); backdrop-filter: blur(6px);
+  z-index: 40; align-items: center; justify-content: center;
+}
+.info-overlay.open { display: flex; }
+.info-box {
+  background: #060a06; border: 1px solid var(--border);
+  padding: 28px 32px 24px; position: relative; min-width: 280px;
+}
+.info-brand {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 4px;
+  color: var(--green); text-decoration: none; display: block; margin-bottom: 20px;
+}
+.info-brand:hover { opacity: 0.6; }
+.info-close {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: 1px solid var(--border);
+  color: var(--dim); font-size: 11px; font-family: var(--mono);
+  padding: 3px 8px; cursor: pointer;
+}
+.info-close:hover { border-color: var(--green); color: var(--green); }
+.info-line { font-size: 10px; letter-spacing: 2px; color: var(--dim); line-height: 2.2; }
+.info-nova { color: var(--green); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- LEFT -->
+  <div id="grid-panel">
+    <div id="grid-header">
+      <div id="grid-title">MEME HALL OF FAME</div>
+      <div id="grid-sub">// HISTORY'S MOST LEGENDARY MEMES</div>
+    </div>
+    <div id="era-tabs">
+      <button class="era-tab active" data-era="all" onclick="filterEra('all')">ALL</button>
+      <button class="era-tab" data-era="proto"   onclick="filterEra('proto')">PROTO</button>
+      <button class="era-tab" data-era="golden"  onclick="filterEra('golden')">GOLDEN AGE</button>
+      <button class="era-tab" data-era="dank"    onclick="filterEra('dank')">DANK ERA</button>
+      <button class="era-tab" data-era="modern"  onclick="filterEra('modern')">MODERN</button>
+      <button class="era-tab" data-era="tribute" onclick="filterEra('tribute')">TRIBUTES</button>
+    </div>
+    <div id="grid-scroll">
+      <div id="meme-list"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div id="detail-panel">
+    <div id="detail-watermark"></div>
+    <div id="ascii-col" style="opacity:0;transition:opacity 0.3s">
+      <pre id="ascii-art"></pre>
+      <div id="ascii-label">// ASCII RENDER</div>
+    </div>
+    <div id="ascii-divider" style="opacity:0;transition:opacity 0.3s"></div>
+    <div id="detail-content">
+      <div id="detail-empty">
+        <div class="e-title">SELECT A MEME<span class="e-cursor"></span></div>
+        <div class="e-sub">// THE INTERNET'S GREATEST HITS. ALL OF THEM EARNED IT.</div>
+      </div>
+      <div id="detail-main" style="display:none">
+        <div id="detail-era"><div id="detail-era-dot"></div><span id="detail-era-text"></span></div>
+        <div id="detail-name"></div>
+        <div id="detail-year-tag">
+          <div id="detail-year"></div>
+          <div id="detail-tagline"></div>
+        </div>
+        <div class="detail-divider"></div>
+        <div id="detail-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="#" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<script>
+const ERA_COLORS = {
+  proto:   '#39ff14',
+  golden:  '#ffd60a',
+  dank:    '#ff006e',
+  modern:  '#00cfff',
+  tribute: '#bf7fff',
+};
+
+const ERA_LABELS = {
+  proto:   'PROTO-INTERNET  //  PRE-2007',
+  golden:  'GOLDEN AGE  //  2007–2012',
+  dank:    'DANK ERA  //  2013–2017',
+  modern:  'MODERN / BRAINROT  //  2018–NOW',
+  tribute: 'HALL OF LEGENDS  //  TIMELESS',
+};
+
+const MEMES = [
+
+  // ── PROTO-INTERNET ────────────────────────────────────────────────────
+  {
+    name: 'All Your Base Are Belong To Us',
+    era: 'proto', year: '1998',
+    tag: 'THE ORIGINAL VIRAL PHRASE',
+    ascii: `
+ _________________
+|                 |
+|  CATS IS HERE   |
+|                 |
+|   .  .  .  .   |
+|  /|\\/|\\/|\\/|\\  |
+| ( o  o  o  o)  |
+|  \\__________/  |
+|                 |
+|  "ALL YOUR BASE |
+|   ARE BELONG    |
+|     TO US"      |
+|_________________|
+   [ZERO WING]`,
+    body: `A mistranslation from the 1992 Mega Drive port of the arcade game <em>Zero Wing</em>. The villain CATS delivers the line <strong>"All your base are belong to us"</strong> in broken English. The phrase went viral in 1998 on Something Awful after a DJ remixed it into a techno track. It then flooded every corner of the internet as edited photos, songs, and videos — making it arguably the <strong>first true internet meme</strong>. Before "viral" was even a word for it.`,
+  },
+  {
+    name: 'Dancing Baby',
+    era: 'proto', year: '1996',
+    tag: 'THE WORLD\'S FIRST VIRAL MEME',
+    ascii: `
+    O
+   /|\\
+   / \\
+  ~~~♪~~~
+  O     O
+ /|\\   /|\\
+ / \\ ^ / \\
+  ♫ BABY ♫
+  GONNA DO
+  THE CHA-CHA
+  ALL NIGHT
+  LONG 1996`,
+    body: `A 3D-rendered baby doing a cha-cha, created in 1996 by Michael Girard as a demo for animation software. It was never meant to be seen publicly. Someone emailed it. Then someone else did. Then it was everywhere — chain-forwarded across dial-up connections before social media existed. It was featured in <em>Ally McBeal</em> in 1998 as the main character's hallucination. The <strong>Dancing Baby</strong> is the ground zero of internet culture as we know it.`,
+  },
+  {
+    name: 'Godwin\'s Law',
+    era: 'proto', year: '1990',
+    tag: 'THE INTERNET\'S OLDEST RULE',
+    ascii: `
+ [USENET - 1990]
+ ┌─────────────┐
+ │ Thread: 847 │
+ │  replies    │
+ ├─────────────┤
+ │ Reply #1:   │
+ │ "I disagree"│
+ │             │
+ │ Reply #423: │
+ │ "Well       │
+ │  actually   │
+ │  Hitler..." │
+ ├─────────────┤
+ │ GODWIN'S    │
+ │ LAW INVOKED │
+ │ THREAD OVER │
+ └─────────────┘`,
+    body: `Coined by lawyer Mike Godwin on Usenet in 1990: <em>"As an online discussion grows longer, the probability of a comparison involving Hitler approaches 1."</em> It is simultaneously a joke, a genuine observation, and a warning. The law is so accurate it became a rule — the first person to invoke Hitler in an argument is considered to have <strong>automatically lost</strong>. Godwin later added that intentional use of the comparison to make a genuine point is exempt. The internet mostly ignores this caveat.`,
+  },
+  {
+    name: 'Rickroll',
+    era: 'proto', year: '2007',
+    tag: 'THE INTERNET\'S GREATEST PRANK',
+    ascii: `
+  ♪ ♫ ♪ ♫ ♪ ♫
+  NEVER GONNA
+  ┌──────────┐
+  │ ( ͡° ͜ʖ °)│
+  │  [rick]  │
+  └──────────┘
+  GIVE YOU UP
+
+  NEVER GONNA
+  LET YOU DOWN
+
+  NEVER GONNA
+  RUN AROUND
+  AND DESERT U
+  ♫ ♪ ♫ ♪ ♫ ♪`,
+    body: `A bait-and-switch trick: disguise a link as something enticing, make it actually open Rick Astley's <em>Never Gonna Give You Up</em> (1987). It began on 4chan in 2007 as a variant of "duckrolling." By 2008 it had escaped containment — the Macy's Thanksgiving Day Parade was Rickrolled live on national television. NASA Rickrolled the internet in 2008. YouTube Rickrolled all its front-page videos on April Fool's Day. Rick Astley himself performed it at the 2023 Macy's Parade. It never dies. <strong>It never will.</strong>`,
+  },
+  {
+    name: 'Keyboard Cat',
+    era: 'proto', year: '2007',
+    tag: 'THE ORIGINAL OUTRO',
+    ascii: `
+  /\\_____/\\
+ (  ^   ^  )
+  (  ___  )
+   \\_____/
+  [  CAT  ]
+  ___| |___
+ |  KEYBD  |
+ |_________|
+ |C# D# F# |
+ |_________|
+  ♪ play me
+    off...♪`,
+    body: `A video of a cat in a blue shirt "playing" a keyboard, filmed by Charlie Schmidt in 1984 — then uploaded to YouTube in 2007 and adopted as the internet's universal sign-off. <strong>"Play him off, Keyboard Cat"</strong> became the standard outro for fail videos: something goes horribly wrong, then cut to the cat. It defined a whole era of YouTube culture and is the reason cats and keyboards are permanently fused in internet consciousness.`,
+  },
+  {
+    name: 'Nyan Cat',
+    era: 'proto', year: '2011',
+    tag: 'THE INFINITE LOOP',
+    ascii: `
++++++++++++++++++++
++  +  +  +  +  +
+ ░░░░░░░░░░░░
+░░ /\\_/\\  ░░░░░
+░░( ^.^ )~░░░░
+░░ > ♥ <  ░░░░
+░░░░░░░░░░░░░░
+═══[POP TART]═══
++  +  +  +  +  +
++++++++++++++++++++
+  ♫ nyan nyan nyan`,
+    body: `A pixelated cat with a Pop-Tart body flying through space leaving a rainbow trail, set to an infinitely looping Japanese song. Posted to YouTube on April 5, 2011 by saraj00n, it accumulated <strong>over 100 million views</strong>. There is a website — nyan.cat — where you can watch it loop forever with a counter. In 2021, the original GIF was sold as an NFT for $600,000. The song lodges itself in your brain for days. This is by design. This is the meme.`,
+  },
+  {
+    name: 'Charlie Bit My Finger',
+    era: 'proto', year: '2007',
+    tag: 'THE ACCIDENTAL LEGEND',
+    ascii: `
+  HARRY:  CHARLIE:
+  ( o_o)    (^v^)
+  |>FINGER   |
+  |   ~~~~>BITE
+  |         |
+  "OUCH     "hehehe"
+   CHARLIE!"
+  ___________
+  |  56 sec  |
+  |  893M    |
+  |  views   |
+  |__________|
+  uploaded to
+  share w/family`,
+    body: `A 56-second home video of two British toddlers — Harry (3) and Charlie (1) — in which baby Charlie bites his older brother's finger and giggles about it. Uploaded May 22, 2007. It became the <strong>most-viewed YouTube video in history</strong> at its peak, surpassing 893 million views. It was never meant to be public — their father uploaded it to share with family in the US. In 2021 the family auctioned the original video as an NFT for $760,999 and removed it from YouTube. It has since been re-uploaded.`,
+  },
+  {
+    name: 'LOLcats / I Can Has Cheezburger',
+    era: 'proto', year: '2007',
+    tag: 'THE CAT THAT STARTED EVERYTHING',
+    ascii: `
+  /\\_____/\\
+ ( ●     ● )
+ (  =___=  )
+  \\ stare /
+   -------
+  "I CAN HAS
+  CHEEZBURGER?"
+
+  ┌──────────┐
+  │ 🍔  ??  │
+  └──────────┘
+  icanhascheez
+  burger . com`,
+    body: `A fat cat looking directly at the camera with the caption <em>"I can has cheezburger?"</em> — grammatically broken, inexplicably delightful. The site <strong>icanhascheezburger.com</strong> launched in January 2007 and became one of the most visited websites on the internet. It invented the grammar style known as "LOLspeak" and proved that <strong>cats plus text</strong> was an infinite content engine. Every cat meme that has ever existed descends from this one cheeseburger request.`,
+  },
+
+  // ── GOLDEN AGE ────────────────────────────────────────────────────────
+  {
+    name: 'Doge',
+    era: 'golden', year: '2013',
+    tag: 'SUCH WOW. MUCH LEGACY.',
+    ascii: `
+    such ascii
+  very shibe wow
+  ░░░░░░░░░░░░
+  ░  /\\ /\\  ░
+  ░ ( •_•)  ░   much
+  ░ |  ○  | ░   wow
+  ░  \\___/  ░
+  ░░░░░░░░░░░░
+   very kabosu
+    2010-2024
+   many memory`,
+    body: `A Shiba Inu named Kabosu photographed with a suspicious, side-eye expression by her owner Atsuko Sato in 2010. The image spread on Reddit in 2013 with captions written in broken English and Comic Sans: <em>"such wow," "very culture," "much meme."</em> Doge became a global phenomenon and spawned <strong>Dogecoin</strong> — a joke cryptocurrency that reached a market cap of $88 billion in 2021 after Elon Musk tweeted about it obsessively. Kabosu died in May 2024. The internet mourned her like a head of state.`,
+  },
+  {
+    name: 'Grumpy Cat',
+    era: 'golden', year: '2012',
+    tag: 'THE FACE OF INTERNET PESSIMISM',
+    ascii: `
+  /\\ /\\
+ ( -.-)    NO.
+  > ♥ <
+  ┌──────────────┐
+  │ I had a good │
+  │ time once.   │
+  │              │
+  │ It was       │
+  │ awful.       │
+  └──────────────┘
+  TARDAR SAUCE
+  2012 — 2019
+  RIP grumpy one`,
+    body: `Tardar Sauce — a cat with feline dwarfism who permanently looked like she despised everything and everyone. Her first photo was posted to Reddit on September 22, 2012. Within 48 hours she was a full global meme. Her owner made an estimated <strong>$100 million</strong> from licensing, merchandise, and a Lifetime movie. She won Friskies' "Person of the Year." She met celebrities. She had a wax figure. Grumpy Cat died in May 2019. Her expression never changed.`,
+  },
+  {
+    name: 'Success Kid',
+    era: 'golden', year: '2007',
+    tag: 'THE FIST PUMP OF VICTORY',
+    ascii: `
+    ( >=( )
+     | || |
+    _| || |_
+   /  FIST  \\
+  / OF SAND  \\
+ /  VICTORY  \\
+|_____________|
+   SAM GRINER
+   BEACH 2007
+  ✊ DETERMINED
+  ✊ SUCCESSFUL
+  ✊ FUNDED A
+     KIDNEY`,
+    body: `A toddler named Sam Griner photographed at a beach in 2007 with a determined expression and a fistful of sand. His mother uploaded it to Flickr. It became the universal symbol of small victories: getting an extra nugget, finding a parking spot, finishing something before the deadline. In 2015, Sam's family used the meme's fame to <strong>crowdfund a kidney transplant</strong> for his father, raising over $100,000 in days. The fist that started as a beach tantrum paid for a kidney.`,
+  },
+  {
+    name: 'Distracted Boyfriend',
+    era: 'golden', year: '2017',
+    tag: 'THE UNIVERSAL METAPHOR',
+    ascii: `
+[GF]  [BF]  [HER]
+ o    o -->  o
+/|\\   |\\    /|\\
+/ \\  / \\  / \\
+
+ LABELLED:
+┌────┐┌────┐┌──────┐
+│ U  ││ ME ││THING │
+│    ││    ││I     │
+│    ││    ││SHOULD│
+│    ││    ││NOT   │
+└────┘└────┘└──────┘
+  stock photo
+  © A. GUILLEM
+  +900% downloads`,
+    body: `A stock photo by photographer Antonio Guillem, taken in 2015 in Spain, showing a man turning to look at a woman walking by while his girlfriend looks on in disgust. <strong>The photo was designed to illustrate infidelity for an article.</strong> In 2017 it exploded as a template — the girlfriend is labelled something you're abandoning, the passing woman is something you're chasing instead. It became so ubiquitous that Guillem's stock image company saw downloads increase by 900%. It won the Swedish Advertising Association's meme of the year.`,
+  },
+  {
+    name: 'This Is Fine',
+    era: 'golden', year: '2013',
+    tag: 'THE MILLENNIAL CONDITION',
+    ascii: `
+  🔥🔥🔥🔥🔥🔥
+  🔥  /\\_/\\ 🔥
+  🔥 ( o.o)🔥
+  🔥  > ☕ 🔥
+  🔥🔥🔥🔥🔥🔥
+
+  "THIS IS FINE"
+
+  [everything
+   is burning]
+
+  ─ KC GREEN
+    GUNSHOW
+    2013 ─`,
+    body: `A dog sitting in a burning room, calmly sipping coffee, saying <em>"This is fine."</em> Drawn by KC Green in 2013 for his webcomic <em>Gunshow</em>. The full comic is darker — the dog eventually melts into the floor. The internet cropped it to just the first panel and used it to describe <strong>quietly accepting disaster while pretending everything is normal.</strong> It became the defining image of 2016 politics, 2020 everything, and every subsequent year that has tried to outdo the previous one.`,
+  },
+  {
+    name: 'Drake / Hotline Bling',
+    era: 'golden', year: '2015',
+    tag: 'THE APPROVAL / DISAPPROVAL TEMPLATE',
+    ascii: `
+ ┌────────────────┐
+ │ ╭──╮  [NO]    │
+ │ │🙅│ ← drake  │
+ │ ╰──╯          │
+ ├────────────────┤
+ │ ╭──╮  [YES]   │
+ │ │👉│ ← drake  │
+ │ ╰──╯          │
+ └────────────────┘
+  TOP:  sensible
+  BOT:  chaotic
+  THIS IS THE WAY`,
+    body: `Two screenshots from Drake's <em>Hotline Bling</em> music video (2015) — one where he holds up a hand in distaste, one where he points approvingly. Formatted as a two-panel meme: top panel (disapproval) = the reasonable option; bottom panel (approval) = the irrational thing you're actually doing. <strong>Drakeposting</strong> became one of the most widely used formats in meme history because it fits every situation. The template works because Drake's face is expressive enough to carry any label you put on it.`,
+  },
+  {
+    name: 'Bad Luck Brian',
+    era: 'golden', year: '2012',
+    tag: 'THE FACE OF MISFORTUNE',
+    ascii: `
+  ___________
+ |  YEARBOOK |
+ |   PHOTO   |
+ |   2006    |
+ |  /////// |
+ | / O   O \\ |
+ | |  ___  | |
+ | \\_teeth_/ |
+ |  [braces] |
+ |___________|
+  KYLE CRAVEN
+  "tries to be
+   cool at party
+   / throws up
+   on the dog"`,
+    body: `A yearbook photo of Kyle Craven, taken in 2006 with a plaid sweater, a braces-heavy grin, and unfortunate hair. Posted to Reddit by his friend Ian Davies in January 2012, it spawned an immediate avalanche of captions: <em>"Tries to be cool at party / throws up on dog."</em> Kyle and Ian turned it into a minor media career and a book. Craven later said the photo was deliberately terrible — he wanted to look bad for the yearbook as a joke. The <strong>joke ran for a decade</strong>.`,
+  },
+  {
+    name: 'Overly Attached Girlfriend',
+    era: 'golden', year: '2012',
+    tag: 'THE STARE THAT LAUNCHED A FORMAT',
+    ascii: `
+   ___________
+  /           \\
+ |  O       O  |
+ |  ●       ●  |← unblinking
+ |    _____    |
+ |   /     \\   |
+ |  | smile |  |
+  \\_|_______|_/
+  "i read all
+   ur texts
+   just to make
+   sure ur ok :)"
+  LAINA MORRIS
+  JUN 2012`,
+    body: `Laina Morris filmed a parody of Justin Bieber's <em>Boyfriend</em> from the girlfriend's obsessive perspective and submitted it to a fan contest in June 2012. A Reddit user screenshotted her wide-eyed, unblinking look mid-video and the image became one of the most-used reaction memes of 2012–2014. Laina became a full-time YouTuber, grew a 1.4M subscriber audience, and then walked away in 2019, citing <strong>burnout and the psychological weight of being a meme</strong>. She said she was happy to be done.`,
+  },
+
+  // ── DANK ERA ──────────────────────────────────────────────────────────
+  {
+    name: 'Pepe the Frog',
+    era: 'dank', year: '2016',
+    tag: 'THE MOST COMPLEX MEME IN HISTORY',
+    ascii: `
+     ████████
+   ██  ◕  ◕  ██
+   █  (  ___) █
+   ██  \\___/ ██
+    ██  ___  ██
+      ██   ██
+  "feels good man"
+  ─────────────
+  by matt furie
+  boy's club '05
+  ─────────────
+  it's complicated`,
+    body: `Matt Furie created Pepe for his comic <em>Boy's Club</em> in 2005 — a chill frog who pees with his pants down and says <em>"feels good man."</em> By 2016, Pepe had been adopted by 4chan, remixed into thousands of variants, and designated a <strong>hate symbol by the Anti-Defamation League</strong> after extremists co-opted him. Furie spent years legally fighting to reclaim him, even killing Pepe in a 2017 comic. A documentary was made. Pepe was legally cleared. Matt Furie won in court. Pepe lives. Pepe is complicated.`,
+  },
+  {
+    name: 'Harambe',
+    era: 'dank', year: '2016',
+    tag: 'THE GORILLA WHO BECAME A GOD',
+    ascii: `
+   ___________
+  / CINCINNATI\\
+ |    ZOO     |
+ |  ┌──────┐  |
+ |  │ 🦍  │  |
+ |  │      │  |
+ |  └──────┘  |
+ |  HARAMBE   |
+ |  1999-2016 |
+  \\___________/
+  dicks out. 🕯️
+  15,000 votes
+  for president
+  never forget`,
+    body: `On May 28, 2016, a three-year-old climbed into the gorilla enclosure at Cincinnati Zoo. Harambe, a 17-year-old western lowland gorilla, was shot dead by zookeepers. The zoo was immediately attacked online. Then something stranger happened: Harambe became a meme deity — <strong>"dicks out for Harambe"</strong> spread globally, he received over 15,000 write-in votes in the 2016 US presidential election, and he trended on the internet for an unbroken year. His image sold $100K+ in merchandise. A statue was erected. An NFT was sold for $170K. He is still invoked today.`,
+  },
+  {
+    name: 'Salt Bae',
+    era: 'dank', year: '2017',
+    tag: 'THE PERFECT FORM',
+    ascii: `
+    ___
+   /   \\  ← forearm
+  | ARM |
+   \\   /
+    | |  ✦ ← salt
+    | |    ✦
+    | |      ✦
+    | |  grain by
+    | |  grain
+    | |    ✦
+   [MEAT]   ✦
+  ══════════
+  NUSRET GÖKÇE
+  JAN 2017
+  empire: $50M`,
+    body: `Turkish chef Nusret Gökçe posted a video in January 2017 of himself preparing and salting meat with theatrical precision — a slow, forearm-tilted cascade of salt from fingers to flesh that should not be as mesmerising as it is. The internet lost its mind. He became <strong>Salt Bae</strong>. Within weeks he had opened restaurants in New York, Miami, London, and Dubai. His London steak restaurant became famous for charging £1,450 for a gold-coated tomahawk steak. His elegance began as a meme and became a $50M hospitality empire.`,
+  },
+  {
+    name: 'Woman Yelling At Cat',
+    era: 'dank', year: '2019',
+    tag: 'TWO MEMES, ONE FORMAT',
+    ascii: `
+  [2011 RHOBH]  [2018]
+  ╔══════╗  ╔══════╗
+  ║      ║  ║  /\\_/\\║
+  ║ 😠  ║  ║(• ω •)║
+  ║TAYLOR║  ║ SMUDGE║
+  ╚══════╝  ╚══════╝
+  yelling at   cat
+  completely    unbothered
+  unrelated photos
+  merged by
+  the internet
+  into one
+  perfect meme`,
+    body: `This meme combines two entirely separate images. The left panel is a 2011 screengrab of <em>Real Housewives of Beverly Hills</em> stars Taylor Armstrong and Kyle Richards in a tense confrontation. The right panel is Smudge the Cat — photographed by his owner Miranda Weese sitting at a dinner table in 2018 looking unimpressed. When someone combined them in 2019 with captions, the result was perfect: <strong>furious woman + unbothered cat</strong>. Neither person knew the other's meme existed. Neither cat was consulted.`,
+  },
+  {
+    name: 'Mocking SpongeBob',
+    era: 'dank', year: '2017',
+    tag: 'THE SARCASM TEMPLATE',
+    ascii: `
+   (__________)
+  (  0       0 )
+  (   ______   )
+   \\ |      | /
+    \\| MOCK |/
+     |______|
+
+ "yOu CaN't JuSt
+  mOcK eVeRyThInG
+  wItH aLtErNaTiNg
+  cApS LeTtErS"
+
+  S01E18  2012
+  ─ NICKELODEON ─`,
+    body: `A screenshot from a 2012 episode of <em>SpongeBob SquarePants</em> showing SpongeBob imitating a chicken in a hunched, unhinged pose. In 2017, Twitter user @OGBEARD paired it with <strong>alternating caps text</strong> — "YoU cAn'T jUsT mOcK eVeRyThInG" — and it immediately became the universal format for mocking people's arguments. The alternating case is the visual representation of a condescending voice. Nickelodeon's lawyers sent DMCA notices. Nobody listened. The meme continues to thrive.`,
+  },
+  {
+    name: 'It\'s Over 9000',
+    era: 'dank', year: '2006',
+    tag: 'THE POWER LEVEL THAT BROKE THE METER',
+    ascii: `
+  ╔═══════════╗
+  ║  SCOUTER  ║
+  ║  READING: ║
+  ║           ║
+  ║  >9,000   ║
+  ╚═════╤═════╝
+        │
+     *CRUNCH*
+  [scouter
+   destroyed]
+
+  VEGETA: "WHAT
+  9000?! THERE'S
+  NO WAY THAT
+  CAN BE RIGHT!"`,
+    body: `From a 2006 upload of a dubbed <em>Dragon Ball Z</em> scene: Vegeta destroys his scouter after measuring Goku's power. In the English dub: <em>"It's over <strong>9,000</strong>!"</em> The original Japanese line was <strong>8,000</strong>. The dubbing team changed it. Nobody knows why. The clip spread across early YouTube and became the definition of something exceeding all expectation. "It's over 9,000" is now embedded in language — used everywhere from financial projections to weather alerts to arguments about pizza toppings.`,
+  },
+  {
+    name: 'Moth Lamp',
+    era: 'dank', year: '2018',
+    tag: 'DRAWN TO THE LIGHT',
+    ascii: `
+          💡
+         /|\\
+        / | \\
+   ~~~~   |   ~~~~
+  /  MOTH | MOTH  \\
+ | ( ◉)  |  (◉ ) |
+ |  \\    |    /  |
+  \\  ~~~LAMP~~~  /
+   \\____________/
+
+  ME: I SHOULD
+      SLEEP
+  ALSO ME: 🦋`,
+    body: `In 2018, a Twitter post joking about moths' obsession with lamps somehow unlocked a collective madness: thousands of people simultaneously discovered a love of moth content. <em>"Me: I should sleep. Also me:"</em> paired with a moth and a lamp. Moth merch appeared. Moth art. Moth tattoos. The <strong>Moth Lamp meme</strong> was notable because it had no image origin — it was pure concept. It also turned out moths don't actually love light; they use celestial navigation that artificial light confuses. The meme was biologically inaccurate. It didn't matter.`,
+  },
+  {
+    name: 'Galaxy Brain',
+    era: 'dank', year: '2017',
+    tag: 'BIG BRAIN ENERGY',
+    ascii: `
+  ┌──────────────┐
+  │ 🧠 dim idea │ 1
+  ├──────────────┤
+  │ 🧠✨ bigger │ 2
+  ├──────────────┤
+  │🧠✨💥 glow │ 3
+  ├──────────────┤
+  │🌌EXPANDING 🌌│ 4
+  │  GALAXY MIND │
+  └──────────────┘
+  the conclusion:
+  unhinged but
+  somehow sounds
+  profound...?`,
+    body: `An expanding brain meme — four panels showing a brain progressively glowing brighter as ideas get increasingly unhinged and overcomplicated. The format originated in 2017 to describe a reasoning process that starts simple and ends with a <strong>conclusion so convoluted it wraps back to sounding profound</strong>. "Why not just be nice to people?" → *expanding brain moment* → "The concept of 'niceness' presupposes a social contract that..."  It is the meme that best captures what happens when someone thinks too hard about anything.`,
+  },
+
+  // ── MODERN / BRAINROT ────────────────────────────────────────────────
+  {
+    name: 'Baby Yoda / Grogu',
+    era: 'modern', year: '2019',
+    tag: 'THE MOST POWERFUL CREATURE ONLINE',
+    ascii: `
+      ___
+    /  . .\\
+   |  (O O) |
+   |   ___  |  sipping
+   |  (___)  |    soup
+    \\  ___  /
+     \\|   |/
+      | G |
+      | R |
+      | O |
+      | G |
+      | U |
+  ─────────────
+  THE CHILD
+  NOV 12, 2019
+  most merch ever`,
+    body: `The Child — later named Grogu — appeared in the first episode of <em>The Mandalorian</em> on November 12, 2019. Within 24 hours, the internet declared it the most important being in existence. Disney had deliberately <strong>kept Grogu secret from merchandise manufacturers</strong> to prevent spoilers — meaning there were no Baby Yoda products for Christmas 2019. The resulting demand was historic. Grogu became the highest-selling Star Wars merchandise character of all time. A creature designed to be cute turned out to be, in fact, cute.`,
+  },
+  {
+    name: 'Among Us',
+    era: 'modern', year: '2020',
+    tag: 'SUS',
+    ascii: `
+     ████
+   ██░░░░██
+  █░░░░░░░█
+  █ ██████ █
+  █ █    █ █
+  █ ████ █ █
+  ██░░░░░░██
+   ██████████
+     ██  ██
+  ─────────────
+     "SUS"
+  500M players
+  2020 pandemic
+  word of yr '23`,
+    body: `<em>Among Us</em> was released in 2018 to total indifference. Then in August 2020 — deep pandemic lockdown — streamers PewDiePie and xQc started playing it. Within weeks it had <strong>500 million players</strong>. The word "sus" — short for "suspicious" — left the game and entered everyday language so thoroughly that Cambridge Dictionary added it. The game's small red crewmate became one of 2020's defining images. Corpse Husband rose to fame from it. US Representative Alexandria Ocasio-Cortez streamed it to 400,000 viewers. Sussy baka.`,
+  },
+  {
+    name: 'Bernie\'s Mittens',
+    era: 'modern', year: '2021',
+    tag: 'THE MAN. THE MITTENS. THE MEME.',
+    ascii: `
+   ( ͡°_ʖ ͡°)  ← bernie
+   |  ARMS  |
+   |CROSSED |
+  /| MITTENS|\\
+ 🧤         🧤
+  \\__________/
+   seated alone
+   inauguration
+   JAN 20 2021
+  ─────────────
+  photoshopped
+  into every
+  photo in
+  history`,
+    body: `At Biden's inauguration on January 20, 2021, Senator Bernie Sanders sat alone, arms crossed, wearing large brown patterned mittens and a surgical mask, looking like he had somewhere more important to be. The photo by Brendan Smialowski went viral within hours. Sanders was then <strong>Photoshopped into every famous photo, film still, and painting in history</strong>. He appeared at the moon landing, the Last Supper, and the set of <em>Friends</em>. Sanders sold merchandise using the image and donated proceeds to charity. The mittens were knit by a Vermont schoolteacher.`,
+  },
+  {
+    name: 'Corn Kid',
+    era: 'modern', year: '2022',
+    tag: 'IT\'S CORN',
+    ascii: `
+       🌽
+      /|||\\
+     / ||| \\
+    TARIQ, 7
+   ─────────────
+  "IT'S CORN!
+   A BIG LUMP
+   WITH KNOBS.
+   IT HAS
+   THE JUICE."
+  ─────────────
+  10M views
+    in 72 hrs
+  lifetime supply
+    of corn ✓`,
+    body: `In August 2022, a seven-year-old named Tariq was interviewed at the Minnesota State Fair about his favourite food. His delivery of <em>"It's corn! A big lump with knobs. It has the juice."</em> was so pure that the songwriting duo Recess Therapy turned it into an auto-tuned song that reached <strong>10 million YouTube views in 72 hours</strong>. Tariq was flown to New York. He met the Corn Farmers of America. He appeared at the Chicago Bulls game. He received a lifetime supply of corn. He remained entirely unbothered and enthusiastic throughout. He was just happy about corn.`,
+  },
+  {
+    name: 'Rizz',
+    era: 'modern', year: '2022',
+    tag: 'THE WORD THAT WON 2023',
+    ascii: `
+  ┌────────────┐
+  │  W RIZZ    │ ← legendary
+  │  ─────     │   charisma
+  │            │
+  │  NPC RIZZ  │ ← average
+  │  ─────     │
+  │            │
+  │  L RIZZ    │ ← help
+  │  ─────     │
+  └────────────┘
+  KAI CENAT '21
+  oxford word
+  of the year
+  2023`,
+    body: `Streamer Kai Cenat introduced "rizz" in 2021 — short for "charisma," meaning the effortless ability to attract others. <em>"W rizz" = irresistible charm. "L rizz" = catastrophically awkward.</em> The word spread from Twitch to TikTok to mainstream news. In 2023, <strong>Oxford University Press named "rizz" its Word of the Year</strong>, beating "situationship" and "de-influencing." Tom Holland was asked in a press interview if he had rizz. He said no. His answer confirmed he had some. The word is now used by grandparents trying to be relatable.`,
+  },
+  {
+    name: 'Skibidi Toilet',
+    era: 'modern', year: '2023',
+    tag: 'THE LORE NO ONE ASKED FOR',
+    ascii: `
+    ___________
+   /           \\
+  |   O     O   |
+  |    _____    |← head
+  |   |     |   |  emerging
+  |   |     |   |
+   \\__|_____|__/
+       |   |     ← toilet
+    [=======]
+    |       |
+    |  🚽   |
+    |_______|
+  40B VIEWS
+  70+ EPISODES
+  ZERO CONTEXT
+  GEN ALPHA: ✓`,
+    body: `A YouTube series by Georgian creator DaFuq!?Boom! — human heads emerging from toilets, locked in war with humanoid camera-headed and speaker-headed figures. No plot was ever explained. No context was given. <strong>Gen Alpha adopted it completely.</strong> By mid-2023 the series had 70+ episodes and 40 billion views. Adults were baffled. Children understood instinctively. The series developed genuine lore, factions, betrayals, and emotional arcs. A movie was announced. Critics tried to analyse it. The analysis missed the point. There is no point. That is the point.`,
+  },
+  {
+    name: '67 / Six Seven',
+    era: 'modern', year: '2025',
+    tag: 'THE NUMBER THAT BROKE CLASSROOMS',
+    ascii: `
+  ╔═══════════╗
+  ║     6 7   ║
+  ║  SIX SEVEN║
+  ╚═══════════╝
+    👋 ← gesture
+
+  SKRILLA TRACK
+  LAMELO EDITS
+  MAVERICK: 🎤
+  "SIX SEVEEEEN"
+
+  dict.com 2025
+  word of year
+  schools: banned
+  march 2026: ded`,
+    body: `Philly drill rapper Skrilla's late 2024 track <em>Doot Doot (6 7)</em> went viral on TikTok through NBA edits of LaMelo Ball (who is 6'7"). Then seventh-grader Maverick Trevillian screamed it at a basketball game with frantic, unhinged energy and became the <em>67 Kid</em>. At its peak: teachers banned the gesture mid-class, In-N-Out quietly retired order number 67, Google added a screen-shaking Easter egg, and Kamala Harris renamed her campaign account "Headquarters 67" then immediately renamed it back after being called cringe. <strong>Dictionary.com named it 2025 Word of the Year.</strong> By March 2026, Gen Alpha had already moved on.`,
+  },
+
+  // ── HALL OF LEGENDS / TRIBUTES ────────────────────────────────────────
+  {
+    name: 'Technoblade Never Dies',
+    era: 'tribute', year: '2022',
+    tag: 'SOME NAMES STAY FOREVER',
+    ascii: `
+   🐷  ← crown
+  /|\\
+  / \\
+  TECHNOBLADE
+  2013 — 2022
+
+  "if i had a
+   hundred lives
+   i'd choose to
+   be technoblade
+   again."
+
+  👑 15M subs
+  after death
+  THE BLADE`,
+    body: `Technoblade was a Minecraft YouTuber known for extraordinary skill, dry humour, and the catchphrase <em>"Technoblade never dies."</em> He died of stage 4 sarcoma on June 30, 2022, aged 23. His father read a final message he had written, which ended: <em>"...and if I had another hundred lives, I think I would choose to be Technoblade again."</em> YouTube's Minecraft front page added a crown to every pig icon site-wide. His channel passed <strong>15 million subscribers after his death</strong>. The phrase remains a tribute and a promise.`,
+  },
+  {
+    name: 'We Are Number One',
+    era: 'tribute', year: '2016',
+    tag: 'THE MEME THAT FUNDED A LIFE',
+    ascii: `
+  ♪♫ WE ARE ♪♫
+  ♪ NUMBER ONE ♫
+
+    (villain)
+  ┌──────────┐
+  │ ROBBIE   │
+  │ ROTTEN   │
+  │ LazyTown │
+  └──────────┘
+  $120,000
+  raised for
+  Stefán Karl
+  cancer bills
+  2016
+
+  he lived. 🕯️`,
+    body: `A musical number from the Icelandic children's show <em>LazyTown</em> in which villain Robbie Rotten instructs his henchmen in the art of villainy. The song became a meme remix phenomenon in 2016. Actor Stefán Karl Stefánsson — Robbie Rotten — was diagnosed with pancreatic cancer the same year. The internet responded by using the meme to <strong>raise $120,000 for his medical bills</strong> in under a week. He recovered once, then the cancer returned. He died in August 2018. He had watched the meme save his life and accepted it with grace and humour.`,
+  },
+  {
+    name: 'Stephen Hawking',
+    era: 'tribute', year: '2018',
+    tag: 'THE PHYSICIST WHO MEMED HIMSELF',
+    ascii: `
+  ┌──────────────┐
+  │  HAWKING     │
+  │  1942-2018   │
+  │              │
+  │ diagnosed    │
+  │ @ 21: 2 yrs  │
+  │ to live      │
+  │              │
+  │ actual age   │
+  │ at death: 76 │
+  └──────────────┘
+  Simpsons ✓
+  Futurama ✓
+  Star Trek ✓
+  Pink Floyd ✓`,
+    body: `Stephen Hawking — arguably the most famous scientist of the 20th century — became an internet presence long before most celebrities. He appeared on <em>The Simpsons</em>, <em>Futurama</em>, <em>Star Trek</em>, and <em>The Big Bang Theory</em>. He voice-acted himself in a Pink Floyd album. He played poker against Einstein as a hologram. He was diagnosed with ALS at 21 and given two years to live; he died at 76. His final paper was published after his death. He submitted it <strong>two weeks before he died</strong>. His Wikipedia page was edited within seconds of his passing. The internet showed up.`,
+  },
+  {
+    name: 'Kobe Bryant Memorial',
+    era: 'tribute', year: '2020',
+    tag: 'THE DAY THE INTERNET WENT SILENT',
+    ascii: `
+  ╔══════════════╗
+  ║   #8  #24   ║
+  ║  LAKERS     ║
+  ║  1996-2016  ║
+  ╠══════════════╣
+  ║  JAN 26     ║
+  ║  2020       ║
+  ║             ║
+  ║  KOBE &     ║
+  ║  GIANNA     ║
+  ╚══════════════╝
+  #GirlDad
+  last tweet:
+  12hrs before`,
+    body: `On January 26, 2020, Kobe Bryant died in a helicopter crash along with his daughter Gianna and seven others. The internet — a place known for never going quiet — went nearly silent for an hour. Then the tributes began and did not stop for weeks. Murals appeared on every continent. <strong>#GirlDad</strong> trended globally after a clip resurfaced of Kobe saying he always wanted more daughters. The Lakers retired both his jersey numbers simultaneously. His final tweet was sent 12 hours before the crash, congratulating LeBron James.`,
+  },
+  {
+    name: 'Vine',
+    era: 'tribute', year: '2012',
+    tag: 'THE PLATFORM THAT WAS KILLED TOO EARLY',
+    ascii: `
+  ┌────────────────┐
+  │   VINE 2012    │
+  │   ────────     │
+  │  "road work    │
+  │   ahead?"      │
+  │                │
+  │  "it is        │
+  │  wednesday     │
+  │  my dudes"     │
+  │                │
+  │  "and they     │
+  │  were          │
+  │  roommates"    │
+  └────────────────┘
+  KILLED: 2017
+  rip 6 seconds`,
+    body: `Vine was a 6-second video platform launched in 2012. In four years it invented the short-form video format, launched the careers of dozens of creators, and produced more memorable moments per second than any platform before or since. <em>"Road work ahead?"</em> <em>"It is Wednesday, my dudes."</em> <em>"And they were roommates."</em> <strong>Twitter shut it down in 2017</strong> with almost no warning, citing profitability. The entire creator community was given weeks to export their work. Former Vine creator Logan Paul called it "the biggest mistake in Twitter history." The creators who lost it built TikTok's culture from scratch.`,
+  },
+  {
+    name: 'Flash / Newgrounds',
+    era: 'tribute', year: '1995',
+    tag: 'THE PLACE INTERNET HUMOUR WAS BORN',
+    ascii: `
+  ╔════════════╗
+  ║ NEWGROUNDS ║
+  ║  est. 1995 ║
+  ╠════════════╣
+  ║ [ PORTAL ] ║
+  ║ [ GAMES  ] ║
+  ║ [ ART    ] ║
+  ╠════════════╣
+  ║ FLASH RIP  ║
+  ║ DEC 2020   ║
+  ╚════════════╝
+  NG preserves
+  the archive
+  most still
+  works. visit.`,
+    body: `Before YouTube, before Reddit, before social media — there was <strong>Newgrounds</strong>. A Flash animation and game hosting site where teenagers uploaded absurd, violent, funny, and experimental content from the mid-1990s to the 2010s. It birthed the careers of the creators behind <em>Madness Combat</em>, <em>Pico's School</em>, and countless series. Adobe killed Flash in December 2020. The entire medium evaporated overnight — a decade of cultural history technically became unplayable. Newgrounds built an emulator to preserve as much as they could. Most of it still works.`,
+  },
+  {
+    name: 'Goncharov',
+    era: 'tribute', year: '2022',
+    tag: 'THE FAKE FILM THAT BECAME REAL',
+    ascii: `
+  ┌──────────────┐
+  │  GONCHAROV   │
+  │  ──────────  │
+  │  dir. Martin │
+  │  Scorsese    │
+  │  1973        │
+  │              │
+  │  [does not   │
+  │   exist]     │
+  └──────────────┘
+  invented by
+  tumblr in 2022
+  complete with:
+  plot essays
+  fan art
+  a soundtrack`,
+    body: `In November 2022, Tumblr collectively decided that a 1973 Martin Scorsese film called <em>Goncharov</em> existed. It does not. Someone had posted a boot label listing it as a Scorsese film. Tumblr invented the entire movie: <strong>plot, characters, analysis essays, fan art, posters, a soundtrack.</strong> The discourse about fictional scenes became indistinguishable from genuine film criticism. Martin Scorsese's daughter posted about it. Scorsese himself was reportedly informed. The fake film has a more developed fandom than many real ones. This is the purest expression of what the internet can do when bored.`,
+  },
+];
+
+// ── Build list ────────────────────────────────────────────────────────────
+const list = document.getElementById('meme-list');
+let activeIdx = null;
+
+MEMES.forEach((item, i) => {
+  const row = document.createElement('div');
+  row.className = 'meme-row';
+  row.dataset.era = item.era;
+  row.dataset.i   = i;
+  row.innerHTML = `
+    <div class="row-era-dot" style="background:${ERA_COLORS[item.era]}"></div>
+    <div class="row-name">${item.name}</div>
+    <div class="row-year">${item.year}</div>
+  `;
+  row.addEventListener('click', () => selectMeme(i));
+  list.appendChild(row);
+});
+
+// ── Filter ────────────────────────────────────────────────────────────────
+function filterEra(era) {
+  document.querySelectorAll('.era-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.era === era);
+  });
+  document.querySelectorAll('.meme-row').forEach(r => {
+    r.classList.toggle('hidden', era !== 'all' && r.dataset.era !== era);
+  });
+}
+
+// ── Select ────────────────────────────────────────────────────────────────
+function selectMeme(i) {
+  if (activeIdx === i) return;
+  const wasNull = activeIdx === null;
+  activeIdx = i;
+  const item = MEMES[i];
+
+  document.querySelectorAll('.meme-row').forEach((r, j) => {
+    r.classList.toggle('active', j === i);
+  });
+
+  const emptyEl   = document.getElementById('detail-empty');
+  const mainEl    = document.getElementById('detail-main');
+  const nameEl    = document.getElementById('detail-name');
+  const tagEl     = document.getElementById('detail-tagline');
+  const bodyEl    = document.getElementById('detail-body');
+  const eraText   = document.getElementById('detail-era-text');
+  const eraDot    = document.getElementById('detail-era-dot');
+  const yearEl    = document.getElementById('detail-year');
+  const watermark = document.getElementById('detail-watermark');
+
+  mainEl.style.opacity   = '0';
+  mainEl.style.transform = 'translateY(6px)';
+
+  setTimeout(() => {
+    emptyEl.style.display = 'none';
+    mainEl.style.display  = 'block';
+    mainEl.style.transition = 'none';
+    document.getElementById('ascii-col').style.opacity    = '1';
+    document.getElementById('ascii-divider').style.opacity = '1';
+
+    nameEl.textContent      = item.name.toUpperCase();
+    tagEl.textContent       = item.tag;
+    bodyEl.innerHTML        = item.body;
+    eraText.textContent     = ERA_LABELS[item.era];
+    eraDot.style.background = ERA_COLORS[item.era];
+    yearEl.textContent      = item.year;
+    watermark.textContent   = item.name.split(' ')[0].toUpperCase();
+
+    // ASCII art
+    const asciiEl = document.getElementById('ascii-art');
+    asciiEl.textContent    = item.ascii || '';
+    asciiEl.style.color    = ERA_COLORS[item.era];
+    asciiEl.style.textShadow = `0 0 10px ${ERA_COLORS[item.era]}55`;
+
+    // Era color on name
+    nameEl.style.color      = ERA_COLORS[item.era];
+    nameEl.style.textShadow = `0 0 30px ${ERA_COLORS[item.era]}44, 0 0 60px ${ERA_COLORS[item.era]}22`;
+
+    requestAnimationFrame(() => {
+      mainEl.style.transition = 'opacity 0.3s, transform 0.3s';
+      mainEl.style.opacity    = '1';
+      mainEl.style.transform  = 'translateY(0)';
+    });
+  }, wasNull ? 0 : 140);
+}
+
+// ── Info popup ────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>
