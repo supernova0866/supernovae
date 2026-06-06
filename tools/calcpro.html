@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CalcPro™ — The Premium Calculator Experience</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --accent: #6c63ff;
+    --gold: #f5c842;
+    --text: #f0f0f8;
+    --muted: #888899;
+    --green: #22c55e;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%; left: 50%;
+    transform: translateX(-50%);
+    width: 800px; height: 600px;
+    background: radial-gradient(ellipse, rgba(108,99,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .brand {
+    text-align: center;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .brand-logo {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .brand-logo .badge {
+    background: linear-gradient(135deg, var(--gold), #e8a020);
+    color: #000; font-size: 9px; font-weight: 800;
+    letter-spacing: 0.1em; padding: 2px 6px; border-radius: 4px;
+  }
+  .brand-tagline { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+  /* ── CALCULATOR ── */
+  .calculator {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 20px;
+    width: 380px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(108,99,255,0.08);
+  }
+
+  .display {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px 12px;
+    margin-bottom: 16px;
+    text-align: right;
+    min-height: 88px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .display-expr {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 20px;
+    word-break: break-all;
+    line-height: 1.4;
+    text-align: right;
+  }
+  .display-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 36px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 6px;
+  }
+  .display-value.error { color: #ff6584; font-size: 22px; }
+
+  /* 5-column grid */
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.08s, filter 0.08s, box-shadow 0.08s;
+    position: relative;
+    overflow: hidden;
+    line-height: 1;
+  }
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.08s;
+    border-radius: inherit;
+  }
+  .btn:hover::after { background: rgba(255,255,255,0.06); }
+  .btn:active { transform: scale(0.92); }
+
+  .btn-num {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-op {
+    background: rgba(108,99,255,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(108,99,255,0.2);
+    font-size: 18px;
+  }
+  .btn-fn {
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .btn-bracket {
+    background: rgba(245,200,66,0.08);
+    color: var(--gold);
+    border: 1px solid rgba(245,200,66,0.18);
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .btn-special {
+    background: rgba(34,197,94,0.08);
+    color: var(--green);
+    border: 1px solid rgba(34,197,94,0.18);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .btn-eq {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #fff;
+    font-size: 22px;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.4);
+    border: none;
+    grid-column: span 2;
+  }
+  .btn-eq:hover { filter: brightness(1.1); box-shadow: 0 6px 28px rgba(108,99,255,0.55); }
+  .btn-zero { grid-column: span 2; }
+
+  /* ── OVERLAYS ── */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  .overlay.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── PAYWALL MODAL ── */
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 24px; width: 100%; max-width: 520px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+    animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    overflow: hidden;
+  }
+  .modal-header {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 28px 24px; text-align: center;
+  }
+  .modal-header .lock-icon { font-size: 32px; margin-bottom: 10px; display: block; }
+  .modal-header h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .modal-header p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .modal-header .expression-preview {
+    display: inline-block; margin-top: 12px;
+    background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.25);
+    border-radius: 8px; padding: 6px 14px;
+    font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent);
+    word-break: break-all; max-width: 100%;
+  }
+
+  .modal-body { padding: 24px 28px; }
+  .pricing-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+
+  .plan-card {
+    border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 16px 18px; cursor: pointer;
+    transition: border-color 0.18s, background 0.18s, transform 0.12s;
+    display: flex; align-items: center; gap: 14px;
+    position: relative; overflow: hidden;
+  }
+  .plan-card:hover { border-color: rgba(108,99,255,0.5); background: rgba(108,99,255,0.05); transform: translateX(3px); }
+  .plan-card.selected { border-color: var(--accent); background: rgba(108,99,255,0.1); }
+  .plan-card.popular { border-color: var(--gold); }
+  .plan-card.popular.selected { border-color: var(--gold); background: rgba(245,200,66,0.07); }
+
+  .popular-badge {
+    position: absolute; top: -1px; right: 16px;
+    background: linear-gradient(135deg, var(--gold), #e8a020);
+    color: #000; font-size: 9px; font-weight: 800;
+    letter-spacing: 0.1em; padding: 3px 9px;
+    border-radius: 0 0 8px 8px; text-transform: uppercase;
+  }
+  .plan-radio {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: border-color 0.18s;
+  }
+  .plan-card.selected .plan-radio { border-color: var(--accent); }
+  .plan-card.popular.selected .plan-radio { border-color: var(--gold); }
+  .plan-radio-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); display: none;
+  }
+  .plan-card.selected .plan-radio-dot { display: block; }
+  .plan-card.popular.selected .plan-radio-dot { background: var(--gold); }
+
+  .plan-info { flex: 1; }
+  .plan-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .plan-desc { font-size: 12px; color: var(--muted); }
+  .plan-price { text-align: right; }
+  .plan-amount { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .plan-period { font-size: 11px; color: var(--muted); }
+  .plan-card:nth-child(1) .plan-amount { color: var(--text); }
+  .plan-card:nth-child(2) .plan-amount { color: var(--accent); }
+  .plan-card:nth-child(3) .plan-amount { color: var(--gold); }
+
+  .features-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .feature-chip {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--muted);
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 10px;
+  }
+  .feature-chip .dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; }
+
+  .btn-cta {
+    width: 100%; padding: 16px; border-radius: 12px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white; box-shadow: 0 4px 20px rgba(108,99,255,0.35); letter-spacing: 0.02em;
+  }
+  .btn-cta:hover { filter: brightness(1.1); box-shadow: 0 6px 28px rgba(108,99,255,0.5); }
+  .btn-cta:active { transform: scale(0.98); }
+
+  .modal-footer {
+    text-align: center; padding: 0 28px 20px;
+    font-size: 11px; color: var(--muted); line-height: 1.6;
+  }
+  .modal-footer a { color: var(--accent); text-decoration: none; }
+
+  /* ── PAYMENT MODAL ── */
+  .payment-modal { max-width: 460px; }
+  .payment-header { padding: 24px 28px 0; display: flex; align-items: center; gap: 12px; }
+  .back-btn {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 16px; cursor: pointer;
+    width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s; flex-shrink: 0;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.1); }
+  .payment-header h2 { font-size: 20px; font-weight: 700; }
+
+  .order-summary {
+    margin: 20px 28px 0; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
+  }
+  .order-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: var(--muted); margin-bottom: 8px;
+  }
+  .order-row:last-child { margin-bottom: 0; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px; }
+  .order-row.total { font-size: 15px; font-weight: 700; color: var(--text); }
+
+  .payment-form { padding: 20px 28px; }
+  .field-group { margin-bottom: 16px; }
+  .field-label {
+    display: block; font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .field-input {
+    width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 14px; padding: 12px 14px; outline: none; transition: border-color 0.18s;
+  }
+  .field-input::placeholder { color: var(--muted); font-family: 'DM Sans', sans-serif; }
+  .field-input:focus { border-color: var(--accent); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .card-icons { display: flex; gap: 6px; margin-bottom: 14px; }
+  .card-icon {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 700; color: var(--muted);
+  }
+  .card-icon.visa { color: #1a72d9; }
+  .card-icon.mc { color: #eb001b; }
+  .card-icon.amex { color: #2e77bc; }
+
+  .secure-badge {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; font-size: 11px; color: var(--muted); margin-top: 14px;
+  }
+
+  /* ── SUCCESS MODAL ── */
+  .success-modal {
+    max-width: 400px; text-align: center; padding: 48px 36px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+    animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .success-icon { font-size: 56px; margin-bottom: 16px; display: block; animation: pop 0.4s 0.2s both cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .success-modal h2 { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+  .success-modal p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 8px; }
+  .result-box {
+    background: var(--surface2); border: 1px solid rgba(108,99,255,0.25);
+    border-radius: 12px; padding: 14px 20px; margin: 20px 0; font-family: 'DM Mono', monospace;
+  }
+  .result-expr { font-size: 12px; color: var(--muted); margin-bottom: 4px; word-break: break-all; }
+  .result-answer { font-size: 32px; font-weight: 500; color: var(--accent); }
+
+  .btn-done {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--green), #16a34a); color: white;
+    font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(34,197,94,0.3); transition: filter 0.15s; margin-top: 4px;
+  }
+  .btn-done:hover { filter: brightness(1.1); }
+  .fine-print { font-size: 10px; color: rgba(136,136,153,0.6); margin-top: 16px; line-height: 1.5; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 30px; padding: 10px 20px; font-size: 13px; color: var(--text);
+    z-index: 999; opacity: 0; transition: transform 0.3s, opacity 0.3s; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <div class="brand-logo">CalcPro™ <span class="badge">Enterprise</span></div>
+  <div class="brand-tagline">The world's most trusted calculation platform</div>
+</div>
+
+<!-- CALCULATOR -->
+<div class="calculator">
+  <div class="display">
+    <div class="display-expr" id="expr"></div>
+    <div class="display-value" id="display">0</div>
+  </div>
+  <div class="buttons">
+    <!-- Row 1: fn row -->
+    <button class="btn btn-fn" onclick="clearAll()">AC</button>
+    <button class="btn btn-fn btn-del" onclick="backspace()">⌫</button>
+    <button class="btn btn-bracket" onclick="addBracket()">(  )</button>
+    <button class="btn btn-special" onclick="addSpecial('sqrt(')">√</button>
+    <button class="btn btn-special" onclick="addOp('^')">xʸ</button>
+    <!-- Row 2 -->
+    <button class="btn btn-num" onclick="addDigit('7')">7</button>
+    <button class="btn btn-num" onclick="addDigit('8')">8</button>
+    <button class="btn btn-num" onclick="addDigit('9')">9</button>
+    <button class="btn btn-op" onclick="addOp('÷')">÷</button>
+    <button class="btn btn-fn" onclick="addSpecial('log(')">log</button>
+    <!-- Row 3 -->
+    <button class="btn btn-num" onclick="addDigit('4')">4</button>
+    <button class="btn btn-num" onclick="addDigit('5')">5</button>
+    <button class="btn btn-num" onclick="addDigit('6')">6</button>
+    <button class="btn btn-op" onclick="addOp('×')">×</button>
+    <button class="btn btn-fn" onclick="addSpecial('ln(')">ln</button>
+    <!-- Row 4 -->
+    <button class="btn btn-num" onclick="addDigit('1')">1</button>
+    <button class="btn btn-num" onclick="addDigit('2')">2</button>
+    <button class="btn btn-num" onclick="addDigit('3')">3</button>
+    <button class="btn btn-op" onclick="addOp('−')">−</button>
+    <button class="btn btn-fn" onclick="addSpecial('abs(')">|x|</button>
+    <!-- Row 5 -->
+    <button class="btn btn-num btn-zero" onclick="addDigit('0')">0</button>
+    <button class="btn btn-num" onclick="addDot()">.</button>
+    <button class="btn btn-fn" onclick="toggleSign()">+/−</button>
+    <button class="btn btn-op" onclick="addOp('+')">+</button>
+    <!-- Row 6 - = spans 2 -->
+    <button class="btn btn-fn" onclick="addSpecial('π')">π</button>
+    <button class="btn btn-fn" onclick="addSpecial('e')">e</button>
+    <button class="btn btn-fn" onclick="addOp('%')">%</button>
+    <button class="btn btn-eq" onclick="openPaywall()">=</button>
+  </div>
+</div>
+
+<!-- PAYWALL OVERLAY -->
+<div class="overlay" id="paywallOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="lock-icon">🔐</span>
+      <h2>Unlock Your Result</h2>
+      <p>You've used your <strong style="color:var(--text)">free calculation</strong> for today.<br>Choose a plan to see the answer.</p>
+      <div class="expression-preview" id="exprPreview"></div>
+    </div>
+    <div class="modal-body">
+      <div class="pricing-grid">
+        <div class="plan-card" id="plan-single" onclick="selectPlan('single')">
+          <div class="plan-radio"><div class="plan-radio-dot"></div></div>
+          <div class="plan-info">
+            <div class="plan-name">1 Calculation</div>
+            <div class="plan-desc">One-time. Single use. No commitment.</div>
+          </div>
+          <div class="plan-price">
+            <div class="plan-amount">$1.99</div>
+            <div class="plan-period">one-time</div>
+          </div>
+        </div>
+        <div class="plan-card popular" id="plan-monthly" onclick="selectPlan('monthly')">
+          <div class="popular-badge">⭐ Most Popular</div>
+          <div class="plan-radio"><div class="plan-radio-dot"></div></div>
+          <div class="plan-info">
+            <div class="plan-name">Monthly Subscription</div>
+            <div class="plan-desc">Unlimited calculations. Cancel anytime*</div>
+          </div>
+          <div class="plan-price">
+            <div class="plan-amount">$12.99</div>
+            <div class="plan-period">per month</div>
+          </div>
+        </div>
+        <div class="plan-card" id="plan-yearly" onclick="selectPlan('yearly')">
+          <div class="plan-radio"><div class="plan-radio-dot"></div></div>
+          <div class="plan-info">
+            <div class="plan-name">Yearly Subscription</div>
+            <div class="plan-desc">Best value. Priority math support. 🚀</div>
+          </div>
+          <div class="plan-price">
+            <div class="plan-amount">$99.99</div>
+            <div class="plan-period">per year</div>
+          </div>
+        </div>
+      </div>
+      <div class="features-row">
+        <div class="feature-chip"><span class="dot"></span>256-bit encryption</div>
+        <div class="feature-chip"><span class="dot"></span>GDPR compliant</div>
+        <div class="feature-chip"><span class="dot"></span>SOC 2 Type II</div>
+        <div class="feature-chip"><span class="dot"></span>ISO 27001</div>
+        <div class="feature-chip"><span class="dot"></span>99.99% uptime</div>
+      </div>
+      <button class="btn-cta" onclick="openPayment()">Continue to Payment →</button>
+    </div>
+    <div class="modal-footer">
+      *Cancel anytime after minimum 12-month commitment. Results may vary. CalcPro™ is not responsible for arithmetic errors or existential crises. By continuing you agree to our <a href="#">Terms of Service</a>, <a href="#">Privacy Policy</a>, and <a href="#">Cookie Manifesto</a>.
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT OVERLAY -->
+<div class="overlay" id="paymentOverlay">
+  <div class="modal payment-modal" id="paymentModal">
+    <div class="payment-header">
+      <button class="back-btn" onclick="backToPaywall()">←</button>
+      <h2>Secure Checkout</h2>
+    </div>
+    <div class="order-summary">
+      <div class="order-row"><span>Plan</span><span id="summaryPlan">—</span></div>
+      <div class="order-row"><span>Calculation fee</span><span>included</span></div>
+      <div class="order-row"><span>Platform fee (3.5%)</span><span id="summaryFee">—</span></div>
+      <div class="order-row total"><span>Total today</span><span id="summaryTotal">—</span></div>
+    </div>
+    <div class="payment-form">
+      <div class="field-group">
+        <label class="field-label">Cardholder Name</label>
+        <input class="field-input" type="text" placeholder="Ada Lovelace" id="cardName" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Card Number</label>
+        <div class="card-icons">
+          <span class="card-icon visa">VISA</span>
+          <span class="card-icon mc">MC</span>
+          <span class="card-icon amex">AMEX</span>
+        </div>
+        <input class="field-input" type="text" placeholder="1234  5678  9012  3456" id="cardNum" maxlength="22" oninput="formatCard(this)" />
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Expiry</label>
+          <input class="field-input" type="text" placeholder="MM / YY" id="cardExp" maxlength="7" oninput="formatExpiry(this)" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">CVV</label>
+          <input class="field-input" type="text" placeholder="•••" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Email (for receipt)</label>
+        <input class="field-input" type="email" placeholder="ada@example.com" id="cardEmail" />
+      </div>
+      <button class="btn-cta" onclick="processPayment()">Pay — Get My Answer</button>
+      <div class="secure-badge">
+        <span>🔒</span>
+        <span>Secured by CalcPro™ Vault. Your data is safe (probably).</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="overlay" id="successOverlay">
+  <div class="success-modal">
+    <span class="success-icon">🎉</span>
+    <h2>Payment Successful!</h2>
+    <p>Thank you for trusting CalcPro™ with your arithmetic needs.</p>
+    <div class="result-box">
+      <div class="result-expr" id="resultExpr"></div>
+      <div class="result-answer" id="resultAnswer"></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted)">A receipt has been sent to your inbox. Charges will appear as <strong style="color:var(--text)">"CALCPRO ENTERPRISE LLC"</strong> on your statement.</p>
+    <button class="btn-done" onclick="closeSuccess()">✓ Done — Back to Calculator</button>
+    <div class="fine-print">
+      Next calculation charged at full rate. Save 60% by upgrading to CalcPro™ Platinum (coming soon). Premium features include: Dark Mode, Copy Result button, and access to the number 7.
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── EXPRESSION-BASED ENGINE ──────────────────────────
+  // We store the raw expression string and evaluate it on =
+  // Display shows the pretty expression; bottom shows live preview
+
+  let expr = '';          // the expression being built (uses ÷ × − for display)
+  let justEvaled = false; // true right after a result was shown
+
+  const displayEl = document.getElementById('display');
+  const exprEl    = document.getElementById('expr');
+
+  // All operator characters (unicode-safe)
+  const OPS = ['+', '−', '×', '÷', '^', '%'];
+
+  function isOp(ch) { return OPS.includes(ch); }
+
+  function lastChar() { return expr ? expr.slice(-1) : ''; }
+
+  function isLastCharOp() {
+    const ch = lastChar();
+    return isOp(ch) || ch === '(';
+  }
+
+  function isLastCharDigitOrClose() {
+    return /[\d.)πe]/.test(lastChar());
+  }
+
+  // Strip ALL trailing operators/dots so we never accumulate junk
+  function stripTrailingOps() {
+    while (expr.length && (isOp(lastChar()) || lastChar() === '.')) {
+      expr = expr.slice(0, -1);
+    }
+  }
+
+  function updateDisplay() {
+    exprEl.textContent = expr || '';
+    if (expr === '') {
+      displayEl.textContent = '0';
+      displayEl.className = 'display-value';
+      displayEl.style.fontSize = '36px';
+      return;
+    }
+    // Show the last number token being typed
+    const tail = expr.match(/[\d.]+$/) ;
+    displayEl.textContent = tail ? tail[0] : expr;
+    displayEl.className = 'display-value';
+    const len = displayEl.textContent.length;
+    displayEl.style.fontSize = len > 12 ? '20px' : len > 8 ? '26px' : '36px';
+  }
+
+  function addDigit(d) {
+    if (justEvaled) { expr = ''; justEvaled = false; }
+    expr += d;
+    updateDisplay();
+  }
+
+  function addDot() {
+    if (justEvaled) { expr = '0'; justEvaled = false; }
+    if (!expr || isLastCharOp()) expr += '0';
+    // Don't add dot if current number already has one
+    const parts = expr.split(/[+−×÷^%()\s]/);
+    if (parts[parts.length - 1].includes('.')) return;
+    expr += '.';
+    updateDisplay();
+  }
+
+  function addOp(op) {
+    if (justEvaled) justEvaled = false;
+    // Allow leading minus only
+    if (!expr) {
+      if (op === '−') { expr = '−'; updateDisplay(); }
+      return;
+    }
+    // After open-bracket, allow leading minus only
+    if (lastChar() === '(') {
+      if (op === '−') { expr += '−'; updateDisplay(); }
+      return;
+    }
+    // Replace any trailing operator(s) with new one
+    stripTrailingOps();
+    if (!expr) return;
+    expr += op;
+    updateDisplay();
+  }
+
+  function addBracket() {
+    if (justEvaled) { expr = ''; justEvaled = false; }
+    const opens  = (expr.match(/\(/g) || []).length;
+    const closes = (expr.match(/\)/g) || []).length;
+    const shouldOpen = opens === closes || isLastCharOp() || expr === '' || lastChar() === '(';
+    if (shouldOpen) {
+      if (isLastCharDigitOrClose()) expr += '×';
+      expr += '(';
+    } else {
+      // Don't close if nothing inside the bracket
+      if (lastChar() !== '(') expr += ')';
+    }
+    updateDisplay();
+  }
+
+  function addSpecial(token) {
+    if (justEvaled) { expr = ''; justEvaled = false; }
+    if (isLastCharDigitOrClose()) expr += '×';
+    expr += token;
+    updateDisplay();
+  }
+
+  function backspace() {
+    if (justEvaled) { clearAll(); return; }
+    if (!expr) return;
+    // Remove multi-char tokens as one unit
+    if      (expr.endsWith('sqrt(')) expr = expr.slice(0, -5);
+    else if (expr.endsWith('log('))  expr = expr.slice(0, -4);
+    else if (expr.endsWith('abs('))  expr = expr.slice(0, -4);
+    else if (expr.endsWith('ln('))   expr = expr.slice(0, -3);
+    else                              expr = expr.slice(0, -1);
+    updateDisplay();
+  }
+
+  function toggleSign() {
+    if (!expr || justEvaled) {
+      // Start fresh with a negative
+      if (justEvaled) { expr = ''; justEvaled = false; }
+      expr = '−';
+      updateDisplay();
+      return;
+    }
+    // Find the last number segment and toggle its sign
+    // Match an optional leading minus then digits/dot at end of expr
+    const m = expr.match(/^(.*?)([+×÷^%(])(−?)(\d[\d.]*)$/);
+    if (m) {
+      // Number follows an operator/bracket
+      expr = m[1] + m[2] + (m[3] ? '' : '−') + m[4];
+    } else {
+      // Number is at the very start of expression
+      const m2 = expr.match(/^(−?)(\d[\d.]*.*)$/);
+      if (m2) {
+        expr = (m2[1] ? '' : '−') + m2[2];
+      }
+    }
+    updateDisplay();
+  }
+
+  function clearAll() {
+    expr = ''; justEvaled = false;
+    displayEl.className = 'display-value';
+    displayEl.style.fontSize = '36px';
+    updateDisplay();
+  }
+
+  // ── EVALUATOR ─────────────────────────────────────────
+  function evaluate(rawExpr) {
+    // Replace display symbols with JS-safe equivalents
+    let e = rawExpr
+      .replace(/×/g, '*')
+      .replace(/÷/g, '/')
+      .replace(/−/g, '-')
+      .replace(/π/g, '(' + Math.PI + ')')
+      .replace(/\be\b/g, '(' + Math.E + ')')
+      .replace(/sqrt\(/g, 'Math.sqrt(')
+      .replace(/log\(/g,  'Math.log10(')
+      .replace(/ln\(/g,   'Math.log(')
+      .replace(/abs\(/g,  'Math.abs(')
+      .replace(/\^/g,     '**')
+      .replace(/%/g,      '/100');
+
+    // Auto-close unclosed brackets
+    const opens  = (e.match(/\(/g) || []).length;
+    const closes = (e.match(/\)/g) || []).length;
+    e += ')'.repeat(Math.max(0, opens - closes));
+
+    try {
+      // eslint-disable-next-line no-new-func
+      const result = Function('"use strict"; return (' + e + ')')();
+      if (!isFinite(result)) return 'Error';
+      if (isNaN(result)) return 'Error';
+      // Round to avoid floating-point noise
+      return parseFloat(result.toPrecision(12)).toString();
+    } catch {
+      return 'Error';
+    }
+  }
+
+  // ── PAYWALL ──────────────────────────────────────────
+  let pendingExpression = '';
+  let pendingResult     = '';
+
+  function openPaywall() {
+    if (!expr) { showToast('Enter a calculation first! 🤨'); return; }
+    const result = evaluate(expr);
+    if (result === 'Error') {
+      showToast('Fix the expression first 🧮');
+      displayEl.textContent = 'Error';
+      displayEl.className = 'display-value error';
+      return;
+    }
+    pendingExpression = expr;
+    pendingResult     = result;
+    document.getElementById('exprPreview').textContent = expr + ' = ?';
+    document.getElementById('paywallOverlay').classList.add('active');
+  }
+
+  // ── PLAN STATE ───────────────────────────────────────
+  const plans = {
+    single:  { name: '1 Calculation',        price: 1.99  },
+    monthly: { name: 'Monthly Subscription',  price: 12.99 },
+    yearly:  { name: 'Yearly Subscription',   price: 99.99 },
+  };
+  let selectedPlan = 'monthly';
+  selectPlan('monthly');
+
+  function selectPlan(key) {
+    selectedPlan = key;
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('plan-' + key).classList.add('selected');
+  }
+
+  function openPayment() {
+    const plan  = plans[selectedPlan];
+    const fee   = (plan.price * 0.035).toFixed(2);
+    const total = (plan.price + parseFloat(fee)).toFixed(2);
+    document.getElementById('summaryPlan').textContent  = plan.name;
+    document.getElementById('summaryFee').textContent   = '$' + fee;
+    document.getElementById('summaryTotal').textContent = '$' + total;
+    const payBtn = document.querySelector('#paymentModal .btn-cta');
+    payBtn.textContent = 'Pay $' + total + ' — Get My Answer';
+    payBtn.disabled = false;
+    payBtn.style.opacity = '';
+    document.getElementById('paywallOverlay').classList.remove('active');
+    document.getElementById('paymentOverlay').classList.add('active');
+  }
+
+  function backToPaywall() {
+    document.getElementById('paymentOverlay').classList.remove('active');
+    document.getElementById('paywallOverlay').classList.add('active');
+  }
+
+  function processPayment() {
+    const name  = document.getElementById('cardName').value.trim();
+    const num   = document.getElementById('cardNum').value.trim();
+    const exp   = document.getElementById('cardExp').value.trim();
+    const email = document.getElementById('cardEmail').value.trim();
+    if (!name || !num || !exp || !email) { showToast('Please fill in all fields 😇'); return; }
+    if (num.replace(/\s/g,'').length < 16) { showToast('Invalid card number'); return; }
+    if (!email.includes('@')) { showToast('Invalid email'); return; }
+
+    const btn = document.querySelector('#paymentModal .btn-cta');
+    btn.textContent = 'Processing...';
+    btn.style.opacity = '0.7';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      btn.style.opacity = '';
+      btn.disabled = false;
+      document.getElementById('paymentOverlay').classList.remove('active');
+
+      document.getElementById('resultExpr').textContent   = pendingExpression + ' =';
+      document.getElementById('resultAnswer').textContent = pendingResult;
+      document.getElementById('successOverlay').classList.add('active');
+
+      // Show result on calculator
+      exprEl.textContent = pendingExpression + ' =';
+      displayEl.textContent = pendingResult;
+      displayEl.className = 'display-value';
+      const len = pendingResult.length;
+      displayEl.style.fontSize = len > 12 ? '20px' : len > 8 ? '26px' : '36px';
+      expr = pendingResult;
+      justEvaled = true;
+    }, 1800);
+  }
+
+  function closeSuccess() {
+    document.getElementById('successOverlay').classList.remove('active');
+  }
+
+  // ── HELPERS ──────────────────────────────────────────
+  function formatCard(input) {
+    let v = input.value.replace(/\D/g,'').substring(0,16);
+    input.value = v.replace(/(.{4})/g,'$1  ').trim();
+  }
+
+  function formatExpiry(input) {
+    let v = input.value.replace(/\D/g,'');
+    if (v.length >= 2) v = v.substring(0,2) + ' / ' + v.substring(2,4);
+    input.value = v;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  document.querySelectorAll('.overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.classList.remove('active');
+    });
+  });
+</script>
+
+<style>
+  #btn-info {
+    position: fixed; bottom: 24px; right: 24px; z-index: 500;
+    background: transparent; border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    padding: 6px 12px; cursor: pointer;
+    transition: all 0.2s; opacity: 0.6;
+  }
+  #btn-info:hover { opacity: 1; border-color: var(--text); }
+
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+  }
+  .info-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .info-box {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 28px 32px 24px;
+    min-width: 300px; position: relative;
+    transform: translateY(10px) scale(0.97);
+    transition: transform 0.22s ease;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  }
+  .info-overlay.open .info-box { transform: translateY(0) scale(1); }
+
+  .info-brand {
+    display: block; font-family: 'DM Mono', monospace; font-size: 18px;
+    letter-spacing: 4px; color: var(--text); text-transform: uppercase;
+    margin-bottom: 20px; text-decoration: none; transition: opacity 0.15s;
+  }
+  .info-brand:hover { opacity: 0.6; }
+
+  .info-close {
+    position: absolute; top: 14px; right: 14px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px;
+    padding: 3px 8px; cursor: pointer;
+    transition: all 0.15s; opacity: 0.5;
+  }
+  .info-close:hover { opacity: 1; }
+
+  .info-line {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    letter-spacing: 1px; color: var(--muted); line-height: 2.4;
+  }
+  .info-line span { color: var(--text); }
+  .info-nova { color: var(--accent); text-decoration: none; }
+  .info-nova:hover { opacity: 0.7; }
+</style>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<div class="info-overlay" id="info-overlay" onclick="if(event.target.id==='info-overlay') closeInfo()">
+  <div class="info-box">
+    <a href="index.html" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+<script>
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+</script>
+</body>
+</html>
