@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCALE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+  --bg:       #04060f;
+  --panel:    #080d1a;
+  --border:   rgba(0,255,200,0.15);
+  --cyan:     #00ffc8;
+  --purple:   #9b5de5;
+  --pink:     #ff006e;
+  --yellow:   #ffd60a;
+  --dim:      rgba(0,255,200,0.35);
+  --mono:     'Share Tech Mono', monospace;
+  --display:  'Orbitron', sans-serif;
+  --title:    'Bebas Neue', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); color: var(--cyan); font-family: var(--mono); }
+
+/* ── Starfield ── */
+#stars {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(1px 1px at 10% 20%, rgba(0,255,200,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 80%, rgba(155,93,229,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 40%, rgba(0,255,200,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 10%, rgba(255,214,10,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 60%, rgba(0,255,200,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 20% 55%, rgba(155,93,229,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 75%, rgba(0,255,200,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 15%, rgba(255,0,110,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 35%, rgba(0,255,200,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 90%, rgba(255,214,10,0.4) 0%, transparent 100%);
+}
+
+/* ── Layout ── */
+#app {
+  position: relative; z-index: 1;
+  width: 100vw; height: 100vh;
+}
+
+/* ── Floating dial ── */
+#dial-panel {
+  position: fixed;
+  left: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 20;
+}
+
+#dial-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 4px;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+/* Revolver cylinder */
+#cylinder-wrap {
+  position: relative;
+  width: 130px;
+  height: 210px;
+  overflow: hidden;
+  cursor: ns-resize;
+}
+
+/* Slot glow lines */
+#cylinder-wrap::before,
+#cylinder-wrap::after {
+  content: '';
+  position: absolute; left: 0; right: 0; z-index: 10; pointer-events: none;
+}
+#cylinder-wrap::before {
+  top: 0; height: 64px;
+  background: linear-gradient(180deg, var(--bg) 0%, transparent 100%);
+}
+#cylinder-wrap::after {
+  bottom: 0; height: 64px;
+  background: linear-gradient(0deg, var(--bg) 0%, transparent 100%);
+}
+
+/* Active slot highlight */
+.slot-active-line-top,
+.slot-active-line-bot {
+  position: absolute; left: 8px; right: 8px;
+  height: 1px; z-index: 11; pointer-events: none;
+}
+.slot-active-line-top {
+  top: 70px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  box-shadow: 0 0 6px var(--cyan);
+}
+.slot-active-line-bot {
+  top: 140px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  box-shadow: 0 0 6px var(--cyan);
+}
+
+#cylinder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  will-change: transform;
+  transition: transform 0.38s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dial-slot {
+  width: 124px;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-shrink: 0;
+  transition: opacity 0.3s;
+}
+
+.dial-slot.active  { opacity: 1; }
+.dial-slot.adjacent { opacity: 0.35; }
+.dial-slot.far      { opacity: 0.1; }
+
+.dial-name {
+  font-family: var(--display);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--dim);
+  text-align: center;
+  line-height: 1.3;
+}
+.dial-slot.active .dial-name {
+  color: var(--cyan);
+  font-size: 11px;
+}
+
+.dial-exp {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: rgba(0,255,200,0.25);
+  letter-spacing: 1px;
+}
+.dial-slot.active .dial-exp { color: rgba(0,255,200,0.55); }
+
+/* Cylinder border decoration */
+.cylinder-border {
+  position: absolute;
+  left: 4px; right: 4px;
+  top: 70px; bottom: 70px;
+  border: 1px solid rgba(0,255,200,0.12);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 9;
+}
+.cylinder-corner {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-color: var(--cyan);
+  border-style: solid;
+  opacity: 0.5;
+}
+.cylinder-corner.tl { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.cylinder-corner.tr { top: -1px; right: -1px; border-width: 1px 1px 0 0; }
+.cylinder-corner.bl { bottom: -1px; left: -1px; border-width: 0 0 1px 1px; }
+.cylinder-corner.br { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+
+/* Scroll hint */
+#scroll-hint {
+  font-size: 7px;
+  letter-spacing: 3px;
+  color: rgba(0,255,200,0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.scroll-arrows { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.scroll-arrow { width: 0; height: 0; }
+.scroll-arrow.up {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid rgba(0,255,200,0.2);
+}
+.scroll-arrow.down {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid rgba(0,255,200,0.2);
+}
+
+/* ── Content: full screen with left padding for dial ── */
+#content {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 80px 48px 220px;
+  gap: 18px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Number display */
+#number-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#number-label {
+  font-size: 9px;
+  letter-spacing: 5px;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+#number-big {
+  font-family: var(--display);
+  font-size: clamp(22px, 3.2vw, 46px);
+  font-weight: 900;
+  color: var(--cyan);
+  line-height: 1.15;
+  letter-spacing: -1px;
+  text-shadow:
+    0 0 40px rgba(0,255,200,0.4),
+    0 0 80px rgba(0,255,200,0.15);
+  word-break: break-all;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+#number-name {
+  font-family: var(--title);
+  font-size: clamp(28px, 4vw, 56px);
+  letter-spacing: 6px;
+  color: var(--purple);
+  text-shadow: 0 0 30px rgba(155,93,229,0.4);
+  line-height: 1;
+  transition: opacity 0.2s;
+}
+
+#number-sci {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: rgba(0,255,200,0.35);
+  margin-top: 2px;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--cyan), rgba(155,93,229,0.5), transparent);
+  opacity: 0.25;
+}
+
+/* Facts */
+#facts-label {
+  font-size: 8px;
+  letter-spacing: 5px;
+  color: var(--dim);
+}
+
+#facts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.fact-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  position: relative;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  transition: border-color 0.3s, opacity 0.25s, transform 0.25s;
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: all;
+}
+.fact-card.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.fact-card:hover { border-color: rgba(0,255,200,0.35); }
+
+.fact-accent {
+  width: 2px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.fact-text {
+  font-size: 11px;
+  line-height: 1.6;
+  color: rgba(0,255,200,0.7);
+  letter-spacing: 0.3px;
+}
+.fact-text strong { color: var(--cyan); font-weight: normal; }
+
+/* Corner brackets on fact cards */
+.fact-card::before, .fact-card::after {
+  content: '';
+  position: absolute;
+  width: 8px; height: 8px;
+  border-color: var(--cyan);
+  border-style: solid;
+  opacity: 0.4;
+}
+.fact-card::before { top: -1px; right: -1px; border-width: 1px 1px 0 0; }
+.fact-card::after  { bottom: -1px; left: -1px; border-width: 0 0 1px 1px; }
+
+/* ── Info button ── */
+#btn-info {
+  position: fixed; top: 12px; right: 12px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--dim); font-size: 14px; font-family: var(--mono);
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; z-index: 30;
+}
+#btn-info:hover { border-color: var(--cyan); color: var(--cyan); }
+.info-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88); backdrop-filter: blur(6px);
+  z-index: 40; align-items: center; justify-content: center;
+}
+.info-overlay.open { display: flex; }
+.info-box {
+  background: #0d0d0d; border: 1px solid var(--border);
+  padding: 28px 32px 24px; position: relative; min-width: 280px;
+}
+.info-brand {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 4px;
+  color: var(--cyan); text-decoration: none; display: block; margin-bottom: 20px;
+}
+.info-brand:hover { opacity: 0.6; }
+.info-close {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: 1px solid var(--border);
+  color: var(--dim); font-size: 11px; font-family: var(--mono);
+  padding: 3px 8px; cursor: pointer;
+}
+.info-close:hover { border-color: var(--cyan); color: var(--cyan); }
+.info-line { font-size: 10px; letter-spacing: 2px; color: var(--dim); line-height: 2.2; }
+.info-nova { color: var(--cyan); text-decoration: none; }
+
+@keyframes flicker {
+  0%,100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.7; }
+  94% { opacity: 1; }
+  97% { opacity: 0.85; }
+  98% { opacity: 1; }
+}
+#number-big { animation: flicker 8s infinite; }
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div id="app">
+
+  <!-- LEFT: Dial -->
+  <div id="dial-panel">
+    <div id="dial-label">// SELECT SCALE</div>
+
+    <div id="cylinder-wrap">
+      <div class="slot-active-line-top"></div>
+      <div class="slot-active-line-bot"></div>
+      <div class="cylinder-border">
+        <div class="cylinder-corner tl"></div>
+        <div class="cylinder-corner tr"></div>
+        <div class="cylinder-corner bl"></div>
+        <div class="cylinder-corner br"></div>
+      </div>
+      <div id="cylinder"></div>
+    </div>
+
+    <div id="scroll-hint">
+      <div class="scroll-arrows">
+        <div class="scroll-arrow up"></div>
+        <div class="scroll-arrow down"></div>
+      </div>
+      SCROLL
+    </div>
+  </div>
+
+  <!-- RIGHT: Content -->
+  <div id="content">
+    <div id="number-display" style="flex-direction:column; gap:10px;">
+      <div id="magnitude-label">// MAGNITUDE</div>
+      <div id="number-big"></div>
+      <div id="number-name"></div>
+      <div id="number-sci"></div>
+    </div>
+
+    <div class="divider" id="content-divider"></div>
+    <div id="facts-label" style="font-size:8px;letter-spacing:5px;color:var(--dim)">// CONTEXT</div>
+    <div id="facts-grid"></div>
+  </div>
+
+</div>
+
+<button id="btn-info" onclick="toggleInfo()">ⓘ</button>
+<div class="info-overlay" id="info-overlay" onclick="handleOverlayClick(event)">
+  <div class="info-box">
+    <a href="#" id="info-brand" class="info-brand">$UPERNOVÆ</a>
+    <button class="info-close" onclick="closeInfo()">✕</button>
+    <div class="info-line">// <span id="info-title">—</span></div>
+    <div class="info-line">// Tool <span id="info-id">—</span></div>
+    <div class="info-line">// Made by <a href="#" id="info-nova" target="_blank" class="info-nova">Nova</a></div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────
+const NUMBERS = [
+  {
+    home: true,
+    dialName: '—',
+    dialExp: '',
+  },
+  {
+    value: '100,000',
+    name: 'ONE HUNDRED THOUSAND',
+    sci: '10⁵',
+    dialName: '100K',
+    dialExp: '10⁵',
+    facts: [
+      { color: '#00ffc8', text: '<strong>100,000 seconds</strong> is 27 hours and 46 minutes — just over a day.' },
+      { color: '#9b5de5', text: 'The human eye contains roughly <strong>100,000 miles</strong> of blood vessels, laid end to end.' },
+      { color: '#ffd60a', text: 'A stack of <strong>100,000 one-dollar bills</strong> would be 35 feet tall.' },
+    ]
+  },
+  {
+    value: '1,000,000',
+    name: 'ONE MILLION',
+    sci: '10⁶',
+    dialName: '1 Million',
+    dialExp: '10⁶',
+    facts: [
+      { color: '#00ffc8', text: '<strong>1 million seconds</strong> is 11 days, 13 hours, and 46 minutes.' },
+      { color: '#9b5de5', text: 'The Earth is about <strong>1 million</strong> times the volume of the Moon.' },
+      { color: '#ff006e', text: 'If you earned <strong>$1 million</strong> a day, it would take 2,740 years to earn a trillion dollars.' },
+    ]
+  },
+  {
+    value: '10,000,000',
+    name: 'TEN MILLION',
+    sci: '10⁷',
+    dialName: '10 Million',
+    dialExp: '10⁷',
+    facts: [
+      { color: '#00ffc8', text: '<strong>10 million seconds</strong> is about 115 days — roughly a third of a year.' },
+      { color: '#ffd60a', text: 'The human body contains approximately <strong>10 million</strong> distinct smell receptors.' },
+      { color: '#9b5de5', text: 'There are roughly <strong>10 million</strong> species of life on Earth, most undiscovered.' },
+    ]
+  },
+  {
+    value: '100,000,000',
+    name: 'ONE HUNDRED MILLION',
+    sci: '10⁸',
+    dialName: '100 Million',
+    dialExp: '10⁸',
+    facts: [
+      { color: '#00ffc8', text: '<strong>100 million seconds</strong> is 3.17 years.' },
+      { color: '#ff006e', text: 'The Sun is about <strong>100 million</strong> times brighter than the full Moon.' },
+      { color: '#9b5de5', text: 'Approximately <strong>100 million</strong> sharks are killed by humans every year.' },
+    ]
+  },
+  {
+    value: '1,000,000,000',
+    name: 'ONE BILLION',
+    sci: '10⁹',
+    dialName: '1 Billion',
+    dialExp: '10⁹',
+    facts: [
+      { color: '#00ffc8', text: '<strong>1 billion seconds</strong> is 31.7 years. Someone born when you hit start would be in their thirties.' },
+      { color: '#ffd60a', text: 'The Milky Way is about <strong>1 billion</strong> trillion kilometres across.' },
+      { color: '#9b5de5', text: 'Your body replaces roughly <strong>1 billion</strong> cells every hour.' },
+    ]
+  },
+  {
+    value: '10,000,000,000',
+    name: 'TEN BILLION',
+    sci: '10¹⁰',
+    dialName: '10 Billion',
+    dialExp: '10¹⁰',
+    facts: [
+      { color: '#00ffc8', text: '<strong>10 billion seconds</strong> is 317 years — from 1700 to today.' },
+      { color: '#ff006e', text: 'The observable universe is estimated to be about <strong>10 billion</strong> light-years in effective radius.' },
+      { color: '#ffd60a', text: 'There are more than <strong>10 billion</strong> neurons in the human cerebral cortex.' },
+    ]
+  },
+  {
+    value: '100,000,000,000',
+    name: 'ONE HUNDRED BILLION',
+    sci: '10¹¹',
+    dialName: '100 Billion',
+    dialExp: '10¹¹',
+    facts: [
+      { color: '#9b5de5', text: 'The Milky Way contains roughly <strong>100 billion</strong> stars.' },
+      { color: '#00ffc8', text: '<strong>100 billion seconds</strong> is 3,170 years — back to ancient Mesopotamia.' },
+      { color: '#ff006e', text: 'About <strong>100 billion</strong> humans have ever lived on Earth, total.' },
+    ]
+  },
+  {
+    value: '1,000,000,000,000',
+    name: 'ONE TRILLION',
+    sci: '10¹²',
+    dialName: '1 Trillion',
+    dialExp: '10¹²',
+    facts: [
+      { color: '#00ffc8', text: '<strong>1 trillion seconds</strong> is 31,710 years — longer than all of recorded human history.' },
+      { color: '#ffd60a', text: 'The observable universe contains roughly <strong>1 trillion</strong> galaxies.' },
+      { color: '#9b5de5', text: 'Your body has about <strong>1 trillion</strong> bacteria on its surface at any moment.' },
+    ]
+  },
+  {
+    value: '10,000,000,000,000',
+    name: 'TEN TRILLION',
+    sci: '10¹³',
+    dialName: '10 Trillion',
+    dialExp: '10¹³',
+    facts: [
+      { color: '#ff006e', text: 'The US national debt has surpassed <strong>$10 trillion</strong> — and counting.' },
+      { color: '#00ffc8', text: '<strong>10 trillion seconds</strong> is 317,000 years — Homo sapiens are only 300,000 years old.' },
+      { color: '#9b5de5', text: 'The human body contains <strong>10 trillion</strong> cells, not counting bacteria.' },
+    ]
+  },
+  {
+    value: '1,000,000,000,000,000',
+    name: 'ONE QUADRILLION',
+    sci: '10¹⁵',
+    dialName: '1 Quadrillion',
+    dialExp: '10¹⁵',
+    facts: [
+      { color: '#00ffc8', text: '<strong>1 quadrillion seconds</strong> is 31.7 million years — dinosaurs were still alive.' },
+      { color: '#ffd60a', text: 'There are an estimated <strong>1 quadrillion</strong> ants on Earth, outweighing all wild mammals combined.' },
+      { color: '#9b5de5', text: 'Light travels about <strong>1 quadrillion</strong> centimetres in a single day.' },
+    ]
+  },
+  {
+    value: '1,000,000,000,000,000,000',
+    name: 'ONE QUINTILLION',
+    sci: '10¹⁸',
+    dialName: '1 Quintillion',
+    dialExp: '10¹⁸',
+    facts: [
+      { color: '#ff006e', text: '<strong>1 quintillion seconds</strong> is 31.7 billion years — more than twice the age of the universe.' },
+      { color: '#00ffc8', text: 'The number of grains of sand on all Earth\'s beaches is estimated between <strong>1–7 quintillion</strong>.' },
+      { color: '#9b5de5', text: 'There are about <strong>1 quintillion</strong> molecules of water in a single drop.' },
+    ]
+  },
+  {
+    value: '1,000,000,000,000,000,000,000',
+    name: 'ONE SEXTILLION',
+    sci: '10²¹',
+    dialName: '1 Sextillion',
+    dialExp: '10²¹',
+    facts: [
+      { color: '#ffd60a', text: 'The mass of Earth\'s oceans is approximately <strong>1.4 sextillion</strong> kilograms.' },
+      { color: '#00ffc8', text: 'The observable universe contains an estimated <strong>1 sextillion</strong> stars — that\'s every star in every galaxy.' },
+      { color: '#9b5de5', text: 'A <strong>sextillion</strong> metres is about 100 light-years — enough to reach a few nearby star systems.' },
+    ]
+  },
+  {
+    value: '1,000,000,000,000,000,000,000,000,000,000',
+    name: 'ONE NONILLION',
+    sci: '10³⁰',
+    dialName: '1 Nonillion',
+    dialExp: '10³⁰',
+    facts: [
+      { color: '#00ffc8', text: 'The Sun emits about <strong>1 nonillion</strong> photons of visible light every second.' },
+      { color: '#ff006e', text: 'There are roughly <strong>1 nonillion</strong> bacteria on Earth — they\'ve been here for 3.8 billion years.' },
+      { color: '#9b5de5', text: 'At this scale, individual atoms become countable within small objects. A grain of sand contains about <strong>10 nonillion</strong> atoms.' },
+    ]
+  },
+  {
+    value: '1' + '0'.repeat(40),
+    name: 'ONE HUNDRED DUODECILLION',
+    sci: '10⁴⁰',
+    dialName: '10⁴⁰',
+    dialExp: 'duodecillion',
+    facts: [
+      { color: '#9b5de5', text: 'The number of atoms in the observable universe is estimated at around <strong>10⁸⁰</strong>. At 10⁴⁰, you\'re halfway to that in exponent terms.' },
+      { color: '#ffd60a', text: 'The Planck volume — the smallest meaningful unit of space — tiled across the observable universe gives roughly <strong>10⁴⁰</strong> cells.' },
+      { color: '#00ffc8', text: 'Numbers at this scale no longer correspond to anything physically countable. <strong>They exist only as mathematics.</strong>' },
+    ]
+  },
+  {
+    value: '1' + '0'.repeat(50),
+    name: 'TEN QUINDECILLION',
+    sci: '10⁵⁰',
+    dialName: '10⁵⁰',
+    dialExp: 'quindecillion',
+    facts: [
+      { color: '#ff006e', text: '<strong>10⁵⁰</strong> is still 30 orders of magnitude smaller than the number of atoms in the observable universe (10⁸⁰). And yet it has no physical meaning we can point to.' },
+      { color: '#9b5de5', text: 'The total number of possible chess games is estimated at roughly <strong>10⁵⁰</strong>. Every game ever played is a single thread in an incomprehensible fabric.' },
+      { color: '#ffd60a', text: 'This number has no physical referent. It is a <strong>ghost quantity</strong> — meaningful only to mathematics, invisible to reality.' },
+    ]
+  },
+  {
+    value: '10⁶⁰',
+    name: 'ONE NOVEMDECILLION',
+    sci: '10⁶⁰',
+    dialName: '10⁶⁰',
+    dialExp: 'novemdecillion',
+    facts: [
+      { color: '#00ffc8', text: 'The number of possible quantum states in the observable universe is estimated near <strong>10⁶⁰</strong>. Every arrangement of every particle.' },
+      { color: '#9b5de5', text: 'If each atom in the universe contained its own universe, the total atom count would approach <strong>10⁶⁰</strong>.' },
+      { color: '#ffd60a', text: 'At this scale, <strong>mathematics diverges from physics</strong>. The number exists with perfect clarity — reality has no room for it.' },
+    ]
+  },
+  {
+    value: '10⁷⁰',
+    name: 'ONE UNVIGINTILLION',
+    sci: '10⁷⁰',
+    dialName: '10⁷⁰',
+    dialExp: 'unvigintillion',
+    facts: [
+      { color: '#ff006e', text: 'The number of Planck-length cubes filling the observable universe is about <strong>10⁶⁰</strong>. At 10⁷⁰ you have ten billion times that.' },
+      { color: '#00ffc8', text: 'There is no known physical process that produces or requires <strong>10⁷⁰</strong> of anything. It belongs only to thought.' },
+      { color: '#9b5de5', text: 'Written out, <strong>10⁷⁰</strong> is a 1 followed by 70 zeros — a line of digits longer than most sentences you will read today.' },
+    ]
+  },
+  {
+    value: '10⁸⁰',
+    name: 'ONE QUATTUORVIGINTILLION',
+    sci: '10⁸⁰',
+    dialName: '10⁸⁰',
+    dialExp: 'quattuorvigintillion',
+    facts: [
+      { color: '#00ffc8', text: '<strong>10⁸⁰</strong> is the estimated number of atoms in the observable universe — every atom in every star in every galaxy across 93 billion light-years.' },
+      { color: '#ffd60a', text: 'This is the last number with a firm physical anchor. Everything beyond <strong>10⁸⁰</strong> exceeds what the universe can count of itself.' },
+      { color: '#ff006e', text: 'If each atom were its own universe, and you counted every atom in all of those, you would reach roughly <strong>10¹⁶⁰</strong>. We are halfway there in exponents only.' },
+    ]
+  },
+  {
+    value: '10⁹⁰',
+    name: 'ONE SEPTEMVIGINTILLION',
+    sci: '10⁹⁰',
+    dialName: '10⁹⁰',
+    dialExp: 'septemvigintillion',
+    facts: [
+      { color: '#9b5de5', text: '<strong>10⁹⁰</strong> is ten billion times the number of atoms in the observable universe. Physical reality has nothing left to count.' },
+      { color: '#00ffc8', text: 'The entropy of the observable universe — all possible arrangements of its matter — is estimated around <strong>10⁹⁰</strong> bits.' },
+      { color: '#ffd60a', text: 'Numbers here are <strong>philosophical objects</strong>. They describe not what is, but what could theoretically be structured.' },
+    ]
+  },
+  {
+    value: '10¹⁰⁰',
+    name: 'ONE GOOGOL',
+    sci: '10¹⁰⁰',
+    dialName: '10¹⁰⁰',
+    dialExp: 'googol',
+    facts: [
+      { color: '#00ffc8', text: 'A <strong>googol</strong> — coined by a nine-year-old in 1920. The word that became Google. A 1 followed by one hundred zeros.' },
+      { color: '#ff006e', text: 'A googol exceeds the atom count of the universe by a factor of <strong>10²⁰</strong> — itself an incomprehensible number.' },
+      { color: '#9b5de5', text: 'The googol has no physical meaning but enormous cultural weight. It is the point where <strong>large numbers became famous</strong>.' },
+    ]
+  },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+let current  = 1;
+let scrolling = false;
+
+// ── Build cylinder ────────────────────────────────────────────────────────
+const cylinder = document.getElementById('cylinder');
+
+function buildCylinder() {
+  cylinder.innerHTML = '';
+  NUMBERS.forEach((n, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'dial-slot';
+    slot.dataset.index = i;
+    slot.innerHTML = `
+      <div class="dial-name">${n.dialName}</div>
+      <div class="dial-exp">${n.dialExp}</div>
+    `;
+    cylinder.appendChild(slot);
+  });
+}
+
+function updateCylinder() {
+  const slotH  = 70;
+  // Center the active slot in the 210px window (window center = 105, slot center = 35 → pad = 70)
+  const pad    = 70;
+  const offset = current * slotH - pad;
+  cylinder.style.transform = `translateY(-${offset}px)`;
+
+  document.querySelectorAll('.dial-slot').forEach((s, i) => {
+    const dist = Math.abs(i - current);
+    s.className = 'dial-slot ' + (dist === 0 ? 'active' : dist === 1 ? 'adjacent' : 'far');
+  });
+}
+
+// ── Update content ────────────────────────────────────────────────────────
+function updateContent(idx, dir) {
+  const n = NUMBERS[idx];
+  if (n.home) return;
+
+  const big  = document.getElementById('number-big');
+  const name = document.getElementById('number-name');
+  const sci  = document.getElementById('number-sci');
+  const grid = document.getElementById('facts-grid');
+
+  big.style.opacity   = '0';
+  big.style.transform = `translateY(${dir > 0 ? '-12px' : '12px'})`;
+  name.style.opacity  = '0';
+
+  setTimeout(() => {
+    big.textContent  = n.value;
+    name.textContent = n.name;
+    sci.textContent  = n.sci;
+    big.style.transition  = 'none';
+    big.style.transform   = `translateY(${dir > 0 ? '12px' : '-12px'})`;
+    big.style.opacity     = '0';
+    name.style.opacity    = '0';
+    requestAnimationFrame(() => {
+      big.style.transition  = 'opacity 0.3s, transform 0.3s';
+      big.style.opacity     = '1';
+      big.style.transform   = 'translateY(0)';
+      name.style.transition = 'opacity 0.3s';
+      name.style.opacity    = '1';
+    });
+  }, 180);
+
+  grid.querySelectorAll('.fact-card').forEach(c => c.classList.remove('visible'));
+  setTimeout(() => {
+    grid.innerHTML = '';
+    n.facts.forEach((f, i) => {
+      const card = document.createElement('div');
+      card.className = 'fact-card';
+      card.innerHTML = `
+        <div class="fact-accent" style="background:${f.color}; box-shadow: 0 0 8px ${f.color}60"></div>
+        <div class="fact-text">${f.text}</div>
+      `;
+      grid.appendChild(card);
+      setTimeout(() => card.classList.add('visible'), 80 + i * 90);
+    });
+  }, 220);
+}
+
+// ── Scroll handler ────────────────────────────────────────────────────────
+let scrollAccum = 0;
+let scrollTimer = null;
+
+window.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  scrollAccum += e.deltaY;
+
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => { scrollAccum = 0; }, 200);
+
+  if (Math.abs(scrollAccum) < 60) return;
+
+  const dir = scrollAccum > 0 ? 1 : -1;
+  scrollAccum = 0;
+
+  const next = Math.max(0, Math.min(NUMBERS.length - 1, current + dir));
+  if (next === current) return;
+
+  current = next;
+  updateCylinder();
+  updateContent(current, dir);
+}, { passive: false });
+
+// Touch support for mobile
+let touchStartY = 0;
+window.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; });
+window.addEventListener('touchend', e => {
+  const dy = touchStartY - e.changedTouches[0].clientY;
+  if (Math.abs(dy) < 30) return;
+  const dir  = dy > 0 ? 1 : -1;
+  const next = Math.max(0, Math.min(NUMBERS.length - 1, current + dir));
+  if (next === current) return;
+  current = next;
+  updateCylinder();
+  updateContent(current, dir);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────
+buildCylinder();
+updateCylinder();
+updateContent(1, 1);
+
+// ── Info popup ────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res  = await fetch('../tools.json');
+    const data = await res.json();
+    const file = window.location.pathname.split('/').pop() || '';
+    const tool = data.tools.find(t => { const s = t.src || t.file || ''; return s === file || s.split('/').pop() === file; });
+    if (tool) {
+      document.getElementById('info-title').textContent = tool.title || tool.name;
+      document.getElementById('info-id').textContent    = '#' + tool.id;
+    }
+    if (data.main) document.getElementById('info-brand').href = data.main;
+    if (data.lore) document.getElementById('info-nova').href  = data.lore;
+  } catch(e) {}
+})();
+
+function toggleInfo() { document.getElementById('info-overlay').classList.toggle('open'); }
+function closeInfo()  { document.getElementById('info-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'info-overlay') closeInfo(); }
+</script>
+</body>
+</html>
